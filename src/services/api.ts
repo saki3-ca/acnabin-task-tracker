@@ -125,7 +125,7 @@ class LocalFallbackStore {
     this.tasks = storedTasks ? JSON.parse(storedTasks) : [...INITIAL_TASKS];
     this.managerClients = storedMgrClients ? JSON.parse(storedMgrClients) : { ...INITIAL_MANAGER_CLIENTS };
     this.managerStudents = storedMgrStudents ? JSON.parse(storedMgrStudents) : { ...INITIAL_MANAGER_STUDENTS };
-    this.currentUser = storedCurrent ? JSON.parse(storedCurrent) : this.users[0];
+    this.currentUser = storedCurrent ? JSON.parse(storedCurrent) : null;
   }
 
   save() {
@@ -154,39 +154,29 @@ export const api = {
       try { parsed = JSON.parse(stored); } catch {}
     }
 
-    try {
-      if (parsed && parsed.id) {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', parsed.id)
-          .maybeSingle();
-        if (!error && data) {
-          const fresh = mapUserFromDb(data);
-          localStorage.setItem('acnabin_current_user', JSON.stringify(fresh));
-          fallbackStore.currentUser = fresh;
-          return fresh;
-        }
-      }
+    if (!parsed || !parsed.id) {
+      fallbackStore.currentUser = null;
+      return null;
+    }
 
-      // If user in localStorage does not exist in DB (or no stored user), pick real user from DB
-      localStorage.removeItem('acnabin_current_user');
-      const { data: dbUsers } = await supabase
+    try {
+      const { data, error } = await supabase
         .from('users')
         .select('*')
-        .order('name', { ascending: true });
-
-      if (dbUsers && dbUsers.length > 0) {
-        const sakib = dbUsers.find((u: any) => u.name?.toUpperCase().includes('SAKIB'));
-        const chosen = mapUserFromDb(sakib || dbUsers[0]);
-        localStorage.setItem('acnabin_current_user', JSON.stringify(chosen));
-        fallbackStore.currentUser = chosen;
-        return chosen;
+        .eq('id', parsed.id)
+        .maybeSingle();
+      if (!error && data) {
+        const fresh = mapUserFromDb(data);
+        localStorage.setItem('acnabin_current_user', JSON.stringify(fresh));
+        fallbackStore.currentUser = fresh;
+        return fresh;
       }
 
-      return fallbackStore.currentUser;
+      localStorage.removeItem('acnabin_current_user');
+      fallbackStore.currentUser = null;
+      return null;
     } catch {
-      return fallbackStore.currentUser;
+      return parsed ? (parsed as User) : fallbackStore.currentUser;
     }
   },
 

@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAllUsers(users);
       setAllClients(clients);
 
-      // Resolve active user: pick real user from DB if current is null or mock
+      // Resolve active user from localStorage session
       setCurrentUser(prev => {
         if (prev && users.some(u => u.id === prev.id)) {
           const matched = users.find(u => u.id === prev.id) || prev;
@@ -53,12 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           } catch {}
         }
-        const sakib = users.find(u => u.name.toUpperCase().includes('SAKIB'));
-        const chosen = sakib || users[0] || null;
-        if (chosen) {
-          try { localStorage.setItem('acnabin_current_user', JSON.stringify(chosen)); } catch {}
-        }
-        return chosen;
+        return null;
       });
     } catch (err) {
       console.error('Failed to load initial context data', err);
