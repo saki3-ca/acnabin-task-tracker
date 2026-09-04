@@ -483,10 +483,8 @@ export const ProfileView: React.FC = () => {
                 <th style={{ width: '50px', textAlign: 'center' }}>SL.</th>
                 <th style={{ width: '120px', textAlign: 'center' }}>Client Code</th>
                 <th style={{ textAlign: 'left', minWidth: '220px' }}>Client / Company Name</th>
-                <th style={{ width: '150px', textAlign: 'center' }}>Job / File No.</th>
-                <th style={{ width: '160px', textAlign: 'center' }}>
-                  {canSeeAll ? 'Active Tasks (All Users)' : 'Your Active Tasks'}
-                </th>
+                <th style={{ width: '150px', textAlign: 'center' }}>Job Number</th>
+                <th style={{ width: '130px', textAlign: 'center' }}>ACTIVE TASKS</th>
                 <th style={{ width: '120px', textAlign: 'center' }}>Engagement Status</th>
               </tr>
             </thead>
@@ -547,10 +545,7 @@ export const ProfileView: React.FC = () => {
                             color: badgeCount > 0 ? '#1E40AF' : '#64748B'
                           }}
                         >
-                          <FileText size={11} />{' '}
-                          {canSeeAll
-                            ? `${activeCount} active (${totalCount} total)`
-                            : `${totalCount} ${totalCount === 1 ? 'task' : 'tasks'}`}
+                          <FileText size={11} /> {badgeCount} {badgeCount === 1 ? 'task' : 'tasks'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
