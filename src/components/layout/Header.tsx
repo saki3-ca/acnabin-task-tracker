@@ -73,28 +73,30 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddTask, onOpenRequestTask
 
         <span className={roleBadgeClass()}>{currentUser.designation}</span>
 
-        {/* Demo Quick Switcher */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Switch User:</span>
-          <select
-            value={currentUser.id}
-            onChange={e => switchUser(e.target.value)}
-            style={{
-              fontSize: '11px',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              border: '1px solid var(--line-strong)',
-              background: '#fff'
-            }}
-            title="Switch user role for testing"
-          >
-            {allUsers.map(u => (
-              <option key={u.id} value={u.id}>
-                {u.name} ({u.designation})
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Quick Switcher (Admin Only) */}
+        {currentUser.role === 'ADMIN' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Switch User:</span>
+            <select
+              value={currentUser.id}
+              onChange={e => switchUser(e.target.value)}
+              style={{
+                fontSize: '11px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                border: '1px solid var(--line-strong)',
+                background: '#fff'
+              }}
+              title="Switch user role (Admin only)"
+            >
+              {allUsers.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.designation})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Actions Nav */}
         <div className="user-actions-nav" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
