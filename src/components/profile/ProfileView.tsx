@@ -70,7 +70,7 @@ function compressImage(file: File): Promise<string> {
 
 export const ProfileView: React.FC = () => {
   const { currentUser, allClients, refreshContextData } = useAuth();
-  const { myTasks, myStats } = useTasks();
+  const { myTasks, teamTasks, myStats } = useTasks();
 
   const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
@@ -129,16 +129,26 @@ export const ProfileView: React.FC = () => {
 
   if (!currentUser) return null;
 
-  // Task distribution across assigned clients
+  // Task distribution across assigned clients:
+  // For AD and above (canSeeAll = true), aggregate all users' tasks from teamTasks.
+  // For other users, count their own assigned tasks.
   const clientTaskCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    myTasks.forEach(t => {
+    const counts: Record<string, { total: number; active: number }> = {};
+    const taskList = canSeeAll ? teamTasks : myTasks;
+
+    taskList.forEach(t => {
       if (t.clientId) {
-        counts[t.clientId] = (counts[t.clientId] || 0) + 1;
+        if (!counts[t.clientId]) {
+          counts[t.clientId] = { total: 0, active: 0 };
+        }
+        counts[t.clientId].total += 1;
+        if (t.status !== 'Completed') {
+          counts[t.clientId].active += 1;
+        }
       }
     });
     return counts;
-  }, [myTasks]);
+  }, [myTasks, teamTasks, canSeeAll]);
 
   const initials = currentUser.name
     .split(' ')
@@ -474,7 +484,9 @@ export const ProfileView: React.FC = () => {
                 <th style={{ width: '120px', textAlign: 'center' }}>Client Code</th>
                 <th style={{ textAlign: 'left', minWidth: '220px' }}>Client / Company Name</th>
                 <th style={{ width: '150px', textAlign: 'center' }}>Job / File No.</th>
-                <th style={{ width: '130px', textAlign: 'center' }}>Your Active Tasks</th>
+                <th style={{ width: '160px', textAlign: 'center' }}>
+                  {canSeeAll ? 'Active Tasks (All Users)' : 'Your Active Tasks'}
+                </th>
                 <th style={{ width: '120px', textAlign: 'center' }}>Engagement Status</th>
               </tr>
             </thead>
@@ -499,7 +511,11 @@ export const ProfileView: React.FC = () => {
                 </tr>
               ) : (
                 assignedClientsList.map((client, idx) => {
-                  const taskCount = clientTaskCounts[client.id] || 0;
+                  const stats = clientTaskCounts[client.id] || { total: 0, active: 0 };
+                  const activeCount = stats.active;
+                  const totalCount = stats.total;
+                  const badgeCount = canSeeAll ? activeCount : totalCount;
+
                   return (
                     <tr key={client.id}>
                       <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
@@ -527,11 +543,14 @@ export const ProfileView: React.FC = () => {
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: taskCount > 0 ? '#EBF4FF' : '#F1F5F9',
-                            color: taskCount > 0 ? '#1E40AF' : '#64748B'
+                            background: badgeCount > 0 ? '#EBF4FF' : '#F1F5F9',
+                            color: badgeCount > 0 ? '#1E40AF' : '#64748B'
                           }}
                         >
-                          <FileText size={11} /> {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
+                          <FileText size={11} />{' '}
+                          {canSeeAll
+                            ? `${activeCount} active (${totalCount} total)`
+                            : `${totalCount} ${totalCount === 1 ? 'task' : 'tasks'}`}
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
