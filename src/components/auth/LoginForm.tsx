@@ -12,7 +12,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   onSwitchToSignup,
   onSwitchToForgot
 }) => {
-  const { login, allUsers, switchUser } = useAuth();
+  const { login } = useAuth();
   const [empId, setEmpId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,17 +30,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       await login(empId, password);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please verify credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickLogin = async (userId: string) => {
-    setLoading(true);
-    try {
-      await switchUser(userId);
-    } catch (err: any) {
-      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -120,26 +109,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <button type="button" onClick={onSwitchToSignup} className="btn-link" style={{ fontWeight: 600 }}>
             Sign up
           </button>
-        </div>
-
-        {/* Quick Demo Sign-in Helper */}
-        <div style={{ borderTop: '1px solid var(--line)', paddingTop: '16px', marginTop: '4px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ink-soft)', marginBottom: '8px', textTransform: 'uppercase' }}>
-            ⚡ Instant Demo Login
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {allUsers.slice(0, 3).map(u => (
-              <button
-                key={u.id}
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => handleQuickLogin(u.id)}
-                style={{ fontSize: '11px', padding: '4px 8px' }}
-              >
-                {u.designation} ({u.name.split(' ')[0]})
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>
