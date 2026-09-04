@@ -96,35 +96,28 @@ button, input, select, textarea {
 
 /* Header & Masthead */
 .top-header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  padding: 8px 0 20px;
-}
-
-@media (max-width: 900px) {
-  .top-header {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .center-masthead {
-    grid-column: 1 / -1;
-    order: -1;
-  }
+  padding: 12px 0 20px;
+  width: 100%;
 }
 
 .brand-section {
   display: flex;
   align-items: center;
   position: relative;
-  top: -1cm;
+  top: 0;
+  flex-shrink: 0;
 }
 
 .brand-logo-img {
-  height: 50px;
+  height: 48px;
+  max-height: 48px;
   width: auto;
-  max-width: 230px;
+  max-width: 220px;
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
@@ -169,12 +162,14 @@ button, input, select, textarea {
 
 .center-masthead {
   text-align: center;
+  flex: 1 1 auto;
+  min-width: 180px;
 }
 
 .masthead-title {
   font-family: 'Playfair Display', serif;
   font-weight: 900;
-  font-size: clamp(28px, 4.5vw, 50px);
+  font-size: clamp(24px, 4vw, 46px);
   color: var(--maroon);
   letter-spacing: -0.5px;
   line-height: 1.05;
@@ -184,7 +179,7 @@ button, input, select, textarea {
 .masthead-subtitle {
   font-family: 'Cambria', Georgia, 'Times New Roman', serif;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.3px;
 }
@@ -194,6 +189,8 @@ button, input, select, textarea {
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
+  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .user-name {
@@ -232,9 +229,43 @@ button, input, select, textarea {
 
 .user-actions-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   margin-top: 6px;
+  max-width: 100%;
+  width: 100%;
+}
+
+@media (max-width: 840px) {
+  .top-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .brand-section {
+    justify-content: center;
+    top: 0;
+  }
+  .brand-logo-img {
+    max-width: 180px;
+    height: 40px;
+  }
+  .center-masthead {
+    width: 100%;
+  }
+  .masthead-title {
+    font-size: clamp(22px, 6vw, 32px);
+  }
+  .user-section {
+    align-items: center;
+    width: 100%;
+  }
+  .user-actions-nav {
+    justify-content: center;
+  }
 }
 
 /* Buttons */
@@ -252,6 +283,14 @@ button, input, select, textarea {
   transition: all 0.15s ease;
   user-select: none;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+@media (max-width: 480px) {
+  .btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
 }
 
 .btn:disabled {
@@ -320,7 +359,12 @@ button, input, select, textarea {
   border-bottom: 2px solid var(--line);
   margin-bottom: 20px;
   overflow-x: auto;
-  padding-bottom: 0;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100%;
+  padding-bottom: 4px;
+  scroll-behavior: smooth;
 }
 
 .tab-btn {
@@ -338,6 +382,7 @@ button, input, select, textarea {
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
@@ -354,6 +399,22 @@ button, input, select, textarea {
   color: var(--teal);
   border-bottom-color: var(--teal);
   font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .nav-tabs {
+    flex-wrap: wrap;
+    gap: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+    flex: 1 1 auto;
+    text-align: center;
+    justify-content: center;
+    border-bottom-width: 2px;
+  }
 }
 
 /* Stat Pills Bar */
@@ -415,9 +476,8 @@ button, input, select, textarea {
 
 /* Section Banners - Unified Integrated Card Header */
 .banner-strip {
-  height: 46px;
   min-height: 46px;
-  padding: 0 20px;
+  padding: 8px 20px;
   color: #fff;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 13.5px;
@@ -425,12 +485,14 @@ button, input, select, textarea {
   letter-spacing: 0.8px;
   text-transform: uppercase;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   text-align: center;
   position: relative;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
   box-sizing: border-box;
+  gap: 8px;
 }
 
 .banner-strip-count {
@@ -440,6 +502,18 @@ button, input, select, textarea {
   font-weight: 600;
   opacity: 0.9;
   letter-spacing: normal;
+}
+
+@media (max-width: 600px) {
+  .banner-strip {
+    font-size: 11.5px;
+    letter-spacing: 0.4px;
+    padding: 8px 12px;
+  }
+  .banner-strip-count {
+    position: static;
+    margin-left: 6px;
+  }
 }
 
 .banner-maroon {
@@ -458,6 +532,7 @@ button, input, select, textarea {
 /* Modern Data Table Card */
 .table-card {
   width: 100%;
+  max-width: 100%;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -468,12 +543,15 @@ button, input, select, textarea {
 
 .table-responsive {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  display: block;
 }
 
 .data-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 780px;
   border-collapse: collapse;
   font-size: 12.5px;
   text-align: left;

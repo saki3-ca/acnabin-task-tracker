@@ -99,13 +99,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddTask, onOpenRequestTask
         )}
 
         {/* Actions Nav */}
-        <div className="user-actions-nav" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="user-actions-nav">
           {showRequestBtn && onOpenRequestTask && (
             <button
               className="btn btn-secondary btn-sm"
               onClick={onOpenRequestTask}
               title="Request task"
-              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
             >
               <FileText size={13} /> Request Task
             </button>
