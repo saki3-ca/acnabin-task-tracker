@@ -405,20 +405,20 @@ export const ProfileView: React.FC = () => {
               marginTop: '20px'
             }}
           >
-            <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '8px', border: '1px solid var(--line-soft)', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase' }}>
+            <div style={{ background: '#EFF6FF', padding: '14px', borderRadius: '8px', border: '1px solid #BFDBFE', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase' }}>
                 Assigned Clients
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--navy)', marginTop: '4px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E40AF', marginTop: '4px' }}>
                 {canSeeAll ? 'All' : assignedClientsList.length}
               </div>
             </div>
 
-            <div style={{ background: '#F8FAFC', padding: '14px', borderRadius: '8px', border: '1px solid var(--line-soft)', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase' }}>
+            <div style={{ background: '#FAF5FF', padding: '14px', borderRadius: '8px', border: '1px solid #E9D5FF', textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase' }}>
                 Total Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--ink)', marginTop: '4px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '4px' }}>
                 {myStats.total}
               </div>
             </div>

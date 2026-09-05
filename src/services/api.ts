@@ -103,6 +103,65 @@ function mapTaskRequestFromDb(row: any): TaskRequest {
   };
 }
 
+// Helper to safely check deduplication before inserting a notification into Supabase
+async function safeInsertNotification(row: {
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  data: Record<string, any>;
+}): Promise<boolean> {
+  try {
+    const { data: existingRows } = await supabase
+      .from('notifications')
+      .select('id, data, created_at')
+      .eq('user_id', row.user_id)
+      .eq('type', row.type)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (existingRows && existingRows.length > 0) {
+      const isDuplicate = existingRows.some(ex => {
+        const d = ex.data || {};
+        // 1. Deadline alerts check matching taskId & slot
+        if (row.data?.taskId && row.data?.slot) {
+          return d.taskId === row.data.taskId && d.slot === row.data.slot;
+        }
+        // 2. Task assignment check matching taskId
+        if (row.type === 'TASK_ASSIGNED' && row.data?.taskId) {
+          return d.taskId === row.data.taskId;
+        }
+        // 3. Manager comments check matching taskId
+        if (row.type === 'MANAGER_COMMENT' && row.data?.taskId) {
+          if (d.taskId === row.data.taskId) {
+            const timeDiffMs = Math.abs(new Date(ex.created_at).getTime() - Date.now());
+            if (timeDiffMs < 5 * 60 * 1000) return true; // Created within 5 mins
+          }
+        }
+        // 4. Task requests check matching requestId
+        if (row.data?.requestId) {
+          return d.requestId === row.data.requestId && (d.status === row.data.status || d.action === row.data.action);
+        }
+        return false;
+      });
+
+      if (isDuplicate) {
+        return false;
+      }
+    }
+
+    const { error } = await supabase.from('notifications').insert(row);
+    if (error) {
+      console.warn('[Notification] Insert error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[Notification] safeInsertNotification exception:', e);
+    return false;
+  }
+}
+
 // Fallback Local Storage store in case database tables are unreachable
 class LocalFallbackStore {
   users: User[];
@@ -182,10 +241,10 @@ export const api = {
 
   async callBackend<T>(action: string, payload: any = {}): Promise<T> {
     try {
-      return await this.dispatchSupabase<T>(action, payload);
+      return await (this.dispatchSupabase(action, payload) as Promise<T>);
     } catch (err: any) {
       console.warn(`[Supabase API] Failed action "${action}", falling back to local store:`, err?.message || err);
-      return this.dispatchFallback<T>(action, payload);
+      return (this.dispatchFallback(action, payload) as T);
     }
   },
 
@@ -466,18 +525,14 @@ export const api = {
 
         // Auto-generate notification for assigned user if someone else assigned it
         if (payload.assignedToId && payload.assignedToId !== user?.id) {
-          try {
-            const assigner = user?.name || 'Management';
-            await supabase.from('notifications').insert({
-              user_id: payload.assignedToId,
-              type: 'TASK_ASSIGNED',
-              title: 'New Task Assigned',
-              message: `${assigner} assigned you "${payload.particular}" for ${clientName || 'General'}`,
-              data: { taskId: newId, assignerName: assigner }
-            });
-          } catch (e) {
-            console.warn(e);
-          }
+          const assigner = user?.name || 'Management';
+          await safeInsertNotification({
+            user_id: payload.assignedToId,
+            type: 'TASK_ASSIGNED',
+            title: 'New Task Assigned',
+            message: `${assigner} assigned you "${payload.particular}" for ${clientName || 'General'}`,
+            data: { taskId: newId, assignerName: assigner }
+          });
         }
 
         return mapTaskFromDb(data) as T;
@@ -541,21 +596,17 @@ export const api = {
         if (updates.managerComment && data) {
           const user = await this.getCurrentUser();
           if (data.assigned_to_id && data.assigned_to_id !== user?.id) {
-            try {
-              const commenter = user?.name || 'Management';
-              const excerpt = updates.managerComment.length > 70
-                ? updates.managerComment.slice(0, 70) + '…'
-                : updates.managerComment;
-              await supabase.from('notifications').insert({
-                user_id: data.assigned_to_id,
-                type: 'MANAGER_COMMENT',
-                title: 'Management Comment Added',
-                message: `${commenter} commented on "${data.particular}": "${excerpt}"`,
-                data: { taskId: data.id, commenterName: commenter }
-              });
-            } catch (e) {
-              console.warn(e);
-            }
+            const commenter = user?.name || 'Management';
+            const excerpt = updates.managerComment.length > 70
+              ? updates.managerComment.slice(0, 70) + '…'
+              : updates.managerComment;
+            await safeInsertNotification({
+              user_id: data.assigned_to_id,
+              type: 'MANAGER_COMMENT',
+              title: 'Management Comment Added',
+              message: `${commenter} commented on "${data.particular}": "${excerpt}"`,
+              data: { taskId: data.id, commenterName: commenter }
+            });
           }
         }
 
@@ -586,19 +637,15 @@ export const api = {
         if (data && data.assigned_to_id) {
           const user = await this.getCurrentUser();
           if (data.assigned_to_id !== user?.id) {
-            try {
-              const commenter = user?.name || 'Management';
-              const excerpt = comment.length > 70 ? comment.slice(0, 70) + '…' : comment;
-              await supabase.from('notifications').insert({
-                user_id: data.assigned_to_id,
-                type: 'MANAGER_COMMENT',
-                title: 'Management Comment Added',
-                message: `${commenter} commented on "${data.particular}": "${excerpt}"`,
-                data: { taskId: data.id, commenterName: commenter }
-              });
-            } catch (e) {
-              console.warn(e);
-            }
+            const commenter = user?.name || 'Management';
+            const excerpt = comment.length > 70 ? comment.slice(0, 70) + '…' : comment;
+            await safeInsertNotification({
+              user_id: data.assigned_to_id,
+              type: 'MANAGER_COMMENT',
+              title: 'Management Comment Added',
+              message: `${commenter} commented on "${data.particular}": "${excerpt}"`,
+              data: { taskId: data.id, commenterName: commenter }
+            });
           }
         }
 
@@ -612,7 +659,7 @@ export const api = {
         const { userId } = payload;
         if (!userId) return [] as T;
 
-        // Auto-check for approaching deadlines and overdue tasks
+        // Auto-check for scheduled deadline alerts (12:00 AM & 12:00 PM) & overdue alerts
         try {
           const { data: userTasks } = await supabase
             .from('tasks')
@@ -621,33 +668,47 @@ export const api = {
             .neq('status', 'Completed');
 
           if (userTasks && userTasks.length > 0) {
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const now = new Date();
+            const todayStr = now.toISOString().slice(0, 10);
+            const currentHour = now.getHours(); // Local hour (0..23)
+
             for (const t of userTasks) {
               if (t.deadline) {
                 const dStr = t.deadline.slice(0, 10);
-                const isOverdue = dStr < todayStr;
                 const isToday = dStr === todayStr;
+                const isOverdue = dStr < todayStr;
 
-                if (isOverdue || isToday) {
-                  const { data: existing } = await supabase
-                    .from('notifications')
-                    .select('id')
-                    .eq('user_id', userId)
-                    .eq('type', 'DEADLINE_ALERT')
-                    .filter('data->>taskId', 'eq', t.id)
-                    .maybeSingle();
-
-                  if (!existing) {
-                    await supabase.from('notifications').insert({
+                if (isToday) {
+                  // Slot 1: 12:00 AM (Midnight) Alert -> Active starting at 00:00 (currentHour >= 0)
+                  if (currentHour >= 0) {
+                    await safeInsertNotification({
                       user_id: userId,
                       type: 'DEADLINE_ALERT',
-                      title: isOverdue ? 'Task Overdue' : 'Task Due Today',
-                      message: isOverdue
-                        ? `Task "${t.particular}" for ${t.client_name} was due on ${dStr} and is overdue!`
-                        : `Task "${t.particular}" for ${t.client_name} is due today!`,
-                      data: { taskId: t.id }
+                      title: 'Task Due Today (Midnight Alert)',
+                      message: `Task "${t.particular}" for ${t.client_name || 'General'} is due today! (Scheduled 12:00 AM Alert)`,
+                      data: { taskId: t.id, slot: `${todayStr}_12AM`, date: todayStr }
                     });
                   }
+
+                  // Slot 2: 12:00 PM (Noon) Alert -> Active ONLY starting at 12:00 PM (currentHour >= 12)
+                  if (currentHour >= 12) {
+                    await safeInsertNotification({
+                      user_id: userId,
+                      type: 'DEADLINE_ALERT',
+                      title: 'Task Due Today (Noon Reminder)',
+                      message: `Reminder: Task "${t.particular}" for ${t.client_name || 'General'} is due today! (Scheduled 12:00 PM Alert)`,
+                      data: { taskId: t.id, slot: `${todayStr}_12PM`, date: todayStr }
+                    });
+                  }
+                } else if (isOverdue) {
+                  // Overdue alert -> 1 notification per overdue day
+                  await safeInsertNotification({
+                    user_id: userId,
+                    type: 'DEADLINE_ALERT',
+                    title: 'Task Overdue',
+                    message: `Task "${t.particular}" for ${t.client_name || 'General'} was due on ${dStr} and is overdue!`,
+                    data: { taskId: t.id, slot: `OVERDUE_${todayStr}`, date: todayStr }
+                  });
                 }
               }
             }
@@ -663,10 +724,28 @@ export const api = {
           .eq('user_id', userId)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
-          .limit(100);
+          .limit(200);
 
         if (error) throw error;
-        return (data || []).map(mapNotificationFromDb) as T;
+
+        // In-memory deduplication to ensure exact distinct notification count
+        const rawList = (data || []).map(mapNotificationFromDb);
+        const seenKeys = new Set<string>();
+        const uniqueList: AppNotification[] = [];
+
+        for (const notif of rawList) {
+          const tId = notif.data?.taskId || '';
+          const slot = notif.data?.slot || '';
+          const reqId = notif.data?.requestId || '';
+          const key = `${notif.type}_${tId}_${slot}_${reqId}_${notif.title}_${notif.message.slice(0, 30)}`;
+
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+            uniqueList.push(notif);
+          }
+        }
+
+        return uniqueList as T;
       }
 
       case 'markNotificationRead': {
@@ -747,17 +826,13 @@ export const api = {
         if (error) throw error;
 
         // Notify superior
-        try {
-          await supabase.from('notifications').insert({
-            user_id: superiorId,
-            type: 'TASK_REQUEST',
-            title: 'New Task Request Received',
-            message: `${requesterName} submitted a task request: "${particular}" for ${clientName}`,
-            data: { requestId: data.id, requesterId }
-          });
-        } catch (e) {
-          console.warn(e);
-        }
+        await safeInsertNotification({
+          user_id: superiorId,
+          type: 'TASK_REQUEST',
+          title: 'New Task Request Received',
+          message: `${requesterName} submitted a task request: "${particular}" for ${clientName}`,
+          data: { requestId: data.id, requesterId, action: 'SUBMITTED' }
+        });
 
         return mapTaskRequestFromDb(data) as T;
       }
@@ -813,30 +888,22 @@ export const api = {
           });
 
           // Notify requester
-          try {
-            await supabase.from('notifications').insert({
-              user_id: req.requester_id,
-              type: 'TASK_REQUEST',
-              title: 'Task Request Accepted',
-              message: `${req.superior_name} accepted your task request: "${req.particular}". Added to their task list.`,
-              data: { requestId, taskId: newTaskId }
-            });
-          } catch (e) {
-            console.warn(e);
-          }
+          await safeInsertNotification({
+            user_id: req.requester_id,
+            type: 'TASK_REQUEST',
+            title: 'Task Request Accepted',
+            message: `${req.superior_name} accepted your task request: "${req.particular}". Added to their task list.`,
+            data: { requestId, taskId: newTaskId, status: 'ACCEPTED' }
+          });
         } else {
           // Notify requester of decline
-          try {
-            await supabase.from('notifications').insert({
-              user_id: req.requester_id,
-              type: 'TASK_REQUEST',
-              title: 'Task Request Declined',
-              message: `${req.superior_name} declined your task request: "${req.particular}".`,
-              data: { requestId }
-            });
-          } catch (e) {
-            console.warn(e);
-          }
+          await safeInsertNotification({
+            user_id: req.requester_id,
+            type: 'TASK_REQUEST',
+            title: 'Task Request Declined',
+            message: `${req.superior_name} declined your task request: "${req.particular}".`,
+            data: { requestId, status: 'DECLINED' }
+          });
         }
 
         return { success: true } as T;
