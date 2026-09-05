@@ -72,12 +72,26 @@ function mapTaskFromDb(row: any): Task {
 }
 
 function mapNotificationFromDb(row: any): AppNotification {
+  let title = row.title || '';
+  let message = row.message || '';
+
+  // Clean up legacy internal scheduling tags for deadline alerts
+  title = title
+    .replace(/\s*\(Midnight Alert\)/gi, '')
+    .replace(/\s*\(Noon Reminder\)/gi, '')
+    .trim();
+
+  message = message
+    .replace(/\s*\(Scheduled 12:00 AM Alert\)/gi, '')
+    .replace(/\s*\(Scheduled 12:00 PM Alert\)/gi, '')
+    .trim();
+
   return {
     id: row.id,
     userId: row.user_id,
     type: row.type,
-    title: row.title,
-    message: row.message,
+    title,
+    message,
     data: row.data || {},
     isRead: Boolean(row.is_read),
     createdAt: row.created_at
@@ -684,8 +698,8 @@ export const api = {
                     await safeInsertNotification({
                       user_id: userId,
                       type: 'DEADLINE_ALERT',
-                      title: 'Task Due Today (Midnight Alert)',
-                      message: `Task "${t.particular}" for ${t.client_name || 'General'} is due today! (Scheduled 12:00 AM Alert)`,
+                      title: 'Task Due Today',
+                      message: `Task "${t.particular}" for ${t.client_name || 'General'} is due today!`,
                       data: { taskId: t.id, slot: `${todayStr}_12AM`, date: todayStr }
                     });
                   }
@@ -695,8 +709,8 @@ export const api = {
                     await safeInsertNotification({
                       user_id: userId,
                       type: 'DEADLINE_ALERT',
-                      title: 'Task Due Today (Noon Reminder)',
-                      message: `Reminder: Task "${t.particular}" for ${t.client_name || 'General'} is due today! (Scheduled 12:00 PM Alert)`,
+                      title: 'Task Due Today',
+                      message: `Reminder: Task "${t.particular}" for ${t.client_name || 'General'} is due today!`,
                       data: { taskId: t.id, slot: `${todayStr}_12PM`, date: todayStr }
                     });
                   }
