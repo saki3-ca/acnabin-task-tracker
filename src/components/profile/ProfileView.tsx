@@ -584,23 +584,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             <thead>
               <tr>
                 <th style={{ width: '50px', textAlign: 'center' }}>SL.</th>
-                <th style={{ width: '120px', textAlign: 'center' }}>Client Code</th>
-                <th style={{ textAlign: 'left', minWidth: '220px' }}>Client / Company Name</th>
-                <th style={{ width: '150px', textAlign: 'center' }}>Job Number</th>
+                <th style={{ width: '140px', textAlign: 'center' }}>Job ID</th>
+                <th style={{ textAlign: 'left', minWidth: '240px' }}>Client / Company Name</th>
                 <th style={{ width: '130px', textAlign: 'center' }}>ACTIVE TASKS</th>
-                <th style={{ width: '120px', textAlign: 'center' }}>Engagement Status</th>
+                <th style={{ width: '130px', textAlign: 'center' }}>Engagement Status</th>
               </tr>
             </thead>
             <tbody>
               {isLoadingClients ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '24px' }}>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '24px' }}>
                     <div className="loading-indicator">Loading your assigned clients…</div>
                   </td>
                 </tr>
               ) : assignedClientsList.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <td colSpan={5} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
                     <Building size={32} style={{ color: 'var(--ink-muted)', marginBottom: '8px', opacity: 0.5 }} />
                     <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
                       No clients assigned to your profile yet
@@ -623,16 +622,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                         {idx + 1}
                       </td>
                       <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: 'var(--navy)' }}>
-                        {client.id}
+                        {client.jobNumber || '—'}
                       </td>
                       <td style={{ fontWeight: 600, color: 'var(--ink)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Building size={15} color="var(--ink-soft)" />
                           <span>{client.name}</span>
                         </div>
-                      </td>
-                      <td style={{ textAlign: 'center', fontSize: '12px', color: 'var(--ink-soft)' }}>
-                        {client.jobNumber || '—'}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <span
