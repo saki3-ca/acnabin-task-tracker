@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { LoginForm } from './components/auth/LoginForm';
@@ -46,6 +46,22 @@ const MainApp: React.FC = () => {
   const [commentTask, setCommentTask] = useState<Task | null>(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
+
+  // Filter active tasks (completed tasks are archived and shown via Completed modal/profile)
+  const activeMyTasks = useMemo(
+    () => myTasks.filter(t => t.status !== 'Completed'),
+    [myTasks]
+  );
+  const completedMyTasks = useMemo(
+    () => myTasks.filter(t => t.status === 'Completed'),
+    [myTasks]
+  );
+
+  // Urgent tasks (near deadline or overdue among active tasks)
+  const urgentTasks = useMemo(
+    () => activeMyTasks.filter(t => isNearDeadline(t.deadline, t.status) || isOverdue(t.deadline, t.status)),
+    [activeMyTasks]
+  );
 
   if (authLoading) {
     return (
@@ -97,21 +113,6 @@ const MainApp: React.FC = () => {
   const handleOpenComment = (task: Task) => {
     setCommentTask(task);
   };
-
-  // Filter active tasks (completed tasks are archived and shown via Completed modal/profile)
-  const activeMyTasks = React.useMemo(
-    () => myTasks.filter(t => t.status !== 'Completed'),
-    [myTasks]
-  );
-  const completedMyTasks = React.useMemo(
-    () => myTasks.filter(t => t.status === 'Completed'),
-    [myTasks]
-  );
-
-  // Urgent tasks (near deadline or overdue among active tasks)
-  const urgentTasks = activeMyTasks.filter(
-    t => isNearDeadline(t.deadline, t.status) || isOverdue(t.deadline, t.status)
-  );
 
   return (
     <div className="app-container">
