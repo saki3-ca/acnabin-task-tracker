@@ -86,7 +86,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="1080px">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="960px">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '78vh' }}>
         {/* Header Summary & Filter Bar */}
         <div
@@ -219,20 +219,18 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
             <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
               <tr>
                 <th style={{ width: '45px', textAlign: 'center' }}>SL.</th>
-                <th style={{ minWidth: '220px', textAlign: 'left' }}>Particulars & Client</th>
-                <th style={{ width: '110px', textAlign: 'center' }}>Added By</th>
-                <th style={{ width: '80px', textAlign: 'center' }}>Priority</th>
-                <th style={{ width: '105px', textAlign: 'center' }}>Deadline</th>
+                <th style={{ minWidth: '220px', textAlign: 'left' }}>Particulars</th>
+                <th style={{ width: '170px', textAlign: 'left' }}>Client</th>
+                <th style={{ width: '110px', textAlign: 'center' }}>Deadline</th>
                 <th style={{ width: '125px', textAlign: 'center' }}>Status</th>
-                <th style={{ minWidth: '150px', textAlign: 'left' }}>Remarks</th>
-                <th style={{ minWidth: '150px', textAlign: 'left' }}>Manager Comment</th>
-                <th style={{ width: '110px', textAlign: 'center' }}>Actions</th>
+                <th style={{ minWidth: '180px', textAlign: 'left' }}>Remarks</th>
+                <th style={{ width: '90px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
+                  <td colSpan={7} className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
                     <CheckCircle2 size={32} style={{ color: '#166534', opacity: 0.4, marginBottom: '8px' }} />
                     <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
                       {tasks.length === 0 ? 'No completed tasks found' : 'No completed tasks match your search'}
@@ -247,7 +245,6 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
               ) : (
                 filteredTasks.map((task, idx) => {
                   const canEdit = canEditTask(currentUser, task, false);
-                  const canComment = canCommentOnTask(currentUser, task);
 
                   return (
                     <tr key={task.id} style={{ background: idx % 2 === 0 ? '#FFFFFF' : '#F9FBFA' }}>
@@ -255,42 +252,24 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                         {idx + 1}
                       </td>
 
-                      {/* Particulars & Client */}
+                      {/* Particulars */}
                       <td>
-                        <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '13px', lineHeight: '1.3' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '13px', lineHeight: '1.35' }}>
                           {task.particular}
                         </div>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            marginTop: '4px',
-                            fontSize: '11.5px',
-                            color: 'var(--ink-soft)'
-                          }}
-                        >
-                          {task.clientName && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--navy)', fontWeight: 500 }}>
-                              <Building size={12} /> {task.clientName}
-                            </span>
-                          )}
-                          {task.assignedDate && (
-                            <span>Assigned: {fmtDate(task.assignedDate)}</span>
-                          )}
+                        {task.assignedDate && (
+                          <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '3px' }}>
+                            Assigned: {fmtDate(task.assignedDate)}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Client */}
+                      <td style={{ fontSize: '12.5px', color: 'var(--navy)', fontWeight: 500 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <Building size={13} color="var(--ink-soft)" />
+                          <span>{task.clientName || 'General'}</span>
                         </div>
-                      </td>
-
-                      {/* Added By */}
-                      <td style={{ fontSize: '12px', color: 'var(--ink-soft)', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        {task.createdByName || '—'}
-                      </td>
-
-                      {/* Priority */}
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`priority-pill ${task.priority?.toLowerCase() || 'medium'}`}>
-                          {task.priority}
-                        </span>
                       </td>
 
                       {/* Deadline */}
@@ -332,21 +311,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                         )}
                       </td>
 
-                      {/* Manager Comment */}
-                      <td style={{ fontSize: '12px' }}>
-                        {task.managerComment ? (
-                          <div
-                            className="comment-box"
-                            style={{ fontSize: '11.5px', padding: '6px 10px', lineHeight: '1.35' }}
-                          >
-                            {task.managerComment}
-                          </div>
-                        ) : (
-                          <span style={{ color: 'var(--ink-muted)' }}>—</span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
+                      {/* Action */}
                       <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                           {canEdit && (
@@ -357,34 +322,6 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                               style={{ padding: '5px 7px', color: '#166534', borderColor: '#BBF7D0' }}
                             >
                               <RotateCcw size={12} />
-                            </button>
-                          )}
-
-                          {canEdit && onEditTask && (
-                            <button
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => {
-                                onClose();
-                                onEditTask(task);
-                              }}
-                              title="Edit Task"
-                              style={{ padding: '5px 7px' }}
-                            >
-                              <Edit2 size={12} />
-                            </button>
-                          )}
-
-                          {canComment && onOpenComment && (
-                            <button
-                              className="btn btn-teal btn-sm"
-                              onClick={() => {
-                                onClose();
-                                onOpenComment(task);
-                              }}
-                              title="View / Add Comment"
-                              style={{ padding: '5px 7px' }}
-                            >
-                              <MessageSquare size={12} />
                             </button>
                           )}
 
