@@ -5,6 +5,7 @@ import { useTasks } from '../../context/TaskContext';
 import { daysUntilDeadline, fmtDate, isNearDeadline, isOverdue } from '../../lib/dateUtils';
 import { canCommentOnTask, canDeleteTask, canEditTask } from '../../lib/permissions';
 import { Task, TaskStatus } from '../../types';
+import { InstantTooltip } from '../ui/InstantTooltip';
 
 interface TaskTableRowProps {
   task: Task;
@@ -68,22 +69,22 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
 
       {/* Particulars */}
       <td style={{ minWidth: '220px' }}>
-        <div
-          title={task.particular}
-          style={{
-            fontWeight: 600,
-            color: 'var(--ink)',
-            lineHeight: '1.35',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            cursor: 'default'
-          }}
-        >
-          {task.particular}
-        </div>
+        <InstantTooltip content={task.particular}>
+          <div
+            style={{
+              fontWeight: 600,
+              color: 'var(--ink)',
+              lineHeight: '1.35',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {task.particular}
+          </div>
+        </InstantTooltip>
         {task.assignedDate && (
           <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '3px' }}>
             Assigned: {fmtDate(task.assignedDate)}
@@ -153,21 +154,21 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       {/* Remarks */}
       <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
         {task.remarks ? (
-          <div
-            title={task.remarks}
-            style={{
-              wordBreak: 'break-word',
-              lineHeight: '1.35',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              cursor: 'default'
-            }}
-          >
-            {task.remarks}
-          </div>
+          <InstantTooltip content={task.remarks}>
+            <div
+              style={{
+                wordBreak: 'break-word',
+                lineHeight: '1.35',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {task.remarks}
+            </div>
+          </InstantTooltip>
         ) : (
           <span style={{ color: 'var(--ink-muted)' }}>—</span>
         )}
@@ -176,23 +177,23 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       {/* Manager Comment */}
       <td style={{ fontSize: '12px' }}>
         {task.managerComment ? (
-          <div
-            className="comment-box"
-            title={task.managerComment}
-            style={{
-              fontSize: '11.5px',
-              padding: '6px 10px',
-              lineHeight: '1.35',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              cursor: 'default'
-            }}
-          >
-            {task.managerComment}
-          </div>
+          <InstantTooltip content={task.managerComment}>
+            <div
+              className="comment-box"
+              style={{
+                fontSize: '11.5px',
+                padding: '6px 10px',
+                lineHeight: '1.35',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              {task.managerComment}
+            </div>
+          </InstantTooltip>
         ) : (
           <span style={{ color: 'var(--ink-muted)' }}>—</span>
         )}
