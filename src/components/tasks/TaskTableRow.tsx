@@ -67,8 +67,21 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       )}
 
       {/* Particulars */}
-      <td style={{ minWidth: '260px' }}>
-        <div style={{ fontWeight: 600, color: 'var(--ink)', lineHeight: '1.3' }}>
+      <td style={{ minWidth: '220px' }}>
+        <div
+          title={task.particular}
+          style={{
+            fontWeight: 600,
+            color: 'var(--ink)',
+            lineHeight: '1.35',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            cursor: 'default'
+          }}
+        >
           {task.particular}
         </div>
         {task.assignedDate && (
@@ -140,7 +153,21 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       {/* Remarks */}
       <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
         {task.remarks ? (
-          <div style={{ wordBreak: 'break-word', lineHeight: '1.35' }}>{task.remarks}</div>
+          <div
+            title={task.remarks}
+            style={{
+              wordBreak: 'break-word',
+              lineHeight: '1.35',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              cursor: 'default'
+            }}
+          >
+            {task.remarks}
+          </div>
         ) : (
           <span style={{ color: 'var(--ink-muted)' }}>—</span>
         )}
@@ -149,7 +176,21 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       {/* Manager Comment */}
       <td style={{ fontSize: '12px' }}>
         {task.managerComment ? (
-          <div className="comment-box" style={{ fontSize: '11.5px', padding: '6px 10px', lineHeight: '1.35' }}>
+          <div
+            className="comment-box"
+            title={task.managerComment}
+            style={{
+              fontSize: '11.5px',
+              padding: '6px 10px',
+              lineHeight: '1.35',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              cursor: 'default'
+            }}
+          >
             {task.managerComment}
           </div>
         ) : (
