@@ -7,6 +7,8 @@ import { taskRequestService } from '../../services/taskRequestService';
 import { fmtDate } from '../../lib/dateUtils';
 import { TaskRequest } from '../../types';
 
+import { StatPills } from '../dashboard/StatPills';
+
 export const TaskRequestsView: React.FC = () => {
   const { currentUser } = useAuth();
   const { taskRequests, refreshRequests, refreshNotifications } = useNotifications();
@@ -20,6 +22,19 @@ export const TaskRequestsView: React.FC = () => {
 
   // Requests where current user is the requester (Outgoing requests sent to superiors)
   const outgoingRequests = taskRequests.filter(r => r.requesterId === currentUser.id);
+
+  const totalRequests = incomingRequests.length + outgoingRequests.length;
+  const pendingIncoming = incomingRequests.filter(r => r.status === 'PENDING').length;
+  const acceptedRequests = taskRequests.filter(r => r.status === 'ACCEPTED').length;
+  const declinedRequests = taskRequests.filter(r => r.status === 'DECLINED').length;
+
+  const requestStats = [
+    { label: 'TOTAL REQUESTS', value: totalRequests },
+    { label: 'PENDING DECISION', value: pendingIncoming, isOverdue: pendingIncoming > 0 },
+    { label: 'OUTGOING', value: outgoingRequests.length },
+    { label: 'ACCEPTED', value: acceptedRequests, valueColor: '#166534' },
+    { label: 'DECLINED', value: declinedRequests, valueColor: declinedRequests > 0 ? '#991B1B' : undefined }
+  ];
 
   const handleRespond = async (requestId: string, status: 'ACCEPTED' | 'DECLINED') => {
     const actionText = status === 'ACCEPTED' ? 'accept' : 'decline';
@@ -61,7 +76,9 @@ export const TaskRequestsView: React.FC = () => {
   };
 
   return (
-    <div className="task-requests-container" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="task-requests-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <StatPills items={requestStats} variant="maroon" />
+
       {/* SECTION 1: Incoming Requests Awaiting Superior Decision */}
       <div className="table-card">
         <div className="banner-strip banner-maroon">

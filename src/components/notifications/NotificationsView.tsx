@@ -11,6 +11,8 @@ import {
 import { useNotifications } from '../../context/NotificationContext';
 import { AppNotification } from '../../types';
 
+import { StatPills } from '../dashboard/StatPills';
+
 export const NotificationsView: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
 
@@ -27,6 +29,20 @@ export const NotificationsView: React.FC = () => {
 
   const unreadList = recentNotifications.filter(n => !n.isRead);
   const readList = recentNotifications.filter(n => n.isRead);
+
+  const totalNotifs = recentNotifications.length;
+  const unreadNotifs = unreadList.length;
+  const assignedNotifs = recentNotifications.filter(n => n.type === 'TASK_ASSIGNED').length;
+  const deadlineNotifs = recentNotifications.filter(n => n.type === 'DEADLINE_ALERT').length;
+  const commentNotifs = recentNotifications.filter(n => n.type === 'MANAGER_COMMENT' || n.type === 'TASK_REQUEST').length;
+
+  const notifStats = [
+    { label: 'TOTAL NOTICES', value: totalNotifs },
+    { label: 'UNREAD', value: unreadNotifs, isOverdue: unreadNotifs > 0, valueColor: unreadNotifs > 0 ? '#991B1B' : undefined },
+    { label: 'ASSIGNMENTS', value: assignedNotifs, valueColor: '#1E40AF' },
+    { label: 'DEADLINES', value: deadlineNotifs, valueColor: deadlineNotifs > 0 ? '#B45309' : undefined },
+    { label: 'COMMENTS', value: commentNotifs, valueColor: '#166534' }
+  ];
 
   const formatTimestamp = (dateStr: string) => {
     try {
@@ -154,7 +170,9 @@ export const NotificationsView: React.FC = () => {
   };
 
   return (
-    <div className="notifications-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="notifications-page" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <StatPills items={notifStats} variant="maroon" />
+
       {/* SECTION 1: Red Table - New / Unread Notifications */}
       <div className="table-card">
         <div className="banner-strip banner-maroon">

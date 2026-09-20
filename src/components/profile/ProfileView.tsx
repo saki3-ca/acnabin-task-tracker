@@ -422,7 +422,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               style={{
                 background: '#EFF6FF',
-                padding: '13px 12px',
+                padding: '8px 12px',
+                height: '74px',
+                boxSizing: 'border-box',
                 borderRadius: '8px',
                 border: '1px solid #BFDBFE',
                 display: 'flex',
@@ -435,10 +437,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="View assigned client engagements below"
             >
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Assigned Clients
               </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, color: '#1E40AF', marginTop: '4px', lineHeight: 1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E40AF', marginTop: '3px', lineHeight: 1.1 }}>
                 {canSeeAll ? 'All' : assignedClientsList.length}
               </div>
             </div>
@@ -447,7 +449,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => onNavigateToTasks?.()}
               style={{
                 background: '#FAF5FF',
-                padding: '13px 12px',
+                padding: '8px 12px',
+                height: '74px',
+                boxSizing: 'border-box',
                 borderRadius: '8px',
                 border: '1px solid #E9D5FF',
                 display: 'flex',
@@ -460,10 +464,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Total Tasks
               </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, color: '#6B21A8', marginTop: '4px', lineHeight: 1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.total}
               </div>
             </div>
@@ -472,7 +476,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => setIsCompletedModalOpen(true)}
               style={{
                 background: '#F0FDF4',
-                padding: '13px 12px',
+                padding: '8px 12px',
+                height: '74px',
+                boxSizing: 'border-box',
                 borderRadius: '8px',
                 border: '1px solid #86EFAC',
                 display: 'flex',
@@ -485,10 +491,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Click to open completed tasks window"
             >
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Completed Tasks
               </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, color: '#166534', marginTop: '4px', lineHeight: 1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.completed}
               </div>
             </div>
@@ -497,7 +503,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => onNavigateToTasks?.()}
               style={{
                 background: '#FFFBEB',
-                padding: '13px 12px',
+                padding: '8px 12px',
+                height: '74px',
+                boxSizing: 'border-box',
                 borderRadius: '8px',
                 border: '1px solid #FDE68A',
                 display: 'flex',
@@ -510,10 +518,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Pending / In Progress
               </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, color: '#92400E', marginTop: '4px', lineHeight: 1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400E', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.pending + myStats.inProgress}
               </div>
             </div>
@@ -522,7 +530,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => onNavigateToTasks?.()}
               style={{
                 background: '#FEF2F2',
-                padding: '13px 12px',
+                padding: '8px 12px',
+                height: '74px',
+                boxSizing: 'border-box',
                 borderRadius: '8px',
                 border: '1px solid #FECACA',
                 display: 'flex',
@@ -535,10 +545,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Overdue Tasks
               </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, color: '#991B1B', marginTop: '4px', lineHeight: 1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.overdue}
               </div>
             </div>
