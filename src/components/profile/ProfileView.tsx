@@ -358,17 +358,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 <div
                   style={{
                     display: 'flex',
-                    gap: '20px',
+                    flexDirection: 'column',
+                    gap: '5px',
                     marginTop: '8px',
-                    flexWrap: 'wrap',
                     fontSize: '12.5px',
                     color: 'var(--ink-soft)'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Mail size={14} color="var(--navy)" /> {currentUser.email}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Hash size={14} color="var(--navy)" />
                     {currentUser.designation === 'Partner'
                       ? `Initial: ${currentUser.empId || 'N/A'}`
