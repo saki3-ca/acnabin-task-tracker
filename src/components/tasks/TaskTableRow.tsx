@@ -61,14 +61,9 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {showTeamColumns && (
-        <>
-          <td style={{ fontWeight: 600, color: 'var(--navy)' }}>
-            {task.assignedToName || '—'}
-          </td>
-          <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
-            {task.clientName || 'General'}
-          </td>
-        </>
+        <td style={{ fontWeight: 600, color: 'var(--navy)' }}>
+          {task.assignedToName || '—'}
+        </td>
       )}
 
       {/* Particulars */}
@@ -82,6 +77,12 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
           </div>
         )}
       </td>
+
+      {showTeamColumns && (
+        <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
+          {task.clientName || 'General'}
+        </td>
+      )}
 
       {/* Added By - Only displayed in personal tasks, hidden in Team Engagement view */}
       {!showTeamColumns && (

@@ -38,12 +38,12 @@ export const TaskTable: React.FC<TaskTableProps> = ({
             <tr>
               <th style={{ width: '40px', minWidth: '40px', textAlign: 'center' }}>SL.</th>
               {showTeamColumns && (
-                <>
-                  <th style={{ width: '12%', minWidth: '115px', textAlign: 'center' }}>Employee</th>
-                  <th style={{ width: '13%', minWidth: '120px', textAlign: 'center' }}>Client</th>
-                </>
+                <th style={{ width: '12%', minWidth: '115px', textAlign: 'center' }}>Name</th>
               )}
               <th style={{ minWidth: '190px', textAlign: 'center' }}>Particulars</th>
+              {showTeamColumns && (
+                <th style={{ width: '13%', minWidth: '120px', textAlign: 'center' }}>Client</th>
+              )}
               {!showTeamColumns && (
                 <th style={{ width: '110px', minWidth: '100px', textAlign: 'center' }}>Added By</th>
               )}
