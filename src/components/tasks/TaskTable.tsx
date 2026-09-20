@@ -38,21 +38,21 @@ export const TaskTable: React.FC<TaskTableProps> = ({
             <tr>
               <th style={{ width: '40px', minWidth: '40px', textAlign: 'center' }}>SL.</th>
               {showTeamColumns && (
-                <th style={{ width: '12%', minWidth: '115px', textAlign: 'center' }}>Name</th>
+                <th style={{ width: '11%', minWidth: '110px', textAlign: 'center' }}>Name</th>
               )}
-              <th style={{ minWidth: '190px', textAlign: 'center' }}>Particulars</th>
+              <th style={{ width: showTeamColumns ? '28%' : '32%', minWidth: '260px', textAlign: 'center' }}>Particulars</th>
               {showTeamColumns && (
-                <th style={{ width: '13%', minWidth: '120px', textAlign: 'center' }}>Client</th>
+                <th style={{ width: '11%', minWidth: '110px', textAlign: 'center' }}>Client</th>
               )}
               {!showTeamColumns && (
                 <th style={{ width: '110px', minWidth: '100px', textAlign: 'center' }}>Added By</th>
               )}
-              <th style={{ width: '80px', minWidth: '75px', textAlign: 'center' }}>Priority</th>
-              <th style={{ width: '110px', minWidth: '105px', textAlign: 'center' }}>Deadline</th>
-              <th style={{ width: '120px', minWidth: '110px', textAlign: 'center' }}>Status</th>
-              <th style={{ width: '12%', minWidth: '110px', textAlign: 'center' }}>Remarks</th>
-              <th style={{ width: '13%', minWidth: '120px', textAlign: 'center' }}>Manager Comment</th>
-              <th style={{ width: '90px', minWidth: '85px', textAlign: 'center' }}>Actions</th>
+              <th style={{ width: '75px', minWidth: '70px', textAlign: 'center' }}>Priority</th>
+              <th style={{ width: '100px', minWidth: '95px', textAlign: 'center' }}>Deadline</th>
+              <th style={{ width: '110px', minWidth: '100px', textAlign: 'center' }}>Status</th>
+              <th style={{ width: '8%', minWidth: '85px', textAlign: 'center' }}>Remarks</th>
+              <th style={{ width: '9%', minWidth: '95px', textAlign: 'center' }}>Manager Comment</th>
+              <th style={{ width: '85px', minWidth: '80px', textAlign: 'center' }}>Actions</th>
             </tr>
           </thead>
           <tbody>

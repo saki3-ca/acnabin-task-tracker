@@ -67,7 +67,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       )}
 
       {/* Particulars */}
-      <td style={{ minWidth: '190px' }}>
+      <td style={{ minWidth: '260px' }}>
         <div style={{ fontWeight: 600, color: 'var(--ink)', lineHeight: '1.3' }}>
           {task.particular}
         </div>
