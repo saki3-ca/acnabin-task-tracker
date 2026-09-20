@@ -19,6 +19,7 @@ import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove } from '../..
 import { adminService } from '../../services/adminService';
 import { api } from '../../services/api';
 import { Modal } from '../ui/Modal';
+import { CompletedTasksModal } from '../tasks/CompletedTasksModal';
 
 /**
  * Compresses an image file in the browser using HTML Canvas down to max 250x250px.
@@ -86,6 +87,7 @@ export const ProfileView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [modalFeedback, setModalFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canSeeAll = canViewAllClients(currentUser);
@@ -126,6 +128,10 @@ export const ProfileView: React.FC = () => {
     if (canSeeAll) return allClients;
     return allClients.filter(c => assignedClientIds.includes(c.id));
   }, [allClients, assignedClientIds, canSeeAll]);
+
+  const completedTasks = useMemo(() => {
+    return myTasks.filter(t => t.status === 'Completed');
+  }, [myTasks]);
 
   if (!currentUser) return null;
 
@@ -423,12 +429,49 @@ export const ProfileView: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ background: '#F0FDF4', padding: '14px', borderRadius: '8px', border: '1px solid #BBF7D0', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>
-                Completed Tasks
+            <div
+              onClick={() => setIsCompletedModalOpen(true)}
+              style={{
+                background: '#F0FDF4',
+                padding: '14px',
+                borderRadius: '8px',
+                border: '1.5px solid #86EFAC',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 6px rgba(22, 101, 52, 0.08)'
+              }}
+              title="Click to open completed tasks window"
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#166534',
+                  textTransform: 'uppercase'
+                }}
+              >
+                <CheckCircle2 size={13} /> Completed Tasks
               </div>
               <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', marginTop: '4px' }}>
                 {myStats.completed}
+              </div>
+              <div
+                style={{
+                  fontSize: '10.5px',
+                  color: '#15803D',
+                  marginTop: '4px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px'
+                }}
+              >
+                Click to view ↗
               </div>
             </div>
 
@@ -811,6 +854,14 @@ export const ProfileView: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Completed Tasks Archive Modal Window */}
+      <CompletedTasksModal
+        isOpen={isCompletedModalOpen}
+        onClose={() => setIsCompletedModalOpen(false)}
+        tasks={completedTasks}
+        title={`Completed Tasks — ${currentUser.name}`}
+      />
     </div>
   );
 };

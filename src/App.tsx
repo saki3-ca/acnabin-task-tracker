@@ -22,6 +22,7 @@ import { RequestTaskModal } from './components/tasks/RequestTaskModal';
 import { TaskRequestsView } from './components/tasks/TaskRequestsView';
 import { NotificationsView } from './components/notifications/NotificationsView';
 import { NotificationProvider } from './context/NotificationContext';
+import { CompletedTasksModal } from './components/tasks/CompletedTasksModal';
 
 const MainApp: React.FC = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
@@ -44,6 +45,7 @@ const MainApp: React.FC = () => {
   const [taskModalMode, setTaskModalMode] = useState<'own' | 'team'>('own');
   const [commentTask, setCommentTask] = useState<Task | null>(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
 
   if (authLoading) {
     return (
@@ -96,8 +98,18 @@ const MainApp: React.FC = () => {
     setCommentTask(task);
   };
 
-  // Urgent tasks (near deadline or overdue)
-  const urgentTasks = myTasks.filter(
+  // Filter active tasks (completed tasks are archived and shown via Completed modal/profile)
+  const activeMyTasks = React.useMemo(
+    () => myTasks.filter(t => t.status !== 'Completed'),
+    [myTasks]
+  );
+  const completedMyTasks = React.useMemo(
+    () => myTasks.filter(t => t.status === 'Completed'),
+    [myTasks]
+  );
+
+  // Urgent tasks (near deadline or overdue among active tasks)
+  const urgentTasks = activeMyTasks.filter(
     t => isNearDeadline(t.deadline, t.status) || isOverdue(t.deadline, t.status)
   );
 
@@ -115,15 +127,21 @@ const MainApp: React.FC = () => {
       {/* Pane 1: My Tasks */}
       {activeTab === 'own' && (
         <div className="tab-pane">
-          <StatPills stats={myStats} variant="maroon" />
+          <StatPills
+            stats={myStats}
+            variant="maroon"
+            onPillClick={pill => {
+              if (pill === 'COMPLETED') setIsCompletedModalOpen(true);
+            }}
+          />
 
-          {/* Primary Task Table */}
+          {/* Primary Active Task Table */}
           <TaskTable
             title="MY TASKS"
             bannerColor="teal"
-            tasks={myTasks}
+            tasks={activeMyTasks}
             isLoading={tasksLoading}
-            emptyMessage="You have no assigned tasks at the moment."
+            emptyMessage="You have no active tasks at the moment."
             onEditTask={handleEditTask}
             onOpenComment={handleOpenComment}
           />
@@ -206,6 +224,14 @@ const MainApp: React.FC = () => {
         isOpen={Boolean(commentTask)}
         onClose={() => setCommentTask(null)}
         task={commentTask}
+      />
+
+      <CompletedTasksModal
+        isOpen={isCompletedModalOpen}
+        onClose={() => setIsCompletedModalOpen(false)}
+        tasks={completedMyTasks}
+        onEditTask={handleEditTask}
+        onOpenComment={handleOpenComment}
       />
 
       <Toast message={toast} />

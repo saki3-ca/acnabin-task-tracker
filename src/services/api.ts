@@ -224,7 +224,7 @@ export const api = {
     const stored = localStorage.getItem('acnabin_current_user');
     let parsed: any = null;
     if (stored) {
-      try { parsed = JSON.parse(stored); } catch {}
+      try { parsed = JSON.parse(stored); } catch { }
     }
 
     if (!parsed || !parsed.id) {
