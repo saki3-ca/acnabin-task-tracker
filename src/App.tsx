@@ -197,7 +197,7 @@ const MainApp: React.FC = () => {
       {/* Pane 5: My Profile (including Assigned Clients) */}
       {activeTab === 'profile' && (
         <div className="tab-pane">
-          <ProfileView />
+          <ProfileView onNavigateToTasks={() => setActiveTab('own')} />
         </div>
       )}
 

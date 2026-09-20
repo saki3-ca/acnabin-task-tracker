@@ -69,7 +69,11 @@ function compressImage(file: File): Promise<string> {
   });
 }
 
-export const ProfileView: React.FC = () => {
+interface ProfileViewProps {
+  onNavigateToTasks?: () => void;
+}
+
+export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) => {
   const { currentUser, allClients, refreshContextData } = useAuth();
   const { myTasks, teamTasks, myStats } = useTasks();
 
@@ -411,20 +415,55 @@ export const ProfileView: React.FC = () => {
               marginTop: '20px'
             }}
           >
-            <div style={{ background: '#EFF6FF', padding: '14px', borderRadius: '8px', border: '1px solid #BFDBFE', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase' }}>
+            <div
+              onClick={() => {
+                const el = document.getElementById('profile-assigned-clients-section');
+                el?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{
+                background: '#EFF6FF',
+                padding: '16px 14px',
+                borderRadius: '8px',
+                border: '1px solid #BFDBFE',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+              }}
+              title="View assigned client engagements below"
+            >
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Assigned Clients
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E40AF', marginTop: '4px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E40AF', marginTop: '6px', lineHeight: 1 }}>
                 {canSeeAll ? 'All' : assignedClientsList.length}
               </div>
             </div>
 
-            <div style={{ background: '#FAF5FF', padding: '14px', borderRadius: '8px', border: '1px solid #E9D5FF', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase' }}>
+            <div
+              onClick={() => onNavigateToTasks?.()}
+              style={{
+                background: '#FAF5FF',
+                padding: '16px 14px',
+                borderRadius: '8px',
+                border: '1px solid #E9D5FF',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+              }}
+              title="Navigate to My Tasks panel"
+            >
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Total Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '4px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '6px', lineHeight: 1 }}>
                 {myStats.total}
               </div>
             </div>
@@ -433,62 +472,73 @@ export const ProfileView: React.FC = () => {
               onClick={() => setIsCompletedModalOpen(true)}
               style={{
                 background: '#F0FDF4',
-                padding: '14px',
+                padding: '16px 14px',
                 borderRadius: '8px',
-                border: '1.5px solid #86EFAC',
+                border: '1px solid #86EFAC',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
                 textAlign: 'center',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 2px 6px rgba(22, 101, 52, 0.08)'
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
               }}
               title="Click to open completed tasks window"
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '4px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: '#166534',
-                  textTransform: 'uppercase'
-                }}
-              >
-                <CheckCircle2 size={13} /> Completed Tasks
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Completed Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', marginTop: '4px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', marginTop: '6px', lineHeight: 1 }}>
                 {myStats.completed}
-              </div>
-              <div
-                style={{
-                  fontSize: '10.5px',
-                  color: '#15803D',
-                  marginTop: '4px',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                Click to view ↗
               </div>
             </div>
 
-            <div style={{ background: '#FFFBEB', padding: '14px', borderRadius: '8px', border: '1px solid #FDE68A', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase' }}>
+            <div
+              onClick={() => onNavigateToTasks?.()}
+              style={{
+                background: '#FFFBEB',
+                padding: '16px 14px',
+                borderRadius: '8px',
+                border: '1px solid #FDE68A',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+              }}
+              title="Navigate to My Tasks panel"
+            >
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Pending / In Progress
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400E', marginTop: '4px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400E', marginTop: '6px', lineHeight: 1 }}>
                 {myStats.pending + myStats.inProgress}
               </div>
             </div>
 
-            <div style={{ background: '#FEF2F2', padding: '14px', borderRadius: '8px', border: '1px solid #FECACA', textAlign: 'center' }}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase' }}>
+            <div
+              onClick={() => onNavigateToTasks?.()}
+              style={{
+                background: '#FEF2F2',
+                padding: '16px 14px',
+                borderRadius: '8px',
+                border: '1px solid #FECACA',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+              }}
+              title="Navigate to My Tasks panel"
+            >
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Overdue Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B', marginTop: '4px' }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B', marginTop: '6px', lineHeight: 1 }}>
                 {myStats.overdue}
               </div>
             </div>
@@ -497,7 +547,7 @@ export const ProfileView: React.FC = () => {
       </div>
 
       {/* 2. Primary Section: Assigned Clients */}
-      <div className="table-card">
+      <div id="profile-assigned-clients-section" className="table-card">
         <div className="banner-strip banner-teal">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
             <Briefcase size={16} />
