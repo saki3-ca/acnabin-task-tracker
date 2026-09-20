@@ -77,8 +77,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const { currentUser, allClients, refreshContextData } = useAuth();
   const { myTasks, teamTasks, myStats } = useTasks();
 
-  const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
-  const [isLoadingClients, setIsLoadingClients] = useState(false);
+  const canSeeAll = canViewAllClients(currentUser);
+
+  const [assignedClientIds, setAssignedClientIds] = useState<string[]>(() => {
+    if (!currentUser) return [];
+    if (canViewAllClients(currentUser)) return allClients.map(c => c.id);
+    const cached = adminService.getCachedManagerClientIds(currentUser.id);
+    const fallback = getUserAssignedClientIds(currentUser);
+    const clientSet = new Set<string>([...(cached || []), ...fallback]);
+    return Array.from(clientSet);
+  });
+  const [isLoadingClients, setIsLoadingClients] = useState<boolean>(() => {
+    if (!currentUser) return false;
+    if (canViewAllClients(currentUser)) return false;
+    const cached = adminService.getCachedManagerClientIds(currentUser.id);
+    const fallback = getUserAssignedClientIds(currentUser);
+    return !cached && fallback.length === 0;
+  });
 
   // Edit Profile Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -94,17 +109,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canSeeAll = canViewAllClients(currentUser);
-
   useEffect(() => {
     if (!currentUser) return;
 
     if (canSeeAll) {
       setAssignedClientIds(allClients.map(c => c.id));
+      setIsLoadingClients(false);
       return;
     }
 
-    setIsLoadingClients(true);
+    const cached = adminService.getCachedManagerClientIds(currentUser.id);
+    const fallback = getUserAssignedClientIds(currentUser);
+    if (!cached && fallback.length === 0) {
+      setIsLoadingClients(true);
+    }
+
     adminService
       .getManagerClientIds(currentUser.id)
       .then(ids => {
@@ -122,8 +141,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
         setAssignedClientIds(Array.from(clientSet));
       })
       .catch(() => {
-        const fallback = getUserAssignedClientIds(currentUser);
-        setAssignedClientIds(fallback);
+        const currentFallback = getUserAssignedClientIds(currentUser);
+        setAssignedClientIds(currentFallback);
       })
       .finally(() => setIsLoadingClients(false));
   }, [currentUser, canSeeAll, allClients]);

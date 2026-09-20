@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Briefcase, Building, Edit, Plus, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { canViewAllClients } from '../../lib/permissions';
+import { canViewAllClients, getUserAssignedClientIds } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { clientService } from '../../services/clientService';
 import { Client } from '../../types';
@@ -15,14 +15,32 @@ export const ClientGrid: React.FC = () => {
   const [jobNumber, setJobNumber] = useState('');
   const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [assignedClientIds, setAssignedClientIds] = useState<string[]>([]);
-  const [isLoadingAccess, setIsLoadingAccess] = useState(false);
 
   const canSeeAll = canViewAllClients(currentUser);
 
+  const [assignedClientIds, setAssignedClientIds] = useState<string[]>(() => {
+    if (!currentUser) return [];
+    if (canSeeAll) return allClients.map(c => c.id);
+    const cached = adminService.getCachedManagerClientIds(currentUser.id);
+    const fallback = getUserAssignedClientIds(currentUser);
+    const clientSet = new Set<string>([...(cached || []), ...fallback]);
+    return Array.from(clientSet);
+  });
+  const [isLoadingAccess, setIsLoadingAccess] = useState<boolean>(() => {
+    if (!currentUser) return false;
+    if (canSeeAll) return false;
+    const cached = adminService.getCachedManagerClientIds(currentUser.id);
+    const fallback = getUserAssignedClientIds(currentUser);
+    return !cached && fallback.length === 0;
+  });
+
   useEffect(() => {
     if (currentUser && !canSeeAll) {
-      setIsLoadingAccess(true);
+      const cached = adminService.getCachedManagerClientIds(currentUser.id);
+      const fallback = getUserAssignedClientIds(currentUser);
+      if (!cached && fallback.length === 0) {
+        setIsLoadingAccess(true);
+      }
       adminService
         .getManagerClientIds(currentUser.id)
         .then(ids => {
@@ -40,18 +58,8 @@ export const ClientGrid: React.FC = () => {
           setAssignedClientIds(Array.from(clientSet));
         })
         .catch(() => {
-          const clientSet = new Set<string>();
-          if (currentUser.assignedClientIds && Array.isArray(currentUser.assignedClientIds)) {
-            currentUser.assignedClientIds.forEach(cid => clientSet.add(cid));
-          }
-          if (currentUser.signupClientId) {
-            currentUser.signupClientId
-              .split(',')
-              .map(s => s.trim())
-              .filter(Boolean)
-              .forEach(cid => clientSet.add(cid));
-          }
-          setAssignedClientIds(Array.from(clientSet));
+          const currentFallback = getUserAssignedClientIds(currentUser);
+          setAssignedClientIds(currentFallback);
         })
         .finally(() => setIsLoadingAccess(false));
     }

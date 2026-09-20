@@ -19,39 +19,48 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const stored = localStorage.getItem('acnabin_current_user');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return null;
+  });
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [allClients, setAllClients] = useState<Client[]>([]);
+  const [allClients, setAllClients] = useState<Client[]>(() => clientService.getCachedAllClients() || []);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const refreshContextData = async () => {
     try {
       const [users, clients] = await Promise.all([
         adminService.getAllUsers().catch(() => []),
-        clientService.getAllClients().catch(() => [])
+        clientService.getAllClients().catch(() => clientService.getCachedAllClients() || [])
       ]);
       setAllUsers(users);
       setAllClients(clients);
 
       // Resolve active user from localStorage session
       setCurrentUser(prev => {
+        let activeUser: User | null = null;
         if (prev && users.some(u => u.id === prev.id)) {
-          const matched = users.find(u => u.id === prev.id) || prev;
-          try { localStorage.setItem('acnabin_current_user', JSON.stringify(matched)); } catch {}
-          return matched;
-        }
-        const stored = localStorage.getItem('acnabin_current_user');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            if (parsed && parsed.id) {
-              const matched = users.find(u => u.id === parsed.id || u.empId === parsed.empId);
-              if (matched) {
-                localStorage.setItem('acnabin_current_user', JSON.stringify(matched));
-                return matched;
+          activeUser = users.find(u => u.id === prev.id) || prev;
+        } else {
+          const stored = localStorage.getItem('acnabin_current_user');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (parsed && parsed.id) {
+                activeUser = users.find(u => u.id === parsed.id || u.empId === parsed.empId) || null;
               }
-            }
-          } catch {}
+            } catch {}
+          }
+        }
+
+        if (activeUser) {
+          try { localStorage.setItem('acnabin_current_user', JSON.stringify(activeUser)); } catch {}
+          // Pre-warm client cache for active user
+          adminService.prefetchManagerClientIds(activeUser.id).catch(() => {});
+          return activeUser;
         }
         return null;
       });
@@ -63,6 +72,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // If current user is already cached in localStorage, start prefetching client IDs immediately
+    if (currentUser?.id) {
+      adminService.prefetchManagerClientIds(currentUser.id).catch(() => {});
+    }
     refreshContextData();
   }, []);
 
@@ -71,6 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await authService.login(empId, password);
       setCurrentUser(res.user);
+      if (res.user?.id) {
+        adminService.prefetchManagerClientIds(res.user.id).catch(() => {});
+      }
       await refreshContextData();
     } finally {
       setIsLoading(false);
