@@ -262,7 +262,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   };
 
   return (
-    <div className="profile-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="profile-page" style={{ display: 'contents' }}>
       {/* 1. Header Profile Banner & Summary Card */}
       <div className="table-card">
         <div

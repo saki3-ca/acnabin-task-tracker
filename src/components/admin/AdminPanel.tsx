@@ -166,7 +166,7 @@ export const AdminPanel: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <div style={{ display: 'contents' }}>
       <div className="banner-strip banner-teal">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
           <Shield size={16} />

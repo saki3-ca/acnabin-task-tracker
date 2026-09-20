@@ -170,7 +170,7 @@ export const NotificationsView: React.FC = () => {
   };
 
   return (
-    <div className="notifications-page" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="notifications-page" style={{ display: 'contents' }}>
       <StatPills items={notifStats} variant="maroon" />
 
       {/* SECTION 1: Red Table - New / Unread Notifications */}

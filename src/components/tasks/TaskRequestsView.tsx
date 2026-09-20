@@ -76,7 +76,7 @@ export const TaskRequestsView: React.FC = () => {
   };
 
   return (
-    <div className="task-requests-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="task-requests-container" style={{ display: 'contents' }}>
       <StatPills items={requestStats} variant="maroon" />
 
       {/* SECTION 1: Incoming Requests Awaiting Superior Decision */}
