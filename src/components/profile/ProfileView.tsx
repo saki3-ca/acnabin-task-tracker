@@ -287,7 +287,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           </span>
         </div>
 
-        <div style={{ padding: '24px', background: '#FFFFFF' }}>
+        <div style={{ padding: '20px', background: '#FFFFFF' }}>
           {/* Identity Bar */}
           <div
             style={{
@@ -295,25 +295,25 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               flexWrap: 'wrap',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '20px',
+              gap: '16px',
               borderBottom: '1px solid var(--line-soft)',
-              paddingBottom: '20px'
+              paddingBottom: '14px'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' }}>
               {/* Avatar Circle */}
               <div
                 style={{
                   position: 'relative',
-                  width: '74px',
-                  height: '74px',
+                  width: '68px',
+                  height: '68px',
                   borderRadius: '50%',
                   background: 'linear-gradient(135deg, var(--navy) 0%, #3B82F6 100%)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '24px',
+                  fontSize: '22px',
                   fontWeight: 700,
                   letterSpacing: '1px',
                   boxShadow: '0 4px 12px rgba(27, 54, 93, 0.2)',
@@ -335,7 +335,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               {/* Identity Info */}
               <div style={{ minWidth: '220px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--ink)' }}>
+                  <h2 style={{ margin: 0, fontSize: '19px', fontWeight: 700, color: 'var(--ink)' }}>
                     {currentUser.name}
                   </h2>
                   <span className={`role-badge ${currentUser.role.toLowerCase()}`} style={{ fontSize: '11px' }}>
@@ -359,17 +359,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '5px',
-                    marginTop: '8px',
-                    fontSize: '12.5px',
+                    gap: '4px',
+                    marginTop: '6px',
+                    fontSize: '12px',
                     color: 'var(--ink-soft)'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Mail size={14} color="var(--navy)" /> {currentUser.email}
+                    <Mail size={13} color="var(--navy)" /> {currentUser.email}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Hash size={14} color="var(--navy)" />
+                    <Hash size={13} color="var(--navy)" />
                     {currentUser.designation === 'Partner'
                       ? `Initial: ${currentUser.empId || 'N/A'}`
                       : currentUser.role === 'ADMIN'
@@ -380,7 +380,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
             </div>
 
-            {/* Edit Profile Action Button (Right side, matching attachment) */}
+            {/* Edit Profile Action Button */}
             <div>
               <button
                 type="button"
@@ -390,8 +390,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '7px 18px',
-                  fontSize: '12.5px',
+                  padding: '6px 16px',
+                  fontSize: '12px',
                   fontWeight: 600,
                   borderRadius: '6px',
                   border: '1.5px solid var(--line-strong)',
@@ -401,7 +401,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   cursor: 'pointer'
                 }}
               >
-                <Edit3 size={14} /> Edit Profile
+                <Edit3 size={13} /> Edit Profile
               </button>
             </div>
           </div>
@@ -411,8 +411,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: '16px',
-              marginTop: '20px'
+              gap: '12px',
+              marginTop: '14px'
             }}
           >
             <div
@@ -422,7 +422,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               style={{
                 background: '#EFF6FF',
-                padding: '16px 14px',
+                padding: '13px 12px',
                 borderRadius: '8px',
                 border: '1px solid #BFDBFE',
                 display: 'flex',
@@ -438,7 +438,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Assigned Clients
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E40AF', marginTop: '6px', lineHeight: 1 }}>
+              <div style={{ fontSize: '22px', fontWeight: 800, color: '#1E40AF', marginTop: '4px', lineHeight: 1 }}>
                 {canSeeAll ? 'All' : assignedClientsList.length}
               </div>
             </div>
@@ -447,7 +447,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => onNavigateToTasks?.()}
               style={{
                 background: '#FAF5FF',
-                padding: '16px 14px',
+                padding: '13px 12px',
                 borderRadius: '8px',
                 border: '1px solid #E9D5FF',
                 display: 'flex',
@@ -463,7 +463,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Total Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '6px', lineHeight: 1 }}>
+              <div style={{ fontSize: '22px', fontWeight: 800, color: '#6B21A8', marginTop: '4px', lineHeight: 1 }}>
                 {myStats.total}
               </div>
             </div>
@@ -472,7 +472,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => setIsCompletedModalOpen(true)}
               style={{
                 background: '#F0FDF4',
-                padding: '16px 14px',
+                padding: '13px 12px',
                 borderRadius: '8px',
                 border: '1px solid #86EFAC',
                 display: 'flex',
@@ -488,7 +488,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Completed Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', marginTop: '6px', lineHeight: 1 }}>
+              <div style={{ fontSize: '22px', fontWeight: 800, color: '#166534', marginTop: '4px', lineHeight: 1 }}>
                 {myStats.completed}
               </div>
             </div>
@@ -497,7 +497,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => onNavigateToTasks?.()}
               style={{
                 background: '#FFFBEB',
-                padding: '16px 14px',
+                padding: '13px 12px',
                 borderRadius: '8px',
                 border: '1px solid #FDE68A',
                 display: 'flex',
@@ -513,7 +513,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Pending / In Progress
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400E', marginTop: '6px', lineHeight: 1 }}>
+              <div style={{ fontSize: '22px', fontWeight: 800, color: '#92400E', marginTop: '4px', lineHeight: 1 }}>
                 {myStats.pending + myStats.inProgress}
               </div>
             </div>
@@ -522,7 +522,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               onClick={() => onNavigateToTasks?.()}
               style={{
                 background: '#FEF2F2',
-                padding: '16px 14px',
+                padding: '13px 12px',
                 borderRadius: '8px',
                 border: '1px solid #FECACA',
                 display: 'flex',
@@ -538,7 +538,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               <div style={{ fontSize: '11px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Overdue Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B', marginTop: '6px', lineHeight: 1 }}>
+              <div style={{ fontSize: '22px', fontWeight: 800, color: '#991B1B', marginTop: '4px', lineHeight: 1 }}>
                 {myStats.overdue}
               </div>
             </div>
