@@ -14,6 +14,7 @@ interface TaskContextType {
   teamStats: DashboardStats;
   fetchTasks: () => Promise<void>;
   createTask: (taskData: Partial<Task>) => Promise<void>;
+  createTasksBulk: (tasksData: Partial<Task>[]) => Promise<void>;
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   addManagerComment: (taskId: string, comment: string) => Promise<void>;
@@ -109,6 +110,17 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const createTasksBulk = async (tasksData: Partial<Task>[]) => {
+    try {
+      await Promise.all(tasksData.map(t => taskService.createTask(t)));
+      showToast(`Successfully assigned tasks to ${tasksData.length} team members!`);
+      await fetchTasks();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to assign tasks');
+      throw err;
+    }
+  };
+
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
       await taskService.updateTask(taskId, updates);
@@ -154,6 +166,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         teamStats,
         fetchTasks,
         createTask,
+        createTasksBulk,
         updateTask,
         deleteTask,
         addManagerComment,

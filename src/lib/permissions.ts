@@ -213,8 +213,12 @@ export function getAssignableUsers(
          getUserRank(u) < currentRank
   );
 
-  // If no client selected yet, show AD to above (since AD+ oversee all clients)
-  if (!selectedClientId) {
+  // If "ALL_CLIENTS" or "ALL" or no client selected yet:
+  if (!selectedClientId || selectedClientId === 'ALL_CLIENTS' || selectedClientId === 'ALL') {
+    // If user is AD or above (or Admin), they can assign to ANY subordinate firm-wide across all clients!
+    if (isAssistantDirectorOrAbove(currentUser.designation) || currentUser.role === 'ADMIN') {
+      return subordinates;
+    }
     return subordinates.filter(u => isAssistantDirectorOrAbove(u.designation));
   }
 

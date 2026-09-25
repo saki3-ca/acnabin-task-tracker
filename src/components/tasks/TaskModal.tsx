@@ -5,7 +5,8 @@ import { todayInputDate, toInputDate } from '../../lib/dateUtils';
 import {
   canAssignTasks,
   canViewAllClients,
-  getAssignableUsers
+  getAssignableUsers,
+  isAssistantDirectorOrAbove
 } from '../../lib/permissions';
 import { Priority, Task, TaskStatus } from '../../types';
 import { Modal } from '../ui/Modal';
@@ -24,11 +25,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   mode = 'own'
 }) => {
   const { currentUser, allClients, allUsers } = useAuth();
-  const { createTask, updateTask } = useTasks();
+  const { createTask, createTasksBulk, updateTask } = useTasks();
 
   const isEditing = Boolean(taskToEdit);
   const isManager = canAssignTasks(currentUser);
   const canSeeAll = canViewAllClients(currentUser);
+  const isADPlus = currentUser ? (currentUser.role === 'ADMIN' || isAssistantDirectorOrAbove(currentUser.designation)) : false;
 
   // Compute assigned client IDs for the user
   const userClientIds = useMemo(() => {
@@ -130,7 +132,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   useEffect(() => {
     if (mode === 'team' && !taskToEdit) {
       if (assignableUsers.length > 0) {
-        if (!assignedToId || !assignableUsers.some(u => u.id === assignedToId)) {
+        if (!assignedToId || (assignedToId !== 'ALL_MEMBERS' && !assignableUsers.some(u => u.id === assignedToId))) {
           setAssignedToId(assignableUsers[0].id);
         }
       } else {
@@ -147,7 +149,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
 
     if (mode === 'team' && !assignedToId) {
-      alert('Please select a team member to assign this task to.');
+      alert('Please select a team member or select All Members to assign this task.');
       return;
     }
 
@@ -155,11 +157,16 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       ? availableClients[0].id
       : (clientId || availableClients[0]?.id || '');
 
+    const resolvedClient = finalClientId === 'ALL_CLIENTS'
+      ? { id: 'general', name: 'General' }
+      : (availableClients.find(c => c.id === finalClientId) || { id: finalClientId, name: 'General' });
+
     setIsSubmitting(true);
     try {
       if (isEditing && taskToEdit) {
         await updateTask(taskToEdit.id, {
-          clientId: finalClientId,
+          clientId: resolvedClient.id,
+          clientName: resolvedClient.name,
           assignedToId: mode === 'team' ? assignedToId : (taskToEdit.assignedToId || currentUser?.id || ''),
           particular,
           priority,
@@ -169,16 +176,33 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           remarks,
           managerComment
         });
+      } else if (mode === 'team' && assignedToId === 'ALL_MEMBERS') {
+        const tasksToCreate = assignableUsers.map(u => ({
+          clientId: resolvedClient.id,
+          clientName: resolvedClient.name,
+          assignedToId: u.id,
+          assignedToName: u.name,
+          particular,
+          priority,
+          assignedDate,
+          deadline,
+          status,
+          remarks,
+          managerComment
+        }));
+        await createTasksBulk(tasksToCreate);
       } else {
         await createTask({
-          clientId: finalClientId,
+          clientId: resolvedClient.id,
+          clientName: resolvedClient.name,
           assignedToId: mode === 'team' ? assignedToId : (currentUser?.id || ''),
           particular,
           priority,
           assignedDate,
           deadline,
           status,
-          remarks
+          remarks,
+          managerComment
         });
       }
       onClose();
@@ -223,6 +247,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 required
               >
                 <option value="">Select client…</option>
+                {isADPlus && (
+                  <option value="ALL_CLIENTS" style={{ fontWeight: 700, color: '#1E40AF' }}>
+                    🌐 All Clients / Firm-wide
+                  </option>
+                )}
                 {availableClients.map(c => (
                   <option key={c.id} value={c.id}>
                     {c.name} {c.jobNumber ? `(${c.jobNumber})` : ''}
@@ -246,15 +275,43 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   {!activeClientId
                     ? 'Select a client first…'
                     : assignableUsers.length === 0
-                    ? 'No eligible subordinates on this client'
+                    ? 'No eligible subordinates found'
                     : 'Select team member…'}
                 </option>
-                {assignableUsers.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.designation})
+                {isADPlus && !isEditing && assignableUsers.length > 0 && (
+                  <option
+                    value="ALL_MEMBERS"
+                    style={{ fontWeight: 700, color: '#1E40AF', background: '#EFF6FF' }}
+                  >
+                    👥 Assign to ALL Below Members ({assignableUsers.length} members)
                   </option>
-                ))}
+                )}
+                {assignableUsers.length > 0 && (
+                  <optgroup label="Individual Team Members">
+                    {assignableUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.designation})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
+              {assignedToId === 'ALL_MEMBERS' && (
+                <div
+                  style={{
+                    fontSize: '11.5px',
+                    color: '#1E40AF',
+                    marginTop: '5px',
+                    padding: '6px 10px',
+                    background: '#EFF6FF',
+                    borderRadius: '4px',
+                    border: '1px solid #BFDBFE',
+                    lineHeight: '1.4'
+                  }}
+                >
+                  ⚡ <strong>Bulk Assignment Active:</strong> This task will be simultaneously created and assigned to all <strong>{assignableUsers.length}</strong> subordinate team members ({clientId === 'ALL_CLIENTS' ? 'firm-wide' : 'assigned to this client'}).
+                </div>
+              )}
             </div>
           )}
 
@@ -359,7 +416,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : mode === 'team' ? 'Assign Task' : 'Create Task'}
+            {isSubmitting
+              ? 'Saving…'
+              : isEditing
+              ? 'Save Changes'
+              : mode === 'team'
+              ? assignedToId === 'ALL_MEMBERS'
+                ? `Assign to All (${assignableUsers.length}) Members`
+                : 'Assign Task'
+              : 'Create Task'}
           </button>
         </div>
       </form>
