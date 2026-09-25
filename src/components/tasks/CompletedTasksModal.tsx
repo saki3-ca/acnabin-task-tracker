@@ -25,6 +25,7 @@ interface CompletedTasksModalProps {
   onClose: () => void;
   tasks: Task[];
   title?: string;
+  showTeamColumns?: boolean;
   onEditTask?: (task: Task) => void;
   onOpenComment?: (task: Task) => void;
 }
@@ -34,6 +35,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   onClose,
   tasks,
   title = 'Completed Tasks Archive',
+  showTeamColumns = false,
   onEditTask,
   onOpenComment
 }) => {
@@ -219,18 +221,21 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
             <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
               <tr>
                 <th style={{ width: '45px', textAlign: 'center' }}>SL.</th>
-                <th style={{ minWidth: '220px', textAlign: 'left' }}>Particulars</th>
-                <th style={{ width: '170px', textAlign: 'left' }}>Client</th>
-                <th style={{ width: '110px', textAlign: 'center' }}>Deadline</th>
-                <th style={{ width: '125px', textAlign: 'center' }}>Status</th>
-                <th style={{ minWidth: '180px', textAlign: 'left' }}>Remarks</th>
+                {showTeamColumns && (
+                  <th style={{ width: '130px', textAlign: 'center' }}>Assigned To</th>
+                )}
+                <th style={{ minWidth: '200px', textAlign: 'left' }}>Particulars</th>
+                <th style={{ width: '150px', textAlign: 'left' }}>Client</th>
+                <th style={{ width: '105px', textAlign: 'center' }}>Deadline</th>
+                <th style={{ width: '115px', textAlign: 'center' }}>Status</th>
+                <th style={{ minWidth: '160px', textAlign: 'left' }}>Remarks</th>
                 <th style={{ width: '90px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
+                  <td colSpan={showTeamColumns ? 8 : 7} className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
                     <CheckCircle2 size={32} style={{ color: '#166534', opacity: 0.4, marginBottom: '8px' }} />
                     <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
                       {tasks.length === 0 ? 'No completed tasks found' : 'No completed tasks match your search'}
@@ -244,13 +249,35 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                 </tr>
               ) : (
                 filteredTasks.map((task, idx) => {
-                  const canEdit = canEditTask(currentUser, task, false);
+                  const canEdit = canEditTask(currentUser, task, showTeamColumns);
 
                   return (
                     <tr key={task.id} style={{ background: idx % 2 === 0 ? '#FFFFFF' : '#F9FBFA' }}>
                       <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
                         {idx + 1}
                       </td>
+
+                      {/* Team Member (if showTeamColumns) */}
+                      {showTeamColumns && (
+                        <td style={{ fontSize: '12px', fontWeight: 600, color: 'var(--navy)', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              background: 'var(--cream)',
+                              border: '1px solid var(--line-soft)',
+                              maxWidth: '120px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={task.assignedToName || 'Unassigned'}
+                          >
+                            {task.assignedToName || 'Unassigned'}
+                          </span>
+                        </td>
+                      )}
 
                       {/* Particulars */}
                       <td>

@@ -26,7 +26,7 @@ import { CompletedTasksModal } from './components/tasks/CompletedTasksModal';
 
 const MainApp: React.FC = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
-  const { myTasks, teamTasks, myStats, teamStats, isLoading: tasksLoading, toast } = useTasks();
+  const { myTasks, teamTasks, teamFilters, myStats, teamStats, isLoading: tasksLoading, toast } = useTasks();
 
   const [activeTab, setActiveTab] = useState<TabKey>('own');
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
@@ -46,6 +46,7 @@ const MainApp: React.FC = () => {
   const [commentTask, setCommentTask] = useState<Task | null>(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
+  const [completedModalScope, setCompletedModalScope] = useState<'own' | 'team'>('own');
 
   // Filter active tasks (completed tasks are archived and shown via Completed modal/profile)
   const activeMyTasks = useMemo(
@@ -55,6 +56,22 @@ const MainApp: React.FC = () => {
   const completedMyTasks = useMemo(
     () => myTasks.filter(t => t.status === 'Completed'),
     [myTasks]
+  );
+
+  // Team active and completed tasks
+  const activeTeamTasks = useMemo(() => {
+    if (teamFilters.status === 'Completed') {
+      return teamTasks.filter(t => t.status === 'Completed');
+    }
+    if (teamFilters.status && teamFilters.status !== 'All') {
+      return teamTasks.filter(t => t.status === teamFilters.status);
+    }
+    return teamTasks.filter(t => t.status !== 'Completed');
+  }, [teamTasks, teamFilters.status]);
+
+  const completedTeamTasks = useMemo(
+    () => teamTasks.filter(t => t.status === 'Completed'),
+    [teamTasks]
   );
 
   // Urgent tasks (near deadline or overdue among active tasks)
@@ -132,7 +149,10 @@ const MainApp: React.FC = () => {
             stats={myStats}
             variant="maroon"
             onPillClick={pill => {
-              if (pill === 'COMPLETED') setIsCompletedModalOpen(true);
+              if (pill === 'COMPLETED') {
+                setCompletedModalScope('own');
+                setIsCompletedModalOpen(true);
+              }
             }}
           />
 
@@ -165,15 +185,28 @@ const MainApp: React.FC = () => {
       {/* Pane 2: Team Tasks */}
       {activeTab === 'team' && (
         <div className="tab-pane">
-          <StatPills stats={teamStats} variant="teal" />
+          <StatPills
+            stats={teamStats}
+            variant="teal"
+            onPillClick={pill => {
+              if (pill === 'COMPLETED') {
+                setCompletedModalScope('team');
+                setIsCompletedModalOpen(true);
+              }
+            }}
+          />
           <TaskFilterBar onOpenAssignModal={() => handleOpenAddTask('team')} />
           <TaskTable
             title="TEAM ENGAGEMENT TASKS"
             bannerColor="maroon"
-            tasks={teamTasks}
+            tasks={activeTeamTasks}
             showTeamColumns={true}
             isLoading={tasksLoading}
-            emptyMessage="No team tasks match the current filters."
+            emptyMessage={
+              teamFilters.status === 'Completed'
+                ? 'No completed team tasks match the current filters.'
+                : 'No active team tasks match the current filters.'
+            }
             onEditTask={handleEditTask}
             onOpenComment={handleOpenComment}
           />
@@ -230,7 +263,9 @@ const MainApp: React.FC = () => {
       <CompletedTasksModal
         isOpen={isCompletedModalOpen}
         onClose={() => setIsCompletedModalOpen(false)}
-        tasks={completedMyTasks}
+        tasks={completedModalScope === 'team' ? completedTeamTasks : completedMyTasks}
+        title={completedModalScope === 'team' ? 'Completed Team Tasks Archive' : 'My Completed Tasks Archive'}
+        showTeamColumns={completedModalScope === 'team'}
         onEditTask={handleEditTask}
         onOpenComment={handleOpenComment}
       />

@@ -70,7 +70,10 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const [myResult, teamResult] = await Promise.allSettled([
         taskService.getMyTasks(currentUser.id),
-        taskService.getTeamTasks(currentUser.id, teamFilters)
+        taskService.getTeamTasks(currentUser.id, {
+          clientId: teamFilters.clientId,
+          memberId: teamFilters.memberId
+        })
       ]);
       if (myResult.status === 'fulfilled') {
         setMyTasks(myResult.value);
@@ -93,7 +96,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id) {
       fetchTasks();
     }
-  }, [currentUser?.id, teamFilters]);
+  }, [currentUser?.id, teamFilters.clientId, teamFilters.memberId]);
 
   const createTask = async (taskData: Partial<Task>) => {
     try {
