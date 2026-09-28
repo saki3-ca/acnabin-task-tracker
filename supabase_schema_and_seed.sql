@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS public.users (
   designation TEXT DEFAULT 'Student',
   signup_client_id TEXT DEFAULT '',
   status TEXT DEFAULT 'ACTIVE',
-  created_date TIMESTAMPTZ DEFAULT NOW()
+  created_date TIMESTAMPTZ DEFAULT NOW(),
+  mobile TEXT
 );
 
 -- 2. CLIENTS TABLE
@@ -64,6 +65,29 @@ CREATE TABLE IF NOT EXISTS public.manager_student_access (
   created_date TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure mobile column exists on users table
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS mobile TEXT;
+
+-- 6. MANPOWER TABLE
+-- Note: schema only, no sensitive salary/contact data in this file.
+-- TODO: This table must get proper RLS once Supabase Auth is in place.
+CREATE TABLE IF NOT EXISTS public.manpower (
+  emp_id TEXT PRIMARY KEY,
+  name TEXT,
+  client_id TEXT NULL,
+  client_name TEXT,
+  designation TEXT,
+  academic_year TEXT,
+  salary NUMERIC,
+  conveyance NUMERIC,
+  total NUMERIC,
+  contact_number TEXT,
+  email TEXT,
+  education TEXT,
+  remarks TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ROW LEVEL SECURITY (RLS) POLICIES
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public full access on users" ON public.users;
@@ -84,6 +108,22 @@ CREATE POLICY "Allow public full access on manager_client_access" ON public.mana
 ALTER TABLE public.manager_student_access ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public full access on manager_student_access" ON public.manager_student_access;
 CREATE POLICY "Allow public full access on manager_student_access" ON public.manager_student_access FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.manpower ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public full access on manpower" ON public.manpower;
+CREATE POLICY "Allow public full access on manpower" ON public.manpower FOR ALL USING (true) WITH CHECK (true);
+
+-- 7. CLIENT MANPOWER REMARKS TABLE
+CREATE TABLE IF NOT EXISTS public.client_manpower_remarks (
+  client_id TEXT PRIMARY KEY,
+  remarks TEXT DEFAULT '',
+  updated_by TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.client_manpower_remarks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public full access on client_manpower_remarks" ON public.client_manpower_remarks;
+CREATE POLICY "Allow public full access on client_manpower_remarks" ON public.client_manpower_remarks FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================================
 -- SEED DATA INSERTION (MIGRATED FROM GOOGLE SHEETS)

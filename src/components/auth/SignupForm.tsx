@@ -2,8 +2,9 @@ import React, { useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BRAND, DESIGNATIONS } from '../../lib/constants';
-import { formatHrmId, isAssistantDirectorOrAbove } from '../../lib/permissions';
+import { formatHrmId, isAssistantDirectorOrAbove, normalizeBDMobile } from '../../lib/permissions';
 import { Designation } from '../../types';
+import { manpowerService } from '../../services/manpowerService';
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
@@ -31,10 +32,13 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
   const [name, setName] = useState('');
   const [empId, setEmpId] = useState('');
   const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [designation, setDesignation] = useState('');
+  const [academicYear, setAcademicYear] = useState('1st Year');
   const [designationSuggestions, setDesignationSuggestions] = useState<Designation[]>([]);
   const [showDesignationDropdown, setShowDesignationDropdown] = useState(false);
+  const [hrAutofillHint, setHrAutofillHint] = useState(false);
 
   // Multi-client free-text with autocomplete
   const [clientInput, setClientInput] = useState('');
@@ -50,8 +54,39 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
   // Is assistant director or above? Hide client box
   const hideClientBox = isAssistantDirectorOrAbove(designation);
 
+  const handleEmpIdBlur = async () => {
+    const trimmed = empId.trim();
+    if (!trimmed) return;
+    try {
+      const staff = await manpowerService.lookupStaff(trimmed);
+      if (staff && (staff.name || staff.email || staff.designation || staff.mobile)) {
+        if (staff.name) setName(staff.name);
+        if (staff.email) setEmail(staff.email);
+        if (staff.mobile && !mobile) setMobile(staff.mobile);
+        if (staff.designation) {
+          setDesignation(staff.designation);
+          if (isAssistantDirectorOrAbove(staff.designation)) {
+            setSelectedClients([]);
+            setClientInput('');
+          }
+        }
+        if (staff.academicYear) {
+          setAcademicYear(staff.academicYear);
+        } else if (staff.designation === 'Trainee') {
+          setAcademicYear('1st Year');
+        }
+        setHrAutofillHint(true);
+      }
+    } catch {
+      // Do nothing on failure
+    }
+  };
+
   const handleDesignationInput = (val: string) => {
     setDesignation(val);
+    if (val.toLowerCase() === 'trainee') {
+      setAcademicYear('1st Year');
+    }
     const suggestions = getDesignationSuggestions(val);
     setDesignationSuggestions(suggestions);
     setShowDesignationDropdown(suggestions.length > 0 && val.trim().length > 0);
@@ -60,6 +95,9 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
   const selectDesignation = (d: Designation) => {
     setDesignation(d);
     setShowDesignationDropdown(false);
+    if (d === 'Trainee') {
+      setAcademicYear('1st Year');
+    }
     if (isAssistantDirectorOrAbove(d)) {
       setSelectedClients([]);
       setClientInput('');
@@ -94,8 +132,14 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !empId.trim() || !email.trim()) {
+    if (!name.trim() || !empId.trim() || !email.trim() || !mobile.trim()) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    const normalizedMobile = normalizeBDMobile(mobile);
+    if (!normalizedMobile) {
+      setError('Please enter a valid Bangladesh mobile number (11 digits starting with 01, e.g. 01XXXXXXXXX).');
       return;
     }
 
@@ -103,6 +147,9 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
     const clientNames = selectedClients.map(c => c.name).join(', ');
 
     const formattedEmpId = formatHrmId(empId, designation);
+    const isStudent = designation.toLowerCase() === 'student';
+    const isTrainee = designation.toLowerCase() === 'trainee';
+    const finalAcademicYear = isStudent ? academicYear : (isTrainee ? '1st Year' : undefined);
 
     setError(null);
     setLoading(true);
@@ -111,10 +158,12 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
         name,
         empId: formattedEmpId,
         email,
+        mobile: normalizedMobile,
         password,
         designation: designation as Designation,
         clientId: clientIds,
-        clientName: clientNames || undefined
+        clientName: clientNames || undefined,
+        academicYear: finalAcademicYear
       });
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
@@ -140,7 +189,32 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
         {error && <div className="auth-alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {/* Full Name */}
+          {/* 1. ID / Partner Initial (First to ask for instant HR auto-fill) */}
+          <div className="form-field">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+              <label style={{ margin: 0 }}>Employee / Student ID / Partner Initial</label>
+              {hrAutofillHint && (
+                <span style={{ fontSize: '11px', color: '#03543F', fontWeight: 600 }}>
+                  ✓ Filled from HR records
+                </span>
+              )}
+            </div>
+            <input
+              type="text"
+              value={empId}
+              onChange={e => {
+                setEmpId(e.target.value);
+                setHrAutofillHint(false);
+              }}
+              onBlur={handleEmpIdBlur}
+              className="form-input"
+              placeholder="e.g. STD-001643 or EMP-000230 or AB"
+              required
+              autoFocus
+            />
+          </div>
+
+          {/* 2. Full Name */}
           <div className="form-field">
             <label>Full Name</label>
             <input
@@ -153,20 +227,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
             />
           </div>
 
-          {/* ID / Partner Initial */}
-          <div className="form-field">
-            <label>Employee / Student ID / Partner Initial</label>
-            <input
-              type="text"
-              value={empId}
-              onChange={e => setEmpId(e.target.value)}
-              className="form-input"
-              placeholder="e.g. STD-001643 or EMP-000230 or AB"
-              required
-            />
-          </div>
-
-          {/* Email */}
+          {/* 3. Email */}
           <div className="form-field">
             <label>Email</label>
             <input
@@ -179,15 +240,15 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
             />
           </div>
 
-          {/* Password */}
+          {/* 4. Mobile Number */}
           <div className="form-field">
-            <label>Password</label>
+            <label>Mobile Number</label>
             <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
+              type="tel"
+              value={mobile}
+              onChange={e => setMobile(e.target.value)}
               className="form-input"
-              placeholder="Create a password"
+              placeholder="01XXXXXXXXX"
               required
             />
           </div>
@@ -247,6 +308,24 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
               </ul>
             )}
           </div>
+
+          {/* Academic Year (only for Student) */}
+          {designation.toLowerCase() === 'student' && (
+            <div className="form-field">
+              <label>Academic Year</label>
+              <select
+                className="form-select"
+                value={academicYear}
+                onChange={e => setAcademicYear(e.target.value)}
+                style={{ width: '100%', height: '38px', fontSize: '13px' }}
+              >
+                <option value="1st Year">1ˢᵗ Year</option>
+                <option value="2nd Year">2ⁿᵈ Year</option>
+                <option value="3rd Year">3ʳᵈ Year</option>
+                <option value="4th Year">4ᵗʰ Year</option>
+              </select>
+            </div>
+          )}
 
           {/* Current Client Engagement — hidden for Assistant Director and above */}
           {designation.trim() && !hideClientBox && (
@@ -339,6 +418,19 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
               )}
             </div>
           )}
+
+          {/* Password - placed at the very bottom of the form */}
+          <div className="form-field">
+            <label>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="form-input"
+              placeholder="Create a password"
+              required
+            />
+          </div>
 
           <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: '6px' }}>
             <Check size={16} /> {loading ? 'Creating Account…' : 'Complete Registration'}

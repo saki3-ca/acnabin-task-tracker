@@ -1,9 +1,9 @@
-import { Bell, CheckSquare, FileText, Shield, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, CheckSquare, FileText, Shield, User as UserIcon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
-import { canViewTeamTasks } from '../../lib/permissions';
+import { canViewManpower, canViewTeamTasks } from '../../lib/permissions';
 
-export type TabKey = 'own' | 'team' | 'requests' | 'notifications' | 'profile' | 'admin';
+export type TabKey = 'own' | 'team' | 'manpower' | 'requests' | 'notifications' | 'profile' | 'admin';
 
 interface NavigationTabsProps {
   activeTab: TabKey;
@@ -20,6 +20,9 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
 
   // Team Tasks: In Charge and above (not Students)
   const showTeamTasksTab = canViewTeamTasks(currentUser);
+
+  // Manpower: Admin or Assistant Director and above
+  const showManpowerTab = canViewManpower(currentUser);
 
   // Task Requests, Notifications & My Profile: available for all practice users
   const showRequestsTab = currentUser.role !== 'ADMIN';
@@ -110,7 +113,18 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
         My Profile
       </button>
 
-      {/* 6. Admin Panel */}
+      {/* 6. Manpower */}
+      {showManpowerTab && (
+        <button
+          className={`tab-btn ${activeTab === 'manpower' ? 'active' : ''}`}
+          onClick={() => onSelectTab('manpower')}
+        >
+          <Briefcase size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Manpower
+        </button>
+      )}
+
+      {/* 7. Admin Panel */}
       {showAdminTab && (
         <button
           className={`tab-btn admin-tab ${activeTab === 'admin' ? 'active' : ''}`}

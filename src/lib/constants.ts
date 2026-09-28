@@ -2,6 +2,7 @@ import { Designation, Priority, Role, TaskStatus } from '../types';
 
 export const DESIGNATIONS: Designation[] = [
   'Student',
+  'Trainee',
   'In Charge',
   'Supervisor',
   'Senior Assistant Manager',

@@ -1026,3 +1026,22 @@ button, input, select, textarea {
   color: var(--ink-soft);
   font-size: 13.5px;
 }
+
+/* Sticky client column for mobile / responsive horizontal scroll */
+.sticky-client-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: #ffffff;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.data-table th.sticky-client-col {
+  z-index: 3;
+  background-color: #FCF3F4;
+}
+
+.data-table tr:hover td.sticky-client-col {
+  background-color: #FAF8F5;
+}
+

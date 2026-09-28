@@ -74,6 +74,27 @@ export function formatHrmId(id: string, designation?: string): string {
   return raw;
 }
 
+/**
+ * Validates and normalizes Bangladesh mobile numbers:
+ * 11 digits starting with 01, optional +880 or 880 prefix.
+ * Normalizes to 01XXXXXXXXX format.
+ */
+export function normalizeBDMobile(raw: string): string | null {
+  if (!raw) return null;
+  let cleaned = raw.trim().replace(/[\s\-()]/g, '');
+  if (cleaned.startsWith('+880')) {
+    cleaned = cleaned.slice(4);
+    if (!cleaned.startsWith('0')) cleaned = '0' + cleaned;
+  } else if (cleaned.startsWith('880')) {
+    cleaned = cleaned.slice(3);
+    if (!cleaned.startsWith('0')) cleaned = '0' + cleaned;
+  }
+  if (/^01\d{9}$/.test(cleaned)) {
+    return cleaned;
+  }
+  return null;
+}
+
 export function isAssistantDirectorOrAbove(designation?: Designation | string): boolean {
   if (!designation) return false;
   return [
@@ -90,6 +111,11 @@ export function isAllAccessDesignation(designation?: Designation | string): bool
 
 export function canViewTeamTasks(user: User | null): boolean {
   return hasTeamAccess(user);
+}
+
+export function canViewManpower(user: User | null): boolean {
+  if (!user) return false;
+  return user.role === 'ADMIN' || isAssistantDirectorOrAbove(user.designation);
 }
 
 export function canViewAllClients(user: User | null): boolean {

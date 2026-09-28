@@ -8,12 +8,13 @@ import {
   Hash,
   KeyRound,
   Mail,
+  Phone,
   Trash2,
   Upload
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
-import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove } from '../../lib/permissions';
+import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove, normalizeBDMobile } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { api } from '../../services/api';
 import { Modal } from '../ui/Modal';
@@ -97,6 +98,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editMobile, setEditMobile] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState<string>('');
   const [editCurrentPassword, setEditCurrentPassword] = useState('');
   const [editNewPassword, setEditNewPassword] = useState('');
@@ -188,6 +190,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const openEditModal = () => {
     setEditName(currentUser.name);
     setEditEmail(currentUser.email);
+    setEditMobile(currentUser.mobile || '');
     setEditAvatarUrl(currentUser.avatarUrl || '');
     setEditCurrentPassword('');
     setEditNewPassword('');
@@ -246,13 +249,27 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       }
     }
 
+    let normalizedMobile = '';
+    if (editMobile.trim()) {
+      const norm = normalizeBDMobile(editMobile.trim());
+      if (!norm) {
+        setModalFeedback({
+          type: 'error',
+          text: 'Please provide a valid Bangladesh mobile number (11 digits starting with 01, e.g. 01XXXXXXXXX).'
+        });
+        return;
+      }
+      normalizedMobile = norm;
+    }
+
     setIsSaving(true);
     try {
       // 1. Update basic profile and photo
       await adminService.updateUser(currentUser.id, {
         name: editName.trim(),
         email: editEmail.trim(),
-        avatarUrl: editAvatarUrl
+        avatarUrl: editAvatarUrl,
+        mobile: normalizedMobile
       });
 
       // 2. Update password if requested
@@ -385,6 +402,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Mail size={13} color="var(--navy)" /> {currentUser.email}
                   </div>
+                  {currentUser.mobile && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Phone size={13} color="var(--navy)" /> {currentUser.mobile}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Hash size={13} color="var(--navy)" />
                     {currentUser.designation === 'Partner'
@@ -813,6 +835,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 className="form-input"
                 placeholder="Enter official email..."
                 required
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Mobile Number (Bangladesh)</label>
+              <input
+                type="tel"
+                value={editMobile}
+                onChange={e => setEditMobile(e.target.value)}
+                className="form-input"
+                placeholder="e.g. 01XXXXXXXXX"
               />
             </div>
 

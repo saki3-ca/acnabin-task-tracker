@@ -10,8 +10,11 @@ export const authService = {
     name: string;
     empId: string;
     email: string;
+    designation?: string;
     clientId?: string;
     clientName?: string;
+    mobile?: string;
+    academicYear?: string;
     password?: string;
   }): Promise<{ user: User; token: string }> {
     return api.callBackend('register', payload);

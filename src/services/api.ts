@@ -3,8 +3,11 @@ import { formatHrmId } from '../lib/permissions';
 import {
   AppNotification,
   Client,
+  Designation,
   ManagerAccessItem,
   ManagerStudentItem,
+  ManpowerRecord,
+  StaffLookupResult,
   Task,
   TaskFilter,
   TaskRequest,
@@ -14,9 +17,28 @@ import {
   INITIAL_CLIENTS,
   INITIAL_MANAGER_CLIENTS,
   INITIAL_MANAGER_STUDENTS,
+  INITIAL_MANPOWER,
   INITIAL_TASKS,
   INITIAL_USERS
 } from './mockData';
+
+function mapToSystemDesignation(raw?: string): Designation {
+  if (!raw) return 'Student';
+  const clean = raw.trim();
+  const lower = clean.toLowerCase();
+  if (/year/i.test(lower)) return 'Student';
+  if (lower.includes('partner')) return 'Partner';
+  if (lower.includes('admin')) return 'Admin';
+  if (lower.includes('assitant director') || lower.includes('assistant director')) return 'Assistant Director';
+  if (lower.includes('deputy director')) return 'Deputy Director';
+  if (lower === 'director') return 'Director';
+  if (lower.includes('senior assistant manager')) return 'Senior Assistant Manager';
+  if (lower.includes('deputy manager')) return 'Deputy Manager';
+  if (lower.includes('manager')) return 'Manager';
+  if (lower.includes('supervisor')) return 'Supervisor';
+  if (lower.includes('in charge') || lower.includes('incharge')) return 'In Charge';
+  return 'Student';
+}
 
 // Map database snake_case columns to frontend types
 function mapUserFromDb(row: any): User {
@@ -35,6 +57,7 @@ function mapUserFromDb(row: any): User {
     assignedClientIds: assignedClientIds,
     status: row.status || 'ACTIVE',
     avatarUrl: row.avatar_url || '',
+    mobile: row.mobile || '',
     createdDate: row.created_date
   };
 }
@@ -183,6 +206,7 @@ class LocalFallbackStore {
   tasks: Task[];
   managerClients: Record<string, string[]>;
   managerStudents: Record<string, string[]>;
+  manpower: ManpowerRecord[];
   currentUser: User | null;
 
   constructor() {
@@ -191,6 +215,7 @@ class LocalFallbackStore {
     const storedTasks = localStorage.getItem('acnabin_tasks');
     const storedMgrClients = localStorage.getItem('acnabin_mgr_clients');
     const storedMgrStudents = localStorage.getItem('acnabin_mgr_students');
+    const storedManpower = localStorage.getItem('acnabin_manpower_records');
     const storedCurrent = localStorage.getItem('acnabin_current_user');
 
     this.users = storedUsers ? JSON.parse(storedUsers) : [...INITIAL_USERS];
@@ -198,7 +223,52 @@ class LocalFallbackStore {
     this.tasks = storedTasks ? JSON.parse(storedTasks) : [...INITIAL_TASKS];
     this.managerClients = storedMgrClients ? JSON.parse(storedMgrClients) : { ...INITIAL_MANAGER_CLIENTS };
     this.managerStudents = storedMgrStudents ? JSON.parse(storedMgrStudents) : { ...INITIAL_MANAGER_STUDENTS };
+    this.manpower = storedManpower ? JSON.parse(storedManpower) : [...INITIAL_MANPOWER];
     this.currentUser = storedCurrent ? JSON.parse(storedCurrent) : null;
+
+    // Auto-heal any legacy cached records where year was mistakenly placed in designation
+    let hadBadManpower = false;
+    this.manpower = this.manpower.map(m => {
+      let desig = m.designation || '';
+      let acad = m.academicYear || '';
+      if (/year/i.test(desig)) {
+        hadBadManpower = true;
+        if (!acad || acad === '—' || !acad.trim()) {
+          const match = desig.match(/(\d+)(st|nd|rd|th)?\s*year/i);
+          if (match) {
+            const num = match[1];
+            const suf = match[2] ? match[2].toLowerCase() : (num === '1' ? 'st' : num === '2' ? 'nd' : num === '3' ? 'rd' : 'th');
+            acad = `${num}${suf} Year`;
+          } else {
+            acad = desig;
+          }
+        }
+        desig = 'Student';
+      }
+      return {
+        ...m,
+        designation: desig,
+        academicYear: acad
+      };
+    });
+    if (hadBadManpower) {
+      localStorage.setItem('acnabin_manpower_records', JSON.stringify(this.manpower));
+    }
+
+    let hadBadUsers = false;
+    this.users = this.users.map(u => {
+      if (/year/i.test(u.designation || '')) {
+        hadBadUsers = true;
+        return {
+          ...u,
+          designation: 'Student'
+        };
+      }
+      return u;
+    });
+    if (hadBadUsers) {
+      localStorage.setItem('acnabin_users', JSON.stringify(this.users));
+    }
   }
 
   save() {
@@ -207,6 +277,7 @@ class LocalFallbackStore {
     localStorage.setItem('acnabin_tasks', JSON.stringify(this.tasks));
     localStorage.setItem('acnabin_mgr_clients', JSON.stringify(this.managerClients));
     localStorage.setItem('acnabin_mgr_students', JSON.stringify(this.managerStudents));
+    localStorage.setItem('acnabin_manpower_records', JSON.stringify(this.manpower));
     if (this.currentUser) {
       localStorage.setItem('acnabin_current_user', JSON.stringify(this.currentUser));
     } else {
@@ -322,7 +393,7 @@ export const api = {
       }
 
       case 'register': {
-        const { name, empId, email, designation: reqDesignation, clientId } = payload;
+        const { name, empId, email, designation: reqDesignation, clientId, clientName, mobile, academicYear } = payload;
         const hrmEmpId = formatHrmId(String(empId), reqDesignation);
 
         const { data: existing } = await supabase
@@ -345,7 +416,8 @@ export const api = {
           designation: reqDesignation || 'Student',
           signup_client_id: clientId || '',
           status: 'ACTIVE',
-          created_date: new Date().toISOString()
+          created_date: new Date().toISOString(),
+          mobile: mobile || ''
         };
 
         const { data: created, error } = await supabase
@@ -355,6 +427,24 @@ export const api = {
           .single();
 
         if (error) throw error;
+
+        // If matching HR manpower row exists, sync academic year and client name
+        try {
+          const mpUpdates: any = {};
+          if (academicYear) mpUpdates.academic_year = academicYear;
+          else if (reqDesignation === 'Trainee') mpUpdates.academic_year = '1st Year';
+          if (clientName) mpUpdates.client_name = clientName;
+
+          if (Object.keys(mpUpdates).length > 0) {
+            await supabase
+              .from('manpower')
+              .update(mpUpdates)
+              .or(`emp_id.ilike.${hrmEmpId},emp_id.ilike.${empId}`);
+          }
+        } catch (mpUpdateErr) {
+          console.warn('Could not sync manpower on register:', mpUpdateErr);
+        }
+
         const newUser = mapUserFromDb(created);
         localStorage.setItem('acnabin_current_user', JSON.stringify(newUser));
         fallbackStore.currentUser = newUser;
@@ -995,6 +1085,7 @@ export const api = {
         if (updates.designation !== undefined) dbUpdates.designation = updates.designation;
         if (updates.status !== undefined) dbUpdates.status = updates.status;
         if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl;
+        if (updates.mobile !== undefined) dbUpdates.mobile = updates.mobile;
 
         let clientIdsToSync: string[] | null = null;
         if (updates.assignedClientIds && Array.isArray(updates.assignedClientIds)) {
@@ -1127,6 +1218,488 @@ export const api = {
         return Array.from(ids) as T;
       }
 
+      case 'getManpower': {
+        const includeAll = Boolean(payload?.includeAll);
+        let { data: manpowerRows, error: mpErr } = await supabase
+          .from('manpower')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (mpErr || !manpowerRows || manpowerRows.length === 0) {
+          // If Supabase table is empty or unreachable, use fallbackStore records
+          manpowerRows = fallbackStore.manpower.map(m => ({
+            emp_id: m.empId,
+            name: m.name,
+            client_id: m.clientId || null,
+            client_name: m.assignedClient,
+            designation: m.designation,
+            academic_year: m.academicYear,
+            salary: m.salary,
+            conveyance: m.conveyance,
+            total: m.total,
+            contact_number: (m as any).contactNumber || '',
+            email: (m as any).email || '',
+            remarks: (m as any).remarks || ''
+          }));
+        }
+
+        const [usersRes, clientsRes, mcaRes] = await Promise.all([
+          supabase.from('users').select('*').eq('status', 'ACTIVE'),
+          supabase.from('clients').select('id, name'),
+          supabase.from('manager_client_access').select('manager_user_id, client_id').eq('status', 'ACTIVE')
+        ]);
+
+        const activeUsers = usersRes.data || fallbackStore.users.filter(u => u.status === 'ACTIVE');
+        const clientList = clientsRes.data || fallbackStore.clients;
+        const clientMap = new Map<string, string>();
+        clientList.forEach((c: any) => clientMap.set(c.id, c.name));
+
+        const mcaMap = new Map<string, string[]>();
+        (mcaRes.data || []).forEach((row: any) => {
+          const list = mcaMap.get(row.manager_user_id) || [];
+          list.push(row.client_id);
+          mcaMap.set(row.manager_user_id, list);
+        });
+
+        const result: ManpowerRecord[] = [];
+
+        if (!includeAll) {
+          // DEFAULT: Only show active registered students from the app!
+          // Active STD- accounts / Students / Trainees only.
+          const activeStudents = activeUsers.filter((u: any) => {
+            const empId = (u.emp_id || '').toUpperCase().trim();
+            const desig = (u.designation || '').toLowerCase().trim();
+            const role = (u.role || '').toUpperCase().trim();
+            if (role === 'ADMIN' || desig === 'admin') return false;
+            if (desig === 'partner' || desig === 'director' || desig === 'manager' || desig.includes('director') || desig.includes('manager')) return false;
+            return empId.startsWith('STD') || desig === 'student' || desig === 'trainee';
+          });
+
+          for (const u of activeStudents) {
+            const uEmpId = (u.emp_id || '').trim();
+            const uDigits = uEmpId.replace(/\D/g, '');
+
+            const mp = manpowerRows.find((m: any) => {
+              const mEmpId = (m.emp_id || '').trim();
+              if (mEmpId.toUpperCase() === uEmpId.toUpperCase()) return true;
+              if (formatHrmId(uEmpId, u.designation).toUpperCase() === mEmpId.toUpperCase()) return true;
+              const mDigits = mEmpId.replace(/\D/g, '');
+              if (mDigits && uDigits && mDigits === uDigits) return true;
+              return false;
+            });
+
+            const userClientIds = new Set<string>();
+            if (u.signup_client_id) {
+              u.signup_client_id.split(',').forEach((cid: string) => {
+                const t = cid.trim();
+                if (t) userClientIds.add(t);
+              });
+            }
+            const mcaIds = mcaMap.get(u.id) || [];
+            mcaIds.forEach((cid: string) => userClientIds.add(cid));
+
+            const appClientNames: string[] = [];
+            userClientIds.forEach((cid: string) => {
+              const cName = clientMap.get(cid);
+              if (cName) appClientNames.push(cName);
+            });
+
+            let assignedClient = 'Unassigned';
+            let resolvedClientId: string | null = null;
+            if (appClientNames.length > 0) {
+              assignedClient = appClientNames.join(', ');
+              resolvedClientId = Array.from(userClientIds)[0] || null;
+            } else if (mp && mp.client_name && mp.client_name !== '-' && mp.client_name.toLowerCase() !== 'none') {
+              assignedClient = mp.client_name;
+              resolvedClientId = mp.client_id || null;
+            }
+
+            if (!resolvedClientId && assignedClient && assignedClient !== 'Unassigned') {
+              const cMatch = clientList.find((c: any) => c.name.toLowerCase().trim() === assignedClient.toLowerCase().trim());
+              if (cMatch) resolvedClientId = cMatch.id;
+            }
+
+            const sal = mp ? (Number(mp.salary) || 0) : 0;
+            const conv = mp ? (Number(mp.conveyance) || 0) : 0;
+            let tot = mp ? (Number(mp.total) || 0) : 0;
+            if (tot === 0 && (sal > 0 || conv > 0)) tot = sal + conv;
+
+            let acad = mp ? (mp.academic_year || '') : '';
+            if (!acad && (u.designation === 'Trainee' || (mp && mp.designation === 'Trainee'))) {
+              acad = '1st Year';
+            }
+
+            const rawDesig = u.designation as string;
+            let desig = (rawDesig === 'TBA' || !rawDesig) ? (mp ? mp.designation : '') : rawDesig;
+            if (/year/i.test(desig)) {
+              if (!acad || acad === '—') acad = desig;
+              desig = 'Student';
+            }
+
+            result.push({
+              empId: u.emp_id,
+              name: u.name,
+              clientId: resolvedClientId,
+              assignedClient,
+              designation: (desig as string) === 'TBA' ? '' : (desig || ''),
+              academicYear: acad || '—',
+              salary: sal,
+              conveyance: conv,
+              total: tot
+            });
+          }
+        } else {
+          // INCLUDE ALL HR RECORDS MODE:
+          for (const mp of manpowerRows) {
+            const mpEmpId = (mp.emp_id || '').trim();
+            const mpDigits = mpEmpId.replace(/\D/g, '');
+
+            const matchedUser = activeUsers.find((u: any) => {
+              const uEmpId = (u.emp_id || '').trim();
+              if (uEmpId.toUpperCase() === mpEmpId.toUpperCase()) return true;
+              if (formatHrmId(uEmpId, u.designation).toUpperCase() === mpEmpId.toUpperCase()) return true;
+              const uDigits = uEmpId.replace(/\D/g, '');
+              if (uDigits && mpDigits && uDigits === mpDigits) return true;
+              return false;
+            });
+
+            let resolvedClientId: string | null = mp.client_id || null;
+            let assignedClient = mp.client_name || 'Unassigned';
+            let designation = mp.designation || '';
+            let name = mp.name || '';
+
+            if (matchedUser) {
+              name = matchedUser.name;
+              designation = matchedUser.designation || designation;
+
+              const userClientIds = new Set<string>();
+              if (matchedUser.signup_client_id) {
+                matchedUser.signup_client_id.split(',').forEach((cid: string) => {
+                  const t = cid.trim();
+                  if (t) userClientIds.add(t);
+                });
+              }
+              const mcaIds = mcaMap.get(matchedUser.id) || [];
+              mcaIds.forEach((cid: string) => userClientIds.add(cid));
+
+              const appClientNames: string[] = [];
+              userClientIds.forEach((cid: string) => {
+                const cName = clientMap.get(cid);
+                if (cName) appClientNames.push(cName);
+              });
+
+              if (appClientNames.length > 0) {
+                assignedClient = appClientNames.join(', ');
+                resolvedClientId = Array.from(userClientIds)[0] || mp.client_id || null;
+              }
+            } else {
+              if (!mp.client_name || mp.client_name === '-' || mp.client_name.toLowerCase() === 'none') {
+                assignedClient = 'Unassigned';
+              } else {
+                assignedClient = mp.client_name;
+              }
+            }
+
+            if (!resolvedClientId && assignedClient && assignedClient !== 'Unassigned') {
+              const cMatch = clientList.find((c: any) => c.name.toLowerCase().trim() === assignedClient.toLowerCase().trim());
+              if (cMatch) resolvedClientId = cMatch.id;
+            }
+
+            const sal = Number(mp.salary) || 0;
+            const conv = Number(mp.conveyance) || 0;
+            let tot = Number(mp.total) || 0;
+            if (tot === 0 && (sal > 0 || conv > 0)) tot = sal + conv;
+
+            let acad = mp.academic_year || '';
+            if (!acad && (designation === 'Trainee' || mp.designation === 'Trainee')) {
+              acad = '1st Year';
+            }
+
+            let finalDesig = designation === 'TBA' ? '' : designation;
+            if (/year/i.test(finalDesig)) {
+              if (!acad || acad === '—') acad = finalDesig;
+              finalDesig = 'Student';
+            }
+
+            result.push({
+              empId: mpEmpId,
+              name: name || (matchedUser ? matchedUser.name : ''),
+              clientId: resolvedClientId,
+              assignedClient,
+              designation: finalDesig,
+              academicYear: acad || '—',
+              salary: sal,
+              conveyance: conv,
+              total: tot
+            });
+          }
+        }
+
+        return result as T;
+      }
+
+      case 'updateManpowerRecord': {
+        const { empId, salary, conveyance, total, designation, academicYear, clientName, remarks } = payload;
+        const trimmedClientName = (clientName || '').trim();
+        const updates: any = {
+          salary: Number(salary) || 0,
+          conveyance: Number(conveyance) || 0,
+          total: Number(total) || ((Number(salary) || 0) + (Number(conveyance) || 0)),
+          designation: designation || 'Student',
+          academic_year: academicYear || '',
+          updated_at: new Date().toISOString()
+        };
+        if (clientName !== undefined) updates.client_name = trimmedClientName;
+        if (remarks !== undefined) updates.remarks = remarks;
+
+        let resolvedClientId: string | null = null;
+        if (trimmedClientName && trimmedClientName !== 'Unassigned' && trimmedClientName !== '—' && trimmedClientName !== '-') {
+          try {
+            const { data: clientMatch } = await supabase
+              .from('clients')
+              .select('id, name')
+              .ilike('name', trimmedClientName)
+              .limit(1)
+              .maybeSingle();
+
+            if (clientMatch?.id) {
+              resolvedClientId = clientMatch.id;
+            } else {
+              const newJobNumber = `C-${Math.floor(26000 + Math.random() * 900)}`;
+              const { data: createdClient } = await supabase
+                .from('clients')
+                .insert({
+                  name: trimmedClientName,
+                  job_number: newJobNumber,
+                  status: 'ACTIVE'
+                })
+                .select('id')
+                .maybeSingle();
+              if (createdClient?.id) {
+                resolvedClientId = createdClient.id;
+              }
+            }
+          } catch (cErr: any) {
+            console.warn('Client lookup error in updateManpowerRecord:', cErr?.message || cErr);
+          }
+        }
+
+        if (resolvedClientId) {
+          updates.client_id = resolvedClientId;
+        }
+
+        try {
+          const { error } = await supabase
+            .from('manpower')
+            .update(updates)
+            .eq('emp_id', empId);
+          if (error) {
+            console.warn('Supabase manpower update note:', error.message);
+          }
+        } catch (e: any) {
+          console.warn('Supabase manpower update exception:', e?.message || e);
+        }
+
+        // Sync with users table in Supabase so change affects full task tracker
+        const empDigits = empId.replace(/\D/g, '');
+        try {
+          const targetIds = Array.from(new Set([
+            empId,
+            empId.toUpperCase(),
+            empDigits ? `STD-${empDigits.padStart(6, '0')}` : '',
+            empDigits ? `EMP-${empDigits.padStart(6, '0')}` : ''
+          ].filter(Boolean)));
+
+          const userUpdates: any = {
+            updated_at: new Date().toISOString()
+          };
+          if (trimmedClientName) {
+            userUpdates.signup_client_name = trimmedClientName === 'Unassigned' ? '' : trimmedClientName;
+            userUpdates.signup_client_id = resolvedClientId || '';
+          }
+          if (academicYear !== undefined) {
+            userUpdates.academic_year = academicYear;
+          }
+          if (designation !== undefined && designation !== 'TBA') {
+            userUpdates.designation = designation;
+          }
+
+          await supabase
+            .from('users')
+            .update(userUpdates)
+            .in('emp_id', targetIds);
+        } catch (uErr: any) {
+          console.warn('Supabase user sync error in updateManpowerRecord:', uErr?.message || uErr);
+        }
+
+        // Always keep local fallback store updated so changes persist immediately across full task tracker
+        if (trimmedClientName && trimmedClientName !== 'Unassigned' && trimmedClientName !== '—' && trimmedClientName !== '-') {
+          let fbClient = fallbackStore.clients.find(c => c.name.toLowerCase().trim() === trimmedClientName.toLowerCase());
+          if (!fbClient) {
+            fbClient = {
+              id: resolvedClientId || `CLI-${Date.now()}`,
+              name: trimmedClientName,
+              jobNumber: `C-${Math.floor(26000 + Math.random() * 900)}`,
+              status: 'ACTIVE',
+              createdDate: new Date().toISOString()
+            };
+            fallbackStore.clients.push(fbClient);
+          }
+          if (!resolvedClientId) resolvedClientId = fbClient.id;
+        }
+
+        const matchedUser = fallbackStore.users.find(u => {
+          const uEmp = (u.empId || '').toUpperCase().trim();
+          const target = empId.toUpperCase().trim();
+          if (uEmp === target) return true;
+          const uDigits = uEmp.replace(/\D/g, '');
+          return Boolean(uDigits && empDigits && uDigits === empDigits);
+        });
+
+        if (matchedUser) {
+          if (trimmedClientName) {
+            matchedUser.signupClientName = trimmedClientName === 'Unassigned' ? '' : trimmedClientName;
+            matchedUser.signupClientId = resolvedClientId || '';
+            matchedUser.assignedClientIds = resolvedClientId ? [resolvedClientId] : [];
+          }
+          if (academicYear !== undefined) {
+            (matchedUser as any).academicYear = academicYear;
+          }
+          if (designation !== undefined && designation !== 'TBA') {
+            matchedUser.designation = designation as any;
+          }
+
+          if (fallbackStore.currentUser?.id === matchedUser.id || fallbackStore.currentUser?.empId === matchedUser.empId) {
+            fallbackStore.currentUser = { ...matchedUser };
+            try {
+              localStorage.setItem('acnabin_current_user', JSON.stringify(fallbackStore.currentUser));
+            } catch {}
+          }
+        }
+
+        const idx = fallbackStore.manpower.findIndex(m => {
+          const mEmp = (m.empId || '').toUpperCase().trim();
+          const target = empId.toUpperCase().trim();
+          return mEmp === target || Boolean(empDigits && m.empId.replace(/\D/g, '') === empDigits);
+        });
+        if (idx !== -1) {
+          fallbackStore.manpower[idx] = {
+            ...fallbackStore.manpower[idx],
+            salary: updates.salary,
+            conveyance: updates.conveyance,
+            total: updates.total,
+            designation: updates.designation,
+            academicYear: updates.academic_year,
+            assignedClient: trimmedClientName || fallbackStore.manpower[idx].assignedClient,
+            clientId: resolvedClientId || fallbackStore.manpower[idx].clientId
+          };
+        }
+        fallbackStore.save();
+
+        return { success: true } as T;
+      }
+
+      case 'getClientManpowerRemarks': {
+        const { data, error } = await supabase
+          .from('client_manpower_remarks')
+          .select('*');
+
+        if (error) {
+          console.warn('Could not fetch client manpower remarks:', error.message);
+          return {} as T;
+        }
+
+        const map: Record<string, string> = {};
+        (data || []).forEach((row: any) => {
+          if (row.client_id) {
+            map[row.client_id] = row.remarks || '';
+          }
+        });
+        return map as T;
+      }
+
+      case 'saveClientManpowerRemark': {
+        const { clientId, remarks, updatedBy } = payload;
+        if (!clientId) return { success: false } as T;
+
+        const { error } = await supabase
+          .from('client_manpower_remarks')
+          .upsert({
+            client_id: clientId,
+            remarks: remarks || '',
+            updated_by: updatedBy || '',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'client_id' });
+
+        if (error) {
+          console.error('Failed to save client manpower remark:', error.message);
+          throw error;
+        }
+        return { success: true } as T;
+      }
+
+      case 'lookupStaff': {
+        const { empId } = payload;
+        if (!empId) return null as T;
+        const raw = String(empId).trim();
+        const digits = raw.replace(/\D/g, '');
+        const formatted = formatHrmId(raw);
+        const paddedDigits = digits.length > 0 ? digits.padStart(6, '0') : '';
+        const possibleIds = Array.from(new Set([
+          raw,
+          raw.toUpperCase(),
+          formatted,
+          paddedDigits ? `STD-${paddedDigits}` : '',
+          paddedDigits ? `EMP-${paddedDigits}` : ''
+        ].filter(Boolean)));
+
+        const { data, error } = await supabase
+          .from('manpower')
+          .select('name, email, designation, contact_number, academic_year')
+          .in('emp_id', possibleIds)
+          .limit(1)
+          .maybeSingle();
+
+        let staffRecord: any = data;
+        if (!staffRecord || error) {
+          const match = fallbackStore.manpower.find(m => {
+            const mId = m.empId.toUpperCase();
+            return possibleIds.some(p => p.toUpperCase() === mId) || (digits && m.empId.replace(/\D/g, '') === digits);
+          });
+          if (match) {
+            staffRecord = {
+              name: match.name,
+              email: (match as any).email || '',
+              designation: match.designation,
+              contact_number: (match as any).contactNumber || '',
+              academic_year: match.academicYear || ''
+            };
+          }
+        }
+
+        if (!staffRecord) {
+          return null as T;
+        }
+
+        const rawDesig = staffRecord.designation === 'TBA' ? '' : staffRecord.designation;
+        let acadYear = staffRecord.academic_year || '';
+        if (/year/i.test(rawDesig)) {
+          if (!acadYear) acadYear = rawDesig;
+        }
+        if (!acadYear && rawDesig === 'Trainee') {
+          acadYear = '1st Year';
+        }
+
+        const res: StaffLookupResult = {
+          name: staffRecord.name || '',
+          email: staffRecord.email || '',
+          designation: mapToSystemDesignation(rawDesig),
+          mobile: staffRecord.contact_number || '',
+          academicYear: acadYear
+        };
+        return res as T;
+      }
+
       default:
         throw new Error(`Unsupported action: ${action}`);
     }
@@ -1165,7 +1738,7 @@ export const api = {
       }
 
       case 'register': {
-        const { name, empId, email, designation: reqDesignation, clientId, clientName } = payload;
+        const { name, empId, email, designation: reqDesignation, clientId, clientName, academicYear } = payload;
         const finalEmpId = formatHrmId(String(empId), reqDesignation);
         const newUser: User = {
           id: `u-${Date.now()}`,
@@ -1177,10 +1750,24 @@ export const api = {
           signupClientId: clientId,
           signupClientName: clientName,
           status: 'ACTIVE',
+          mobile: payload.mobile || '',
           createdDate: new Date().toISOString()
         };
         fallbackStore.users.push(newUser);
         fallbackStore.currentUser = newUser;
+
+        // Sync matching manpower record in fallback store
+        const mpMatch = fallbackStore.manpower.find(m => {
+          const mId = m.empId.toUpperCase();
+          const target = finalEmpId.toUpperCase();
+          return mId === target || (target.replace(/\D/g, '') && m.empId.replace(/\D/g, '') === target.replace(/\D/g, ''));
+        });
+        if (mpMatch) {
+          if (clientName) mpMatch.assignedClient = clientName;
+          if (academicYear) mpMatch.academicYear = academicYear;
+          else if (reqDesignation === 'Trainee') mpMatch.academicYear = '1st Year';
+        }
+
         fallbackStore.save();
         return { user: newUser, token: `session-${newUser.id}-${Date.now()}` } as T;
       }
@@ -1390,6 +1977,295 @@ export const api = {
 
       case 'getManagerClientIds': {
         return (fallbackStore.managerClients[payload.managerUserId] || []) as T;
+      }
+
+      case 'getManpower': {
+        const includeAll = Boolean(payload?.includeAll);
+        const activeUsers = fallbackStore.users.filter(u => u.status === 'ACTIVE');
+        const clientMap = new Map<string, string>();
+        fallbackStore.clients.forEach(c => clientMap.set(c.id, c.name));
+
+        if (!includeAll) {
+          // DEFAULT: only show active registered students from the app!
+          // Active STD- accounts / Students / Trainees only.
+          const activeStudents = activeUsers.filter(u => {
+            const empId = (u.empId || '').toUpperCase().trim();
+            const desig = (u.designation || '').toLowerCase().trim();
+            const role = (u.role || '').toUpperCase().trim();
+            if (role === 'ADMIN' || desig === 'admin') return false;
+            if (desig === 'partner' || desig === 'director' || desig === 'manager' || desig.includes('director') || desig.includes('manager')) return false;
+            return empId.startsWith('STD') || desig === 'student' || desig === 'trainee';
+          });
+
+          const result: ManpowerRecord[] = [];
+          for (const u of activeStudents) {
+            const uEmpId = (u.empId || '').trim();
+            const uDigits = uEmpId.replace(/\D/g, '');
+
+            const mp = fallbackStore.manpower.find(m => {
+              const mEmpId = (m.empId || '').trim();
+              if (mEmpId.toUpperCase() === uEmpId.toUpperCase()) return true;
+              if (formatHrmId(uEmpId, u.designation).toUpperCase() === mEmpId.toUpperCase()) return true;
+              const mDigits = mEmpId.replace(/\D/g, '');
+              if (mDigits && uDigits && mDigits === uDigits) return true;
+              return false;
+            });
+
+            // Determine active client
+            const userClientIds = new Set<string>();
+            if (u.signupClientId) {
+              u.signupClientId.split(',').forEach(cid => {
+                const t = cid.trim();
+                if (t) userClientIds.add(t);
+              });
+            }
+            const mcaIds = fallbackStore.managerClients[u.id] || [];
+            mcaIds.forEach(cid => userClientIds.add(cid));
+
+            const appClientNames: string[] = [];
+            userClientIds.forEach(cid => {
+              const cName = clientMap.get(cid);
+              if (cName) appClientNames.push(cName);
+            });
+
+            let assignedClient = 'Unassigned';
+            let resolvedClientId: string | null = null;
+            if (appClientNames.length > 0) {
+              assignedClient = appClientNames.join(', ');
+              resolvedClientId = Array.from(userClientIds)[0] || null;
+            } else if (u.signupClientName) {
+              assignedClient = u.signupClientName;
+            } else if (mp && mp.assignedClient && mp.assignedClient !== '-' && mp.assignedClient.toLowerCase() !== 'none') {
+              assignedClient = mp.assignedClient;
+              resolvedClientId = mp.clientId || null;
+            }
+
+            if (!resolvedClientId && assignedClient && assignedClient !== 'Unassigned') {
+              const cMatch = fallbackStore.clients.find(c => c.name.toLowerCase().trim() === assignedClient.toLowerCase().trim());
+              if (cMatch) resolvedClientId = cMatch.id;
+            }
+
+            const sal = mp ? (Number(mp.salary) || 0) : 0;
+            const conv = mp ? (Number(mp.conveyance) || 0) : 0;
+            let tot = mp ? (Number(mp.total) || 0) : 0;
+            if (tot === 0 && (sal > 0 || conv > 0)) tot = sal + conv;
+
+            let acad = mp ? (mp.academicYear || '') : '';
+            if (!acad && (u.designation === 'Trainee' || (mp && mp.designation === 'Trainee'))) {
+              acad = '1st Year';
+            }
+
+            const rawDesig = u.designation as string;
+            let desig = (rawDesig === 'TBA' || !rawDesig) ? (mp && (mp.designation as string) !== 'TBA' ? mp.designation : '') : rawDesig;
+            if (/year/i.test(desig)) {
+              if (!acad || acad === '—') acad = desig;
+              desig = 'Student';
+            }
+
+            result.push({
+              empId: u.empId,
+              name: u.name,
+              clientId: resolvedClientId,
+              assignedClient,
+              designation: (desig as string) === 'TBA' ? '' : (desig || ''),
+              academicYear: acad || '—',
+              salary: sal,
+              conveyance: conv,
+              total: tot
+            });
+          }
+          return result as T;
+        }
+
+        // INCLUDE ALL HR RECORDS MODE:
+        return fallbackStore.manpower.map(m => {
+          const mpEmpId = (m.empId || '').trim();
+          const mpDigits = mpEmpId.replace(/\D/g, '');
+
+          const matchedUser = activeUsers.find(u => {
+            const uEmpId = (u.empId || '').trim();
+            if (uEmpId.toUpperCase() === mpEmpId.toUpperCase()) return true;
+            if (formatHrmId(uEmpId, u.designation).toUpperCase() === mpEmpId.toUpperCase()) return true;
+            const uDigits = uEmpId.replace(/\D/g, '');
+            if (uDigits && mpDigits && uDigits === mpDigits) return true;
+            return false;
+          });
+
+          let assignedClient = m.assignedClient || 'Unassigned';
+          let resolvedClientId = m.clientId || null;
+          let designation = (m.designation as string) === 'TBA' ? '' : (m.designation || '');
+          let name = m.name || '';
+
+          if (matchedUser) {
+            name = matchedUser.name;
+            if (matchedUser.designation && (matchedUser.designation as string) !== 'TBA') {
+              designation = matchedUser.designation;
+            }
+
+            const userClientIds = new Set<string>();
+            if (matchedUser.signupClientId) {
+              matchedUser.signupClientId.split(',').forEach(cid => {
+                const t = cid.trim();
+                if (t) userClientIds.add(t);
+              });
+            }
+            const mcaIds = fallbackStore.managerClients[matchedUser.id] || [];
+            mcaIds.forEach(cid => userClientIds.add(cid));
+
+            const appClientNames: string[] = [];
+            userClientIds.forEach(cid => {
+              const cName = clientMap.get(cid);
+              if (cName) appClientNames.push(cName);
+            });
+
+            if (appClientNames.length > 0) {
+              assignedClient = appClientNames.join(', ');
+              resolvedClientId = Array.from(userClientIds)[0] || m.clientId || null;
+            } else if (matchedUser.signupClientName) {
+              assignedClient = matchedUser.signupClientName;
+            }
+          }
+
+          if (assignedClient === '-' || assignedClient.toLowerCase() === 'none') {
+            assignedClient = 'Unassigned';
+          }
+
+          let acad = m.academicYear || '';
+          if (!acad && (designation === 'Trainee' || m.designation === 'Trainee')) {
+            acad = '1st Year';
+          }
+
+          let finalDesig = designation === 'TBA' ? '' : designation;
+          if (/year/i.test(finalDesig)) {
+            if (!acad || acad === '—') acad = finalDesig;
+            finalDesig = 'Student';
+          }
+
+          return {
+            ...m,
+            name: name || m.name,
+            clientId: resolvedClientId,
+            assignedClient,
+            designation: finalDesig,
+            academicYear: acad || '—'
+          };
+        }) as T;
+      }
+
+      case 'updateManpowerRecord': {
+        const { empId, salary, conveyance, total, designation, academicYear, clientName, remarks } = payload;
+        const trimmedClientName = (clientName || '').trim();
+        const empDigits = empId.replace(/\D/g, '');
+
+        let resolvedClientId: string | null = null;
+        if (trimmedClientName && trimmedClientName !== 'Unassigned' && trimmedClientName !== '—' && trimmedClientName !== '-') {
+          let fbClient = fallbackStore.clients.find(c => c.name.toLowerCase().trim() === trimmedClientName.toLowerCase());
+          if (!fbClient) {
+            fbClient = {
+              id: `CLI-${Math.floor(100 + Math.random() * 900)}`,
+              name: trimmedClientName,
+              jobNumber: `C-${Math.floor(26000 + Math.random() * 900)}`,
+              status: 'ACTIVE',
+              createdDate: new Date().toISOString()
+            };
+            fallbackStore.clients.push(fbClient);
+          }
+          resolvedClientId = fbClient.id;
+        }
+
+        // Sync matching user in fallbackStore.users so changes propagate to full task tracker
+        const matchedUser = fallbackStore.users.find(u => {
+          const uEmp = (u.empId || '').toUpperCase().trim();
+          const target = empId.toUpperCase().trim();
+          if (uEmp === target) return true;
+          const uDigits = uEmp.replace(/\D/g, '');
+          return Boolean(uDigits && empDigits && uDigits === empDigits);
+        });
+
+        if (matchedUser) {
+          if (trimmedClientName) {
+            matchedUser.signupClientName = trimmedClientName === 'Unassigned' ? '' : trimmedClientName;
+            matchedUser.signupClientId = resolvedClientId || '';
+            matchedUser.assignedClientIds = resolvedClientId ? [resolvedClientId] : [];
+          }
+          if (academicYear !== undefined) {
+            (matchedUser as any).academicYear = academicYear;
+          }
+          if (designation !== undefined && designation !== 'TBA') {
+            matchedUser.designation = designation as any;
+          }
+
+          if (fallbackStore.currentUser?.id === matchedUser.id || fallbackStore.currentUser?.empId === matchedUser.empId) {
+            fallbackStore.currentUser = { ...matchedUser };
+            try {
+              localStorage.setItem('acnabin_current_user', JSON.stringify(fallbackStore.currentUser));
+            } catch {}
+          }
+        }
+
+        const idx = fallbackStore.manpower.findIndex(m => {
+          const mEmp = (m.empId || '').toUpperCase().trim();
+          const target = empId.toUpperCase().trim();
+          return mEmp === target || Boolean(empDigits && m.empId.replace(/\D/g, '') === empDigits);
+        });
+        if (idx !== -1) {
+          fallbackStore.manpower[idx] = {
+            ...fallbackStore.manpower[idx],
+            salary: Number(salary) || 0,
+            conveyance: Number(conveyance) || 0,
+            total: Number(total) || ((Number(salary) || 0) + (Number(conveyance) || 0)),
+            designation: (designation === 'TBA' ? '' : designation) || fallbackStore.manpower[idx].designation,
+            academicYear: academicYear !== undefined ? academicYear : fallbackStore.manpower[idx].academicYear,
+            assignedClient: trimmedClientName !== undefined ? (trimmedClientName || 'Unassigned') : fallbackStore.manpower[idx].assignedClient,
+            clientId: resolvedClientId || fallbackStore.manpower[idx].clientId
+          };
+        }
+        fallbackStore.save();
+        return { success: true } as T;
+      }
+
+      case 'getClientManpowerRemarks': {
+        try {
+          const stored = localStorage.getItem('acnabin_client_manpower_remarks');
+          return (stored ? JSON.parse(stored) : {}) as T;
+        } catch {
+          return {} as T;
+        }
+      }
+
+      case 'saveClientManpowerRemark': {
+        try {
+          const stored = localStorage.getItem('acnabin_client_manpower_remarks');
+          const map = stored ? JSON.parse(stored) : {};
+          map[payload.clientId] = payload.remarks || '';
+          localStorage.setItem('acnabin_client_manpower_remarks', JSON.stringify(map));
+        } catch {}
+        return { success: true } as T;
+      }
+
+      case 'lookupStaff': {
+        const raw = String(payload?.empId || '').trim();
+        const digits = raw.replace(/\D/g, '');
+        const match = fallbackStore.manpower.find(m => {
+          const mId = m.empId.toUpperCase();
+          return mId === raw.toUpperCase() || (digits && m.empId.replace(/\D/g, '') === digits);
+        });
+        if (!match) return null as T;
+        const desig = match.designation === 'TBA' ? '' : match.designation;
+        let acadYear = match.academicYear || '';
+        if (/year/i.test(desig)) {
+          if (!acadYear) acadYear = desig;
+        }
+        if (!acadYear && desig === 'Trainee') {
+          acadYear = '1st Year';
+        }
+        return {
+          name: match.name,
+          email: (match as any).email || '',
+          designation: mapToSystemDesignation(desig),
+          mobile: (match as any).contactNumber || '',
+          academicYear: acadYear
+        } as T;
       }
 
       default:

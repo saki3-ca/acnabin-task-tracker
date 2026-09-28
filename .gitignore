@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 .env
 .env/
+
+# Excel and sensitive manpower data
+*.xlsx
+manpower*.csv
+backups/

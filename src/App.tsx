@@ -23,6 +23,7 @@ import { TaskRequestsView } from './components/tasks/TaskRequestsView';
 import { NotificationsView } from './components/notifications/NotificationsView';
 import { NotificationProvider } from './context/NotificationContext';
 import { CompletedTasksModal } from './components/tasks/CompletedTasksModal';
+import { ManpowerView } from './components/manpower/ManpowerView';
 
 const MainApp: React.FC = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
@@ -234,7 +235,12 @@ const MainApp: React.FC = () => {
         </div>
       )}
 
-      {/* Pane 6: Admin Panel */}
+      {/* Pane 6: Manpower Directory */}
+      {activeTab === 'manpower' && (
+        <ManpowerView />
+      )}
+
+      {/* Pane 7: Admin Panel */}
       {activeTab === 'admin' && (
         <div className="tab-pane">
           <AdminPanel />

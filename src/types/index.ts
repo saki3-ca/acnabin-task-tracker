@@ -2,6 +2,7 @@ export type Role = 'USER' | 'MANAGER' | 'ADMIN';
 
 export type Designation =
   | 'Student'
+  | 'Trainee'
   | 'In Charge'
   | 'Supervisor'
   | 'Senior Assistant Manager'
@@ -28,6 +29,7 @@ export interface User {
   assignedClientIds?: string[];
   status: 'ACTIVE' | 'INACTIVE';
   avatarUrl?: string;
+  mobile?: string;
   lastLogin?: string;
   createdDate?: string;
 }
@@ -122,6 +124,46 @@ export interface TaskRequest {
   notes?: string;
   status: TaskRequestStatus;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ManpowerRecord {
+  empId: string;
+  name: string;
+  clientId?: string | null;
+  assignedClient: string;
+  designation: string;
+  academicYear: string;
+  salary: number;
+  conveyance: number;
+  total: number;
+  contactNumber?: string;
+  email?: string;
+  remarks?: string;
+}
+
+export interface StaffLookupResult {
+  name: string;
+  email: string;
+  designation: Designation;
+  mobile?: string;
+  academicYear?: string;
+}
+
+export interface ClientManpowerSummaryItem {
+  clientId: string;
+  clientName: string;
+  manpowerCount: number;
+  totalSalary: number;
+  totalConveyance: number;
+  totalCost: number;
+  remarks: string;
+}
+
+export interface ClientManpowerRemark {
+  clientId: string;
+  remarks: string;
+  updatedBy?: string;
   updatedAt?: string;
 }
 
