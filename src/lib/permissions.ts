@@ -15,6 +15,11 @@ export function isInChargeOrAbove(designation?: Designation | string): boolean {
   ].includes(designation);
 }
 
+export function hasTeamAccess(user: User | null): boolean {
+  if (!user) return false;
+  return user.role === 'ADMIN' || user.role === 'MANAGER' || isInChargeOrAbove(user.designation);
+}
+
 export function isManagementDesignation(designation?: Designation | string): boolean {
   return isInChargeOrAbove(designation);
 }
@@ -84,8 +89,7 @@ export function isAllAccessDesignation(designation?: Designation | string): bool
 }
 
 export function canViewTeamTasks(user: User | null): boolean {
-  if (!user) return false;
-  return user.role === 'ADMIN' || isInChargeOrAbove(user.designation);
+  return hasTeamAccess(user);
 }
 
 export function canViewAllClients(user: User | null): boolean {
@@ -113,8 +117,7 @@ export function canDeleteTask(user: User | null, task: Task): boolean {
 }
 
 export function canAssignTasks(user: User | null): boolean {
-  if (!user) return false;
-  return user.role === 'ADMIN' || isInChargeOrAbove(user.designation);
+  return hasTeamAccess(user);
 }
 
 export function canRequestTask(user: User | null): boolean {
@@ -142,14 +145,13 @@ export function canCommentOnTask(user: User | null, task: Task): boolean {
   if (task.createdById === user.id) return true;
 
   // Supervisory/management reviewing team tasks can comment
-  if (isInChargeOrAbove(user.designation)) return true;
+  if (hasTeamAccess(user)) return true;
 
   return false;
 }
 
 export function canAddManagerComment(user: User | null): boolean {
-  if (!user) return false;
-  return user.role === 'ADMIN' || isInChargeOrAbove(user.designation);
+  return hasTeamAccess(user);
 }
 
 // Numerical hierarchy ranking (higher number = higher authority)
@@ -170,7 +172,11 @@ export const DESIGNATION_RANKS: Record<string, number> = {
 export function getUserRank(user?: User | null): number {
   if (!user) return 0;
   if (user.role === 'ADMIN' || user.designation === 'Admin') return 100;
-  return DESIGNATION_RANKS[user.designation] || 10;
+  const desigRank = DESIGNATION_RANKS[user.designation] || 10;
+  if (user.role === 'MANAGER' && desigRank < 15) {
+    return 15;
+  }
+  return desigRank;
 }
 
 export function getUserAssignedClientIds(user?: User | null): string[] {

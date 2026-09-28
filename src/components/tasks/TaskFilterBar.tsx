@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Filter, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
-import { formatHrmId, getUserAssignedClientIds, isAssistantDirectorOrAbove, isInChargeOrAbove } from '../../lib/permissions';
+import { formatHrmId, getUserAssignedClientIds, hasTeamAccess, isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { Client, User } from '../../types';
 
@@ -15,7 +15,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal 
   const { teamFilters, setTeamFilters } = useTasks();
 
   const isADPlus = currentUser ? (currentUser.role === 'ADMIN' || isAssistantDirectorOrAbove(currentUser.designation)) : false;
-  const isSupervisorToManager = currentUser ? isInChargeOrAbove(currentUser.designation) && !isADPlus : false;
+  const isSupervisorToManager = currentUser ? hasTeamAccess(currentUser) && !isADPlus : false;
 
   const [managerClientIds, setManagerClientIds] = useState<string[]>(() => {
     if (!currentUser) return [];

@@ -3,15 +3,13 @@ import {
   Briefcase,
   Building,
   CheckCircle2,
-  Clock,
   Edit3,
   FileText,
   Hash,
   KeyRound,
   Mail,
   Trash2,
-  Upload,
-  User as UserIcon
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
@@ -156,8 +154,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     return myTasks.filter(t => t.status === 'Completed');
   }, [myTasks]);
 
-  if (!currentUser) return null;
-
   // Task distribution across assigned clients:
   // For AD and above (canSeeAll = true), aggregate all users' tasks from teamTasks.
   // For other users, count their own assigned tasks.
@@ -178,6 +174,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     });
     return counts;
   }, [myTasks, teamTasks, canSeeAll]);
+
+  if (!currentUser) return null;
 
   const initials = currentUser.name
     .split(' ')

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Building, Check, Key, Shield, UserCog, Users } from 'lucide-react';
+import { Check, Key, Shield, UserCog, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS, ROLES } from '../../lib/constants';
-import { isManagementDesignation, isSAMOrAbove } from '../../lib/permissions';
+import { isManagementDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
-import { clientService } from '../../services/clientService';
 import { Designation, ManagerAccessItem, ManagerStudentItem, Role, User } from '../../types';
 import { Modal } from '../ui/Modal';
 
@@ -23,7 +22,7 @@ export const AdminPanel: React.FC = () => {
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   const managers = allUsers.filter(
-    u => u.role === 'ADMIN' || isManagementDesignation(u.designation)
+    u => u.role === 'ADMIN' || u.role === 'MANAGER' || isManagementDesignation(u.designation)
   );
 
   const showNotice = (msg: string) => {

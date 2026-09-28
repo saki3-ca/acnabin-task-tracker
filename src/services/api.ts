@@ -451,7 +451,7 @@ export const api = {
         }
 
         if (currentUserRole !== 'ADMIN' && !AD_AND_ABOVE.includes(currentUserDesig)) {
-          if (SUPERVISOR_TO_MANAGER.includes(currentUserDesig)) {
+          if (SUPERVISOR_TO_MANAGER.includes(currentUserDesig) || currentUserRole === 'MANAGER') {
             const { data: accessRows } = await supabase
               .from('manager_client_access')
               .select('client_id')
@@ -1213,6 +1213,36 @@ export const api = {
             if (t.assignedToName?.toLowerCase() === 'admin') return false;
             return true;
           });
+        }
+
+        const AD_AND_ABOVE = ['Assistant Director', 'Deputy Director', 'Director', 'Partner'];
+        const SUPERVISOR_TO_MANAGER = ['In Charge', 'Supervisor', 'Senior Assistant Manager', 'Deputy Manager', 'Manager'];
+        const callerDesig = caller?.designation || 'Student';
+        const callerRole = caller?.role || 'USER';
+
+        if (callerRole !== 'ADMIN' && !AD_AND_ABOVE.includes(callerDesig)) {
+          if (SUPERVISOR_TO_MANAGER.includes(callerDesig) || callerRole === 'MANAGER') {
+            const assignedClientIds = fallbackStore.managerClients[caller?.id || ''] || [];
+            const allowedClientIds = [...assignedClientIds];
+            if (caller?.signupClientId) {
+              caller.signupClientId
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+                .forEach((cid: string) => {
+                  if (!allowedClientIds.includes(cid)) allowedClientIds.push(cid);
+                });
+            }
+            if (allowedClientIds.length > 0) {
+              tasks = tasks.filter(t => {
+                const isGeneral = !t.clientId || t.clientId === 'general' || t.clientName?.toLowerCase() === 'general' || t.clientId === 'CLI-017' || t.clientId === 'CLI-018';
+                if (isGeneral) return true;
+                if (allowedClientIds.includes(t.clientId)) return true;
+                if (t.assignedToId === caller?.id || t.createdById === caller?.id) return true;
+                return false;
+              });
+            }
+          }
         }
 
         const filters: TaskFilter = payload?.filters || {};
