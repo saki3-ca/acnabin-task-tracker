@@ -8,6 +8,8 @@ The **ACNABIN Task Tracker** is a specialized web application built for the char
 
 The core workflow begins with administrators or directors registering client engagements and assigning staff to them. Team members manage their daily audit deliverables, logging status transitions (`Pending` $\rightarrow$ `In Progress` $\rightarrow$ `Completed`) and progress remarks, while supervisors and managers conduct reviews, insert supervisory feedback comments, or delegate tasks downward. Team members can also request task approvals upward to superiors or sideways to peers, triggering automated notifications and 12:00 AM/12:00 PM deadline alerts.
 
+Additionally, leadership (Assistant Director and above, and Administrators) have access to the **Manpower Directory & Cost Summary** module. This provides firm-wide visibility into staff deployment, monthly stipends/salaries, conveyance, and client cost aggregations, complete with dual-sheet Excel exports (`Summary` and `Details`), academic year tracking with superscript notation (`1st Year` to `4th Year`), a liquid glass 50/50 view switcher, and synchronized live task tracker assignment updates.
+
 ---
 
 ## 2. TECH STACK & SETUP
@@ -18,14 +20,15 @@ The core workflow begins with administrators or directors registering client eng
 * **Build Tool & Dev Server:** Vite `^8.2.2`, `@vitejs/plugin-react` `^6.1.0`
 * **Icons:** `lucide-react` `^1.40.0`
 * **Database Client:** `@supabase/supabase-js` `^2.115.0`
+* **Spreadsheet Processing:** `xlsx` `^0.18.5` (Dual-sheet Excel workbook generation with customized column widths)
 * **Linter:** `oxlint` `^1.79.0`
 * **Types:** `@types/node` `^24.13.3`, `@types/react` `^19.2.18`, `@types/react-dom` `^19.2.4`
 
 ### Backend, Database & Storage Architecture
 1. **Primary Database (Cloud):** Supabase (PostgreSQL 15+)
-   * Tables: `users`, `clients`, `tasks`, `manager_client_access`, `manager_student_access`, `notifications`, `task_requests`.
+   * Tables: `users`, `clients`, `tasks`, `manager_client_access`, `manager_student_access`, `notifications`, `task_requests`, `client_manpower_remarks`.
    * Public Row Level Security (RLS) policies enabled (`FOR ALL USING (true) WITH CHECK (true)`).
-2. **Local Fallback Storage:** `LocalStorage` with in-memory fallback store (`LocalFallbackStore`) seeded with `INITIAL_USERS`, `INITIAL_CLIENTS`, `INITIAL_TASKS`, `INITIAL_MANAGER_CLIENTS`, and `INITIAL_MANAGER_STUDENTS` if Supabase connection fails.
+2. **Local Fallback Storage:** `LocalStorage` with in-memory fallback store (`LocalFallbackStore`) seeded with `INITIAL_USERS`, `INITIAL_CLIENTS`, `INITIAL_TASKS`, `INITIAL_MANAGER_CLIENTS`, `INITIAL_MANAGER_STUDENTS`, and `INITIAL_MANPOWER` (self-healing 64-record dataset) if Supabase connection fails.
 3. **Legacy / Reference Backend:** Google Apps Script (`apps-script/Code.js`) designed for Google Sheets as a database (migrated to Supabase).
 
 ### How to Run, Build & Deploy
@@ -74,6 +77,9 @@ Project 101/
 ├── vite.config.ts                             # Vite build and plugin configuration
 ├── apps-script/
 │   └── Code.js                                # Google Apps Script backend code (legacy/reference)
+├── scripts/
+│   ├── backup-data.ts                         # Complete Supabase database JSON/CSV backup script
+│   └── import-manpower.ts                     # Manpower CSV migration & database ingestion utility
 ├── public/
 │   ├── acnabin-logo.png                       # Official ACNABIN firm logo
 │   ├── bakertilly-logo.png                    # Baker Tilly network partner logo
@@ -98,7 +104,8 @@ Project 101/
     │   ├── api.ts                             # Central Supabase / LocalStorage dispatcher (1,370 lines)
     │   ├── authService.ts                     # Login, registration, session validation, demo switching
     │   ├── clientService.ts                   # Client listing, addition, updates, in-memory/LS caching
-    │   ├── mockData.ts                        # Fallback initial data seed for users, clients, tasks
+    │   ├── manpowerService.ts                 # Manpower roster, cost summary, client remarks, staff editing
+    │   ├── mockData.ts                        # Fallback initial data seed for users, clients, tasks, manpower
     │   ├── notificationService.ts             # Notification fetching, read status updates
     │   ├── taskRequestService.ts              # Task request creation, querying, accept/decline resolution
     │   └── taskService.ts                     # Task CRUD and manager commenting service wrappers
@@ -112,14 +119,16 @@ Project 101/
         ├── auth/
         │   ├── ForgotPasswordModal.tsx        # Password reset dialog
         │   ├── LoginForm.tsx                  # ID/initial/email login with password validation
-        │   └── SignupForm.tsx                 # Registration with auto-formatting and client autocomplete
+        │   └── SignupForm.tsx                 # Registration with auto-formatting, academic year & client autocomplete
         ├── clients/
         │   └── ClientGrid.tsx                 # Client engagements directory & admin edit/add modal
         ├── dashboard/
         │   └── StatPills.tsx                  # KPI summary metric pills (Total, Pending, In Progress, Overdue)
         ├── layout/
         │   ├── Header.tsx                     # Top header bar, user status, quick user switch, action buttons
-        │   └── NavigationTabs.tsx             # Tab bar (My Tasks, Team, Requests, Notifications, Profile, Admin)
+        │   └── NavigationTabs.tsx             # Tab bar (My Tasks, Team, Requests, Notifications, Manpower, Profile, Admin)
+        ├── manpower/
+        │   └── ManpowerView.tsx               # Manpower roster, liquid glass toggle, client cost summary, excel export
         ├── notifications/
         │   ├── NotificationBell.tsx           # Floating popover bell with unread badge and dropdown list
         │   └── NotificationsView.tsx          # Full notification view (Unread & 7-day previous read history)
@@ -209,6 +218,7 @@ Project 101/
 | `email` | `email` | `string` | Optional | Registered official email address |
 | `role` | `role` | `'USER' \| 'MANAGER' \| 'ADMIN'` | `'USER'` | Application permission role |
 | `designation` | `designation` | `Designation` | `'Student'` | One of 11 hierarchy ranks |
+| `academicYear` | `academic_year` | `string` | Optional (`'1st Year'`, `'2nd Year'`, etc.) | Articled academic level for students |
 | `signupClientId` | `signup_client_id` | `string` | `''` | Comma-separated client IDs assigned to user |
 | `assignedClientIds`| N/A | `string[]` | Computed from `signupClientId` | Array of parsed client IDs |
 | `status` | `status` | `'ACTIVE' \| 'INACTIVE'` | `'ACTIVE'` | Account activation status |
@@ -275,12 +285,39 @@ Project 101/
 | `isRead` | `is_read` | `boolean` | Read flag |
 | `createdAt` | `created_at` | `string` | Creation timestamp |
 
+#### 6. `ManpowerRecord` (Composite Data Model & Fallback Store)
+| Field | DB Column / JSON Key | TypeScript Type | Description |
+| :--- | :--- | :--- | :--- |
+| `empId` | `emp_id` | `string` | HRM Formatted ID (`STD-001643`, `EMP-000230`, etc.) |
+| `name` | `name` | `string` | Staff member full name |
+| `clientId` | `client_id` | `string \| null` | Assigned client identifier (if mapped) |
+| `assignedClient` | `assigned_client` | `string` | Assigned engagement name (e.g. `BRAC Bank PLC`, `Unassigned`) |
+| `designation` | `designation` | `string` | Official hierarchy rank (e.g. `Student`, `Manager`, `Director`) |
+| `academicYear` | `academic_year` | `string` | Articled year level (`1st Year`, `2nd Year`, `3rd Year`, `4th Year`, or `—`) |
+| `salary` | `salary` | `number` | Monthly stipend / basic salary in BDT |
+| `conveyance` | `conveyance` | `number` | Monthly conveyance allowance in BDT |
+| `total` | `total` | `number` | Computed total monthly deployment cost (`salary + conveyance`) |
+| `remarks` | `remarks` | `string` | Engagement deployment notes or allocation details |
+
+#### 7. `ClientManpowerRemark` (Table: `public.client_manpower_remarks`)
+| Field | DB Column | TypeScript Type | Description |
+| :--- | :--- | :--- | :--- |
+| `clientId` | `client_id` | `string` (PK) | Unique client engagement ID |
+| `remarks` | `remarks` | `string` | Firm-wide aggregated engagement remarks |
+| `updatedBy` | `updated_by` | `string` | User ID or name of the editor |
+| `updatedAt` | `updated_at` | `string` | Timestamp of last remark modification |
+
 ---
 
 ## 5. FEATURES
 
 ### 5.1 Authentication & Session Management
 * **Description:** Users log in using their Employee/Student ID (e.g. `STD-001643`, `EMP-000230`), Partner Initials (`AB`), raw numbers (`1643`), or Email. New accounts can be registered with automated HRM standard formatting.
+* **Signup Form Organization:**
+  * Auto-formats Employee/Student IDs with zero-padding and prefixes based on designation.
+  * **Academic Year Dropdown:** Dynamically displays when designation is `Student` or `Trainee`, allowing selection from `1st Year`, `2nd Year`, `3rd Year`, and `4th Year` (rendered with superscripts: `1<sup>st</sup> Year`, etc.). Defaults to `1st Year` for trainees.
+  * Autocomplete search for client engagements with multi-badge assignment.
+  * **Password Field Placement:** Cleanly placed at the very bottom of the registration form right before the submit button for optimal ergonomic flow.
 * **Key Files:** [LoginForm.tsx](file:///src/components/auth/LoginForm.tsx), [SignupForm.tsx](file:///src/components/auth/SignupForm.tsx), [AuthContext.tsx](file:///src/context/AuthContext.tsx), [authService.ts](file:///src/services/authService.ts), [api.ts:L270-L363](file:///src/services/api.ts#L270-L363).
 * **Step-by-step Flow:**
   1. User enters ID in `LoginForm.tsx` $\rightarrow$ calls `authContext.login(empId, password)`.
@@ -347,6 +384,37 @@ Project 101/
 * **Description:** Administrators manage user designations, access roles (`USER`, `MANAGER`, `ADMIN`), activation states, manager-client permissions, and manager-student assignments.
 * **Key Files:** [AdminPanel.tsx](file:///src/components/admin/AdminPanel.tsx), [adminService.ts](file:///src/services/adminService.ts).
 
+### 5.10 Manpower Directory & Cost Summary Module
+* **Description:** Provides centralized firm-wide visibility into staff deployment, monthly stipends/salaries, conveyance allowances, and client engagement cost aggregations.
+* **Access Gate:** Restricted to **Assistant Director and Above** (`isAssistantDirectorOrAbove`) and **Administrators** (`role === 'ADMIN'`).
+* **Key Files:** [ManpowerView.tsx](file:///src/components/manpower/ManpowerView.tsx), [manpowerService.ts](file:///src/services/manpowerService.ts), [api.ts:L1371-L1510](file:///src/services/api.ts#L1371-L1510), [NavigationTabs.tsx](file:///src/components/layout/NavigationTabs.tsx).
+* **Key Architectural Features:**
+  1. **Liquid Glass 50/50 View Switcher (Slot 5):**
+     * Positioned in Slot 5 of the top KPI statistics grid, matching the exact 74px height and proportions of the other 4 stat pills (`TOTAL MANPOWER`, `TOTAL MONTHLY SALARY`, `TOTAL CONVEYANCE`, `GRAND TOTAL COST`).
+     * Features a frosted translucent container (`backdrop-filter: blur(14px)`), matching maroon border (`1.5px solid var(--maroon, #800000)`), and an inner specular track.
+     * The segmented toggle evenly distributes **Details** and **Summary** buttons 50/50 (`flex: 1`).
+     * The active state renders a liquid glass gloss gradient (`linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)`) with top rim lighting (`inset 0 1px 1px rgba(255,255,255,0.5)`) and soft maroon drop shadow.
+  2. **Active Student Accounts Scope & Admin Audit Switcher:**
+     * **Default Scope:** Filters to only active student accounts (`isUserActiveStudent`), with clean glowing green indicator badges (`● Active Student Accounts`) displayed in both the Details and Summary table banners.
+     * **Admin Scope Switcher:** For System Administrators, a compact toggle switch (`HR Data: [All Records / Active Only]`) is embedded in Slot 5 to audit all 64 HR records on demand.
+  3. **Staff Details Table:**
+     * Displays SL, EMP/STD ID, Full Name, Assigned Client, Designation, Academic Year, Monthly Salary (BDT), Monthly Conveyance (BDT), Total Cost (BDT), and Action buttons.
+     * **Superscript Academic Year:** Renders academic years with superscript typography (`1<sup>st</sup> Year`, `2<sup>nd</sup> Year`, `3<sup>rd</sup> Year`, `4<sup>th</sup> Year`).
+     * Filterable via Search (ID, name, client, designation), Client Dropdown, and Designation Dropdown.
+     * Clickable column sorting with directional indicator arrows on all metrics.
+  4. **Client-Wise Cost Summary Table:**
+     * Aggregates deployment metrics by client: Client Name, Manpower Count, Total Salary, Total Conveyance, Grand Total Cost, and Remarks.
+     * Client rows are clickable to instantly filter the Details view down to staff members allocated to that specific engagement.
+     * Allows persistent editing and storage of firm-wide engagement remarks in the `client_manpower_remarks` table.
+  5. **Dual-Sheet Excel Export Engine:**
+     * Clicking "Export Excel" in either Details or Summary generates a consolidated workbook (`ACNABIN_Manpower_Summary_YYYY-MM-DD.xlsx`) containing two distinct sheets:
+       * **Sheet 1 (`Summary`):** Client-wise aggregated manpower, salaries, conveyance, total costs, and grand totals.
+       * **Sheet 2 (`Details`):** Full granular staff roster with custom auto-fitted column widths.
+  6. **Scoped Edit Modal & Cross-Tracker Synchronization:**
+     * **Assistant Director & Above:** Can modify Assigned Client, Academic Year, Monthly Salary, and Monthly Conveyance.
+     * **Designation Modification:** Strictly locked and disabled for non-Admins (only System Administrators can change designations).
+     * **Live Synchronization:** Modifying a staff member's assigned client immediately updates the user's records in Supabase/LocalStorage, refreshes `AuthContext` state, and propagates across the entire task tracker without requiring a page reload.
+
 ---
 
 ## 6. FUNCTIONS & API REFERENCE
@@ -381,6 +449,11 @@ All service calls invoke `api.callBackend(action, payload)` which attempts `disp
 | `saveManagerClients`| `{ managerUserId: string, clientIds: string[] }` | `{ success: true }` | Replaces rows in `manager_client_access` & updates user | `adminService.saveManagerClients` |
 | `getManagerStudents`| `{ managerUserId: string }` | `ManagerStudentItem[]` | Combines student users and `manager_student_access` | `adminService.getManagerStudents` |
 | `saveManagerStudents`| `{ managerUserId: string, studentIds: string[] }` | `{ success: true }` | Replaces rows in `manager_student_access` | `adminService.saveManagerStudents` |
+| `getManpower` | `{ includeAll?: boolean }` | `ManpowerRecord[]` | Fetches active student accounts or full 64 HR records with self-healing normalization | `manpowerService.getManpower` |
+| `updateManpowerRecord`| `{ empId, salary, conveyance, academicYear, clientName, ... }` | `ManpowerRecord` | Updates record, updates Supabase/localStorage `users`, and syncs client assignments | `manpowerService.updateManpowerRecord` |
+| `getClientManpowerRemarks`| None | `ClientManpowerRemark[]` | Retrieves client-level manpower engagement remarks | `manpowerService.getClientManpowerRemarks` |
+| `saveClientManpowerRemark`| `{ clientId, remarks }` | `ClientManpowerRemark` | Upserts engagement remarks into `client_manpower_remarks` table | `manpowerService.saveClientManpowerRemark` |
+| `getManpowerSummary` | `{ includeAll?: boolean }` | `ClientManpowerSummaryItem[]` | Aggregates headcount, monthly salary, conveyance, and total cost per client | `manpowerService.getManpowerSummary` |
 
 ---
 
@@ -393,6 +466,10 @@ All service calls invoke `api.callBackend(action, payload)` which attempts `disp
   * Corporate Navy: `--navy: #1B2A6B`, `--navy-dark: #121D4D`, `--navy-light: #EBEFFE`
   * Warm Backgrounds: `--cream: #EDE7DE`, `--cream-card: #FAF7F2`, `--cream-input: #FFFFFF`
   * Typography Ink: `--ink: #221F1D`, `--ink-soft: #5A544E`, `--ink-muted: #877E75`
+* **Liquid Glass Design System:**
+  * Container: Translucent frosted glass (`backdrop-filter: blur(14px)`, `background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(253,248,248,0.92))`).
+  * Specular Rim Lighting: `box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 2px 8px rgba(128, 0, 0, 0.06)`.
+  * Active Capsule Pill: Brand gloss sheen (`linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)`) with white top rim highlight and soft shadow.
 * **Typography:** `'Inter', system-ui, -apple-system, sans-serif`.
 * **Styling Technology:** Pure Vanilla CSS with modular design tokens, CSS Grid, and Flexbox layouts.
 
@@ -401,11 +478,12 @@ All service calls invoke `api.callBackend(action, payload)` which attempts `disp
 | View / Modal | Component | Description & Key Elements |
 | :--- | :--- | :--- |
 | **Login Screen** | `LoginForm.tsx` | ACNABIN brand badge, ID/Initial input, password input, "Forgot password" modal link, signup toggle. |
-| **Sign Up Screen** | `SignupForm.tsx` | Full name, ID with HRM auto-formatting, designation autocomplete dropdown, client autocomplete tags. |
+| **Sign Up Screen** | `SignupForm.tsx` | Full name, ID with HRM auto-formatting, designation autocomplete dropdown, academic year dropdown (for students), client autocomplete tags, password field at bottom. |
 | **Top Header** | `Header.tsx` | Official ACNABIN logo, masthead title & current formatted date, user profile info, quick user switcher (Admin), action buttons. |
-| **Navigation Tabs** | `NavigationTabs.tsx` | Navigation between `My Tasks`, `Team Tasks`, `Task Requests` (with pending badge), `Notifications` (with unread badge), `My Profile`, and `Admin Panel`. |
+| **Navigation Tabs** | `NavigationTabs.tsx` | Navigation between `My Tasks`, `Team Tasks`, `Task Requests` (with pending badge), `Notifications` (with unread badge), `Manpower` (AD+ and Admin), `My Profile`, and `Admin Panel`. |
 | **My Tasks Tab** | `App.tsx` $\rightarrow$ `TaskTable.tsx` | Maroon KPI Stat Pills, Primary Active Tasks table, and dynamic Near Deadline & Overdue urgency table. |
 | **Team Tasks Tab** | `TaskFilterBar.tsx` + `TaskTable.tsx` | Teal KPI Stat Pills, Scoped Client filter, Team Member filter, Status filter, Team Engagement task table. |
+| **Manpower Directory**| `ManpowerView.tsx` | Top 5 KPI pills with Slot 5 Liquid Glass toggle (50/50 Details & Summary), active student scope badging, staff roster table, client cost summary, inline remarks, dual-sheet Excel exporter, edit modal. |
 | **Task Requests Tab**| `TaskRequestsView.tsx` | Request KPI Pills, Incoming Requests table with Accept/Decline actions, and Outgoing Submitted Requests table. |
 | **Notifications Tab**| `NotificationsView.tsx` | Unread notifications table (Red banner) with "Mark all read" button and Previous 7-Day history table (Teal banner). |
 | **Profile View** | `ProfileView.tsx` | Identity summary, compressed image avatar upload, quick KPI metrics, assigned client engagement table, and password change modal. |
@@ -438,9 +516,11 @@ $$\text{Admin (100)} > \text{Partner (90)} > \text{Director (80)} > \text{Deputy
 ## 9. AUTHENTICATION & ROLES
 
 ### User Roles
-1. **`ADMIN`:** Full firm-wide control. Can edit all tasks, change user roles/designations, configure access matrices, add clients, and switch active users via the header dropdown.
-2. **`MANAGER` / Management Designations (In-Charge through Partner):** Can view Team Tasks, assign tasks to subordinates, conduct supervisory reviews, and manage assigned client deliverables.
-3. **`USER` (Students / Trainees):** Access restricted to own tasks, task requests, notifications, and profile. Cannot view the Team Tasks tab or assign tasks directly.
+1. **`ADMIN`:** Full firm-wide control. Can edit all tasks, change user roles/designations, configure access matrices, add clients, switch active users via the header dropdown, toggle HR data scope in Manpower, and modify any staff member's designation in the Manpower module.
+2. **`MANAGER` / Management Designations (In-Charge through Partner):**
+   * **Assistant Director, Deputy Director, Director, Partner:** Access to **Manpower Directory**, can assign tasks across any client firm-wide, and can edit staff salary, conveyance, academic year, and client assignment (designation edit locked to Admin).
+   * **In-Charge to Manager:** Can view Team Tasks, assign tasks to subordinates on assigned clients, and conduct supervisory reviews.
+3. **`USER` (Students / Trainees):** Access restricted to own tasks, task requests, notifications, and profile. Cannot view Team Tasks or Manpower Directory. Tracked by academic year (`1st Year` through `4th Year`).
 
 ---
 
@@ -579,4 +659,61 @@ export interface Task {
     <TaskTable title="TEAM ENGAGEMENT TASKS" bannerColor="maroon" tasks={activeTeamTasks} showTeamColumns={true} isLoading={tasksLoading} onEditTask={handleEditTask} onOpenComment={handleOpenComment} />
   </div>
 )}
+
+{/* Pane 6: Manpower Directory (AD+ & Admin) */}
+{activeTab === 'manpower' && (isAdmin || isADOrAbove) && (
+  <ManpowerView />
+)}
+```
+
+### E. Liquid Glass 50/50 View Switcher (`src/components/manpower/ManpowerView.tsx`)
+```typescript
+{/* Slot 5: Liquid Glass View Switcher (Distributed Details & Summary) */}
+<div
+  className="stat-pill"
+  style={{
+    padding: isAdmin ? '5px 8px' : '6px 8px',
+    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(253, 248, 248, 0.92) 100%)',
+    backdropFilter: 'blur(14px)',
+    border: '1.5px solid var(--maroon, #800000)',
+    boxShadow: '0 2px 8px rgba(128, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.95)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    gap: isAdmin ? '4px' : '0'
+  }}
+>
+  {/* Segmented Track (Distributed 50/50) */}
+  <div style={{ display: 'flex', width: '100%', flex: 1, background: 'rgba(244, 240, 240, 0.75)', borderRadius: '8px', padding: '3px', gap: '4px' }}>
+    <button
+      type="button"
+      onClick={() => setViewMode('details')}
+      style={{
+        flex: 1,
+        background: viewMode === 'details' ? 'linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)' : 'transparent',
+        color: viewMode === 'details' ? '#ffffff' : 'var(--ink-soft)',
+        boxShadow: viewMode === 'details' ? '0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5)' : 'none',
+        borderRadius: '6px',
+        fontWeight: 700
+      }}
+    >
+      <Users size={13} /> Details
+    </button>
+    <button
+      type="button"
+      onClick={() => setViewMode('summary')}
+      style={{
+        flex: 1,
+        background: viewMode === 'summary' ? 'linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)' : 'transparent',
+        color: viewMode === 'summary' ? '#ffffff' : 'var(--ink-soft)',
+        boxShadow: viewMode === 'summary' ? '0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5)' : 'none',
+        borderRadius: '6px',
+        fontWeight: 700
+      }}
+    >
+      <Building size={13} /> Summary
+    </button>
+  </div>
+</div>
 ```
