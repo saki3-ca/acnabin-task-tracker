@@ -100,7 +100,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const [editEmail, setEditEmail] = useState('');
   const [editMobile, setEditMobile] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState<string>('');
-  const [editCurrentPassword, setEditCurrentPassword] = useState('');
   const [editNewPassword, setEditNewPassword] = useState('');
   const [editConfirmPassword, setEditConfirmPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -192,7 +191,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     setEditEmail(currentUser.email);
     setEditMobile(currentUser.mobile || '');
     setEditAvatarUrl(currentUser.avatarUrl || '');
-    setEditCurrentPassword('');
     setEditNewPassword('');
     setEditConfirmPassword('');
     setModalFeedback(null);
@@ -234,11 +232,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     }
 
     // Password change validation if password fields are provided
-    if (editNewPassword || editCurrentPassword || editConfirmPassword) {
-      if (!editCurrentPassword) {
-        setModalFeedback({ type: 'error', text: 'Please enter your current password to set a new password.' });
-        return;
-      }
+    if (editNewPassword || editConfirmPassword) {
       if (editNewPassword.length < 4) {
         setModalFeedback({ type: 'error', text: 'New password must be at least 4 characters.' });
         return;
@@ -276,7 +270,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       if (editNewPassword) {
         await api.callBackend('changePassword', {
           userId: currentUser.id,
-          currentPassword: editCurrentPassword,
           newPassword: editNewPassword
         });
       }
@@ -898,18 +891,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
               <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
                 Leave password fields blank if you do not want to change your password.
-              </div>
-
-              <div className="form-field" style={{ marginBottom: '10px' }}>
-                <label style={{ fontSize: '11.5px' }}>Current Password</label>
-                <input
-                  type="password"
-                  value={editCurrentPassword}
-                  onChange={e => setEditCurrentPassword(e.target.value)}
-                  placeholder="Enter current password..."
-                  className="form-input"
-                  style={{ fontSize: '12px' }}
-                />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

@@ -25,6 +25,51 @@ import {
 const AUTH_ACTIONS = new Set(['login', 'register', 'changePassword']);
 const MIN_PASSWORD_LENGTH = 4;
 
+// Login session key issued by app_login_session (see supabase_password_change.sql).
+// It lets a logged-in user change their password without re-entering the old one.
+const SESSION_STORAGE_KEY = 'acnabin_session';
+
+interface StoredSession {
+  userId: string;
+  token: string;
+}
+
+function readSession(): StoredSession | null {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) || 'null');
+    return parsed?.userId && parsed?.token ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session: StoredSession | null) {
+  try {
+    if (session) localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    else localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch { }
+}
+
+const isMissingFunction = (err: any) =>
+  err?.code === 'PGRST202' || /could not find the function/i.test(err?.message || '');
+
+/** Verify a password; on success also open a session. Status: OK | INVALID | NO_PASSWORD. */
+async function verifyPassword(userId: string, password: string): Promise<{ status: string; token: string | null }> {
+  const { data, error } = await supabase.rpc('app_login_session', { p_user_id: userId, p_password: password });
+  if (!error) {
+    const row = Array.isArray(data) ? data[0] : data;
+    return { status: row?.status || 'INVALID', token: row?.session_token || null };
+  }
+  if (!isMissingFunction(error)) throw error;
+
+  // supabase_password_change.sql not applied yet: verify without opening a session.
+  const { data: legacy, error: legacyErr } = await supabase.rpc('app_login', { p_user_id: userId, p_password: password });
+  if (legacyErr) throw legacyErr;
+  // 'SET' only comes from the older first-login app_login; the password is
+  // already saved by then, so treat it as a successful login.
+  return { status: legacy === 'SET' ? 'OK' : String(legacy), token: null };
+}
+
 // Collision-resistant task ID (tasks.id is the primary key).
 const generateTaskId = () => {
   const bytes = crypto.getRandomValues(new Uint8Array(6));
@@ -389,22 +434,20 @@ export const api = {
           throw new Error('Your account is inactive. Contact an administrator.');
         }
 
-        const { data: loginResult, error: loginErr } = await supabase.rpc('app_login', {
-          p_user_id: target.id,
-          p_password: String(password)
-        });
-        if (loginErr) {
-          console.error('app_login RPC failed:', loginErr);
+        let loginResult: { status: string; token: string | null };
+        try {
+          loginResult = await verifyPassword(target.id, String(password));
+        } catch (loginErr) {
+          console.error('Password verification failed:', loginErr);
           throw new Error('Password verification is unavailable. Please contact an administrator.');
         }
-        if (loginResult === 'NO_PASSWORD') {
+        if (loginResult.status === 'NO_PASSWORD') {
           throw new Error('This account has no password yet. Use "Forgot password?" to set one.');
         }
-        // 'SET' only comes from the older first-login app_login; the password is
-        // already saved by then, so rejecting it here would only confuse the user.
-        if (loginResult !== 'OK' && loginResult !== 'SET') {
+        if (loginResult.status !== 'OK') {
           throw new Error('Incorrect password.');
         }
+        saveSession(loginResult.token ? { userId: target.id, token: loginResult.token } : null);
 
         const user = mapUserFromDb(target);
         localStorage.setItem('acnabin_current_user', JSON.stringify(user));
@@ -461,6 +504,13 @@ export const api = {
           await supabase.from('users').delete().eq('id', newId);
           throw new Error('Could not save your password. Please try again or contact an administrator.');
         }
+        try {
+          const { token } = await verifyPassword(newId, String(password));
+          saveSession(token ? { userId: newId, token } : null);
+        } catch (sessionErr) {
+          console.warn('Could not open a session after registration:', sessionErr);
+          saveSession(null);
+        }
 
         // If matching HR manpower row exists, sync academic year and client name
         try {
@@ -491,24 +541,44 @@ export const api = {
       }
 
       case 'changePassword': {
-        const { userId, currentPassword, newPassword } = payload;
+        const { userId, newPassword } = payload;
         if (!newPassword || String(newPassword).length < MIN_PASSWORD_LENGTH) {
           throw new Error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
         }
-        const { data: changed, error } = await supabase.rpc('app_change_password', {
-          p_user_id: userId,
-          p_current: String(currentPassword || ''),
+        const session = readSession();
+        if (!session) {
+          throw new Error('For security, please log out and log in again, then change your password.');
+        }
+        // After the admin "Switch User", the stored session still belongs to the
+        // admin; don't let that silently change the admin's password.
+        if (userId && session.userId !== userId) {
+          throw new Error('You can only change the password of the account you logged in with.');
+        }
+        const { data: result, error } = await supabase.rpc('app_set_password_with_session', {
+          p_session: session.token,
           p_new: String(newPassword)
         });
         if (error) {
-          console.error('app_change_password RPC failed:', error);
+          console.error('app_set_password_with_session failed:', error);
           throw new Error('Password change is unavailable. Please contact an administrator.');
         }
-        if (!changed) throw new Error('Current password is incorrect.');
+        if (result === 'INVALID_SESSION') {
+          saveSession(null);
+          throw new Error('Your login session has expired. Please log out and log in again, then change your password.');
+        }
+        if (result !== 'OK') {
+          throw new Error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+        }
         return { success: true } as T;
       }
 
       case 'logout': {
+        const session = readSession();
+        saveSession(null);
+        if (session) {
+          const { error: logoutErr } = await supabase.rpc('app_logout', { p_session: session.token });
+          if (logoutErr && !isMissingFunction(logoutErr)) console.warn('app_logout failed:', logoutErr);
+        }
         localStorage.removeItem('acnabin_current_user');
         fallbackStore.currentUser = null;
         return { success: true } as T;
