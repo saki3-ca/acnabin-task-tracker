@@ -1,0 +1,4 @@
+# The app calls Edge Functions with its publishable key, which is not a JWT,
+# so JWT verification must be off for functions called from the login screen.
+[functions.request-password-reset]
+verify_jwt = false

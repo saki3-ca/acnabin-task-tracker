@@ -6,11 +6,13 @@ import { BRAND } from '../../lib/constants';
 interface LoginFormProps {
   onSwitchToSignup: () => void;
   onSwitchToForgot: () => void;
+  notice?: string;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({
   onSwitchToSignup,
-  onSwitchToForgot
+  onSwitchToForgot,
+  notice
 }) => {
   const { login } = useAuth();
   const [empId, setEmpId] = useState('');
@@ -49,6 +51,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <p className="auth-card-subtitle">Task & To-Do Tracking Portal</p>
         </div>
 
+        {notice && !error && <div className="auth-alert-success">{notice}</div>}
         {error && <div className="auth-alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

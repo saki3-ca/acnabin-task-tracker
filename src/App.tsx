@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { LoginForm } from './components/auth/LoginForm';
+import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
 import { SignupForm } from './components/auth/SignupForm';
 import { ClientGrid } from './components/clients/ClientGrid';
 import { ProfileView } from './components/profile/ProfileView';
@@ -32,6 +33,20 @@ const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('own');
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  // Password reset links from the reset email land here as ?reset_token=...
+  const [resetToken, setResetToken] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('reset_token')
+  );
+  const [loginNotice, setLoginNotice] = useState('');
+
+  const finishPasswordReset = (message: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('reset_token');
+    window.history.replaceState(null, '', url.toString());
+    setResetToken(null);
+    setLoginNotice(message);
+    setAuthView('login');
+  };
 
   // Default tab should always be 'own' ("My Tasks") upon login or user change
   useEffect(() => {
@@ -89,6 +104,10 @@ const MainApp: React.FC = () => {
     );
   }
 
+  if (resetToken) {
+    return <ResetPasswordForm token={resetToken} onDone={finishPasswordReset} />;
+  }
+
   // If user is not logged in, show Auth screens
   if (!currentUser) {
     return (
@@ -97,6 +116,7 @@ const MainApp: React.FC = () => {
           <LoginForm
             onSwitchToSignup={() => setAuthView('signup')}
             onSwitchToForgot={() => setIsForgotModalOpen(true)}
+            notice={loginNotice}
           />
         ) : (
           <SignupForm onSwitchToLogin={() => setAuthView('login')} />

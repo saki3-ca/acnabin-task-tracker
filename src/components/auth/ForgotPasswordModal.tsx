@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 
 interface ForgotPasswordModalProps {
@@ -13,16 +14,39 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    setSubmitted(true);
+    if (!email.trim()) return;
+    setError(null);
+    setSending(true);
+    try {
+      const { error: fnError } = await supabase.functions.invoke('request-password-reset', {
+        body: { email: email.trim() }
+      });
+      if (fnError) {
+        let message = 'Could not send the reset email. Please try again later.';
+        try {
+          const body = await (fnError as any).context?.json?.();
+          if (body?.message) message = body.message;
+        } catch { }
+        setError(message);
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setError('Could not reach the server. Please check your connection and try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleReset = () => {
     setEmail('');
     setSubmitted(false);
+    setError(null);
     onClose();
   };
 
@@ -31,10 +55,11 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
       <div className="modal-body">
         {submitted ? (
           <div className="auth-alert-success">
-            Password reset instructions have been sent to <strong>{email}</strong>. Please check your inbox.
+            If an account is registered with <strong>{email}</strong>, a reset link has been sent. It expires in 60 minutes. Check your inbox and spam folder.
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {error && <div className="auth-alert-error">{error}</div>}
             <p style={{ fontSize: '13px', color: 'var(--ink-soft)' }}>
               Enter your registered official email address. A password reset link will be dispatched to your email.
             </p>
@@ -49,8 +74,8 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }}>
-              <Mail size={16} /> Send Reset Link
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '8px' }} disabled={sending}>
+              <Mail size={16} /> {sending ? 'Sending…' : 'Send Reset Link'}
             </button>
           </form>
         )}
