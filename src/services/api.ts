@@ -22,6 +22,9 @@ import {
   INITIAL_USERS
 } from './mockData';
 
+const AUTH_ACTIONS = new Set(['login', 'register', 'changePassword']);
+const MIN_PASSWORD_LENGTH = 4;
+
 // Collision-resistant task ID (tasks.id is the primary key).
 const generateTaskId = () => {
   const bytes = crypto.getRandomValues(new Uint8Array(6));
@@ -313,6 +316,9 @@ export const api = {
     try {
       return await (this.dispatchSupabase(action, payload) as Promise<T>);
     } catch (err: any) {
+      // Never fall back to the local store for credential checks: it has no
+      // passwords, so a wrong-password error would turn into a successful login.
+      if (AUTH_ACTIONS.has(action)) throw err;
       console.warn(`[Supabase API] Failed action "${action}", falling back to local store:`, err?.message || err);
       return (this.dispatchFallback(action, payload) as T);
     }
@@ -324,7 +330,10 @@ export const api = {
       // AUTH
       // ----------------------------------------------------------------------
       case 'login': {
-        const { empId } = payload;
+        const { empId, password } = payload;
+        if (!password) {
+          throw new Error('Please enter your password.');
+        }
         const raw = String(empId).trim();
         const normalized = raw.toUpperCase();
         const digits = raw.replace(/\D/g, '');
@@ -348,7 +357,12 @@ export const api = {
 
         if (error) throw error;
 
-        let target = users && users.length > 0 ? users[0] : null;
+        // Prefer an exact ID/email match over the loose "%digits%" match, so the
+        // password is checked against the account the user actually meant.
+        const exactIds = [normalized, paddedDigits && `STD-${paddedDigits}`, paddedDigits && `EMP-${paddedDigits}`].filter(Boolean);
+        let target = (users || []).find((u: any) =>
+          exactIds.includes((u.emp_id || '').toUpperCase()) || (u.email || '').toUpperCase() === normalized
+        ) || (users && users.length > 0 ? users[0] : null);
 
         // 2. Check 2-letter partner initials if partner/admin
         if (!target && normalized.length === 2) {
@@ -371,6 +385,21 @@ export const api = {
           throw new Error('Your account is inactive. Contact an administrator.');
         }
 
+        const { data: loginResult, error: loginErr } = await supabase.rpc('app_login', {
+          p_user_id: target.id,
+          p_password: String(password)
+        });
+        if (loginErr) {
+          console.error('app_login RPC failed:', loginErr);
+          throw new Error('Password verification is unavailable. Please contact an administrator.');
+        }
+        if (loginResult === 'TOO_SHORT') {
+          throw new Error(`This account has no password yet. Choose one with at least ${MIN_PASSWORD_LENGTH} characters to set it.`);
+        }
+        if (loginResult !== 'OK' && loginResult !== 'SET') {
+          throw new Error('Incorrect password.');
+        }
+
         const user = mapUserFromDb(target);
         localStorage.setItem('acnabin_current_user', JSON.stringify(user));
         fallbackStore.currentUser = user;
@@ -378,7 +407,10 @@ export const api = {
       }
 
       case 'register': {
-        const { name, empId, email, designation: reqDesignation, clientId, clientName, mobile, academicYear } = payload;
+        const { name, empId, email, designation: reqDesignation, clientId, clientName, mobile, academicYear, password } = payload;
+        if (!password || String(password).length < MIN_PASSWORD_LENGTH) {
+          throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+        }
         const hrmEmpId = formatHrmId(String(empId), reqDesignation);
 
         const { data: existing } = await supabase
@@ -413,6 +445,17 @@ export const api = {
 
         if (error) throw error;
 
+        const { data: pwSet, error: pwErr } = await supabase.rpc('app_set_initial_password', {
+          p_user_id: newId,
+          p_password: String(password)
+        });
+        if (pwErr || !pwSet) {
+          console.error('app_set_initial_password failed:', pwErr);
+          // Don't leave behind an account with no password (anyone could claim it).
+          await supabase.from('users').delete().eq('id', newId);
+          throw new Error('Could not save your password. Please try again or contact an administrator.');
+        }
+
         // If matching HR manpower row exists, sync academic year and client name
         try {
           const mpUpdates: any = {};
@@ -439,6 +482,24 @@ export const api = {
       case 'getCurrentUser': {
         const user = await this.getCurrentUser();
         return user as T;
+      }
+
+      case 'changePassword': {
+        const { userId, currentPassword, newPassword } = payload;
+        if (!newPassword || String(newPassword).length < MIN_PASSWORD_LENGTH) {
+          throw new Error(`New password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+        }
+        const { data: changed, error } = await supabase.rpc('app_change_password', {
+          p_user_id: userId,
+          p_current: String(currentPassword || ''),
+          p_new: String(newPassword)
+        });
+        if (error) {
+          console.error('app_change_password RPC failed:', error);
+          throw new Error('Password change is unavailable. Please contact an administrator.');
+        }
+        if (!changed) throw new Error('Current password is incorrect.');
+        return { success: true } as T;
       }
 
       case 'logout': {

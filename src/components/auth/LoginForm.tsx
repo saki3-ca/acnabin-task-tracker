@@ -90,6 +90,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 onChange={e => setPassword(e.target.value)}
                 className="form-input"
                 placeholder="Enter password"
+                required
                 style={{ paddingLeft: '36px' }}
               />
               <Lock
