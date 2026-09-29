@@ -111,14 +111,28 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createTasksBulk = async (tasksData: Partial<Task>[]) => {
-    try {
-      await Promise.all(tasksData.map(t => taskService.createTask(t)));
+    // allSettled so one failed insert doesn't hide the ones that succeeded
+    // (throwing would keep the modal open and a retry would duplicate them).
+    const results = await Promise.allSettled(tasksData.map(t => taskService.createTask(t)));
+    const failed = tasksData.filter((_, i) => results[i].status === 'rejected');
+    const succeededCount = tasksData.length - failed.length;
+
+    if (succeededCount > 0) await fetchTasks();
+
+    if (failed.length === 0) {
       showToast(`Successfully assigned tasks to ${tasksData.length} team members!`);
-      await fetchTasks();
-    } catch (err: any) {
-      showToast(err.message || 'Failed to assign tasks');
-      throw err;
+      return;
     }
+
+    const firstError = (results.find(r => r.status === 'rejected') as PromiseRejectedResult).reason;
+    console.error('Bulk assignment failures:', results.filter(r => r.status === 'rejected'));
+    if (succeededCount === 0) {
+      showToast(firstError?.message || 'Failed to assign tasks');
+      throw firstError;
+    }
+    showToast(
+      `Assigned to ${succeededCount} of ${tasksData.length} members. Failed for: ${failed.map(t => t.assignedToName || t.assignedToId).join(', ')}`
+    );
   };
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {

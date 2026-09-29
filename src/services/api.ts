@@ -22,6 +22,12 @@ import {
   INITIAL_USERS
 } from './mockData';
 
+// Collision-resistant task ID (tasks.id is the primary key).
+const generateTaskId = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return `TSK-${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+};
+
 function mapToSystemDesignation(raw?: string): Designation {
   if (!raw) return 'Student';
   const clean = raw.trim();
@@ -576,7 +582,8 @@ export const api = {
             if (!assignedToName) assignedToName = u.name;
 
             // If clientId is empty, general, or ALL_CLIENTS, auto-resolve from the assignee's assigned client:
-            if (!clientId || clientId === 'general' || clientId === 'ALL_CLIENTS' || clientId === 'all') {
+            // An explicit 'general' is respected.
+            if (!clientId || clientId === 'ALL_CLIENTS' || clientId === 'all') {
               if (u.signup_client_id) {
                 const primaryCid = u.signup_client_id.split(',')[0].trim();
                 if (primaryCid && primaryCid !== 'ALL_CLIENTS' && primaryCid !== 'general') {
@@ -594,7 +601,7 @@ export const api = {
           if (c?.name) clientName = c.name;
         }
 
-        const newId = `TSK-${Math.floor(100 + Math.random() * 900)}`;
+        const newId = generateTaskId();
         const now = new Date().toISOString();
 
         const taskRow = {
@@ -969,7 +976,7 @@ export const api = {
         if (updateErr) throw updateErr;
 
         if (status === 'ACCEPTED') {
-          const newTaskId = `TSK-${Math.floor(100 + Math.random() * 900)}`;
+          const newTaskId = generateTaskId();
           await supabase.from('tasks').insert({
             id: newTaskId,
             client_id: req.client_id,
@@ -1850,7 +1857,8 @@ export const api = {
         const targetUser = fallbackStore.users.find(u => u.id === targetAssigneeId);
         if (targetUser) {
           if (!assignedToName) assignedToName = targetUser.name;
-          if (!clientId || clientId === 'general' || clientId === 'ALL_CLIENTS' || clientId === 'all') {
+          // An explicit 'general' is respected.
+          if (!clientId || clientId === 'ALL_CLIENTS' || clientId === 'all') {
             const userCids = targetUser.assignedClientIds || (targetUser.signupClientId ? targetUser.signupClientId.split(',').map(s => s.trim()).filter(Boolean) : []);
             if (userCids.length > 0 && userCids[0] !== 'ALL_CLIENTS' && userCids[0] !== 'general') {
               clientId = userCids[0];
@@ -1865,7 +1873,7 @@ export const api = {
         }
 
         const newTask: Task = {
-          id: `TSK-${Math.floor(100 + Math.random() * 900)}`,
+          id: generateTaskId(),
           clientId: clientId || 'general',
           clientName: clientName || 'General',
           assignedToId: targetAssigneeId || 'b2906eef-124a-4abc-a60f-c0834da25ee0',

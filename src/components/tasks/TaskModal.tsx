@@ -159,11 +159,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       : (clientId || availableClients[0]?.id || '');
 
     const resolveClientForUser = (targetUser?: User | null) => {
-      const isBulk = assignedToId === 'ALL_MEMBERS';
       const isAllClientsSelected = !finalClientId || finalClientId === 'ALL_CLIENTS' || finalClientId === 'all';
 
-      // If a specific client was chosen from the dropdown and it is NOT a bulk ALL_MEMBERS assignment:
-      if (!isBulk && !isAllClientsSelected && finalClientId !== 'general') {
+      // A specific client chosen from the dropdown always wins, including for bulk
+      // ALL_MEMBERS (AD+ subordinates are eligible for any client, so their own
+      // primary client must not override the selection).
+      if (!isAllClientsSelected && finalClientId !== 'general') {
         const found = availableClients.find(c => c.id === finalClientId) || allClients.find(c => c.id === finalClientId);
         if (found) return { id: found.id, name: found.name };
       }
@@ -200,7 +201,10 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         const targetUser = mode === 'team'
           ? (assignableUsers.find(u => u.id === assignedToId) || allUsers.find(u => u.id === assignedToId))
           : currentUser;
-        const resolvedClient = resolveClientForUser(targetUser);
+        // Keep the task's existing client (e.g. 'general') unless the user changed it.
+        const resolvedClient = taskToEdit.clientId && finalClientId === taskToEdit.clientId
+          ? { id: taskToEdit.clientId, name: taskToEdit.clientName || 'General' }
+          : resolveClientForUser(targetUser);
         await updateTask(taskToEdit.id, {
           clientId: resolvedClient.id,
           clientName: resolvedClient.name,
