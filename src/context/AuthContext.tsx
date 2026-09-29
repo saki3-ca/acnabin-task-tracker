@@ -79,10 +79,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshContextData();
   }, []);
 
+  // Only show the global loading screen after the credentials are accepted:
+  // showing it earlier unmounts the login/signup form and drops its error message.
   const login = async (empId: string, password?: string) => {
+    const res = await authService.login(empId, password);
     setIsLoading(true);
     try {
-      const res = await authService.login(empId, password);
       setCurrentUser(res.user);
       if (res.user?.id) {
         adminService.prefetchManagerClientIds(res.user.id).catch(() => {});
@@ -94,9 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (payload: any) => {
+    const res = await authService.register(payload);
     setIsLoading(true);
     try {
-      const res = await authService.register(payload);
       setCurrentUser(res.user);
       await refreshContextData();
     } finally {
