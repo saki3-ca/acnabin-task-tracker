@@ -3,6 +3,10 @@ import { Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 
+// URL slug of the deployed request-password-reset Edge Function
+// (the Supabase dashboard assigned it "quick-processor").
+const RESET_FUNCTION_SLUG = 'quick-processor';
+
 interface ForgotPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,7 +27,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     setError(null);
     setSending(true);
     try {
-      const { error: fnError } = await supabase.functions.invoke('request-password-reset', {
+      const { error: fnError } = await supabase.functions.invoke(RESET_FUNCTION_SLUG, {
         body: { email: email.trim() }
       });
       if (fnError) {
