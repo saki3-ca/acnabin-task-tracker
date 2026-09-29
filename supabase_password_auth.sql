@@ -7,8 +7,8 @@
 -- to them through the SECURITY DEFINER functions below, which compare bcrypt
 -- hashes inside Postgres.
 --
--- Existing accounts have no password yet: the first successful login to such
--- an account sets its password.
+-- Accounts without a password cannot log in; they set one through the
+-- "Forgot password" email link (see supabase_password_reset.sql).
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
@@ -23,10 +23,9 @@ ALTER TABLE public.user_credentials ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.user_credentials FROM anon, authenticated;
 
 -- Verify a login. Returns:
---   'OK'        password matches
---   'SET'       account had no password; this password is now saved
---   'INVALID'   wrong password
---   'TOO_SHORT' account has no password and the given one is under 4 chars
+--   'OK'          password matches
+--   'INVALID'     wrong password
+--   'NO_PASSWORD' account has no password yet (use "Forgot password")
 CREATE OR REPLACE FUNCTION public.app_login(p_user_id TEXT, p_password TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -43,18 +42,7 @@ BEGIN
   SELECT password_hash INTO v_hash FROM public.user_credentials WHERE user_id = p_user_id;
 
   IF v_hash IS NULL THEN
-    IF length(p_password) < 4 THEN
-      RETURN 'TOO_SHORT';
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = p_user_id) THEN
-      RETURN 'INVALID';
-    END IF;
-    INSERT INTO public.user_credentials (user_id, password_hash)
-    VALUES (p_user_id, crypt(p_password, gen_salt('bf')))
-    ON CONFLICT (user_id) DO NOTHING;
-    -- Lost a race with a concurrent first login: verify against the winner.
-    SELECT password_hash INTO v_hash FROM public.user_credentials WHERE user_id = p_user_id;
-    RETURN CASE WHEN v_hash = crypt(p_password, v_hash) THEN 'SET' ELSE 'INVALID' END;
+    RETURN 'NO_PASSWORD';
   END IF;
 
   RETURN CASE WHEN v_hash = crypt(p_password, v_hash) THEN 'OK' ELSE 'INVALID' END;

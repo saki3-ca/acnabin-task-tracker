@@ -393,9 +393,11 @@ export const api = {
           console.error('app_login RPC failed:', loginErr);
           throw new Error('Password verification is unavailable. Please contact an administrator.');
         }
-        if (loginResult === 'TOO_SHORT') {
-          throw new Error(`This account has no password yet. Choose one with at least ${MIN_PASSWORD_LENGTH} characters to set it.`);
+        if (loginResult === 'NO_PASSWORD') {
+          throw new Error('This account has no password yet. Use "Forgot password?" to set one.');
         }
+        // 'SET' only comes from the older first-login app_login; the password is
+        // already saved by then, so rejecting it here would only confuse the user.
         if (loginResult !== 'OK' && loginResult !== 'SET') {
           throw new Error('Incorrect password.');
         }
