@@ -344,6 +344,10 @@ export const api = {
           `emp_id.ilike.${normalized}`,
           `email.ilike.${normalized}`
         ];
+        // Let the administrator log in with the ID "admin" whatever their emp_id is.
+        if (normalized === 'ADMIN') {
+          filters.push('role.eq.ADMIN');
+        }
         if (paddedDigits) {
           filters.push(`emp_id.ilike.STD-${paddedDigits}`);
           filters.push(`emp_id.ilike.EMP-${paddedDigits}`);
