@@ -25,7 +25,8 @@ dist-ssr
 .env
 .env/
 
-# Excel and sensitive manpower data
+# Sensitive dumps and data
+sheets_dump.json
 *.xlsx
-manpower*.csv
+*.csv
 backups/

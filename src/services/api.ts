@@ -210,6 +210,14 @@ class LocalFallbackStore {
   currentUser: User | null;
 
   constructor() {
+    // One-time purge of legacy cached manpower records from localStorage to remove personal data
+    try {
+      if (!localStorage.getItem('acnabin_manpower_purged')) {
+        localStorage.removeItem('acnabin_manpower_records');
+        localStorage.setItem('acnabin_manpower_purged', 'true');
+      }
+    } catch {}
+
     const storedUsers = localStorage.getItem('acnabin_users');
     const storedClients = localStorage.getItem('acnabin_clients');
     const storedTasks = localStorage.getItem('acnabin_tasks');
@@ -223,37 +231,8 @@ class LocalFallbackStore {
     this.tasks = storedTasks ? JSON.parse(storedTasks) : [...INITIAL_TASKS];
     this.managerClients = storedMgrClients ? JSON.parse(storedMgrClients) : { ...INITIAL_MANAGER_CLIENTS };
     this.managerStudents = storedMgrStudents ? JSON.parse(storedMgrStudents) : { ...INITIAL_MANAGER_STUDENTS };
-    this.manpower = storedManpower ? JSON.parse(storedManpower) : [...INITIAL_MANPOWER];
+    this.manpower = storedManpower ? JSON.parse(storedManpower) : [];
     this.currentUser = storedCurrent ? JSON.parse(storedCurrent) : null;
-
-    // Auto-heal any legacy cached records where year was mistakenly placed in designation
-    let hadBadManpower = false;
-    this.manpower = this.manpower.map(m => {
-      let desig = m.designation || '';
-      let acad = m.academicYear || '';
-      if (/year/i.test(desig)) {
-        hadBadManpower = true;
-        if (!acad || acad === '—' || !acad.trim()) {
-          const match = desig.match(/(\d+)(st|nd|rd|th)?\s*year/i);
-          if (match) {
-            const num = match[1];
-            const suf = match[2] ? match[2].toLowerCase() : (num === '1' ? 'st' : num === '2' ? 'nd' : num === '3' ? 'rd' : 'th');
-            acad = `${num}${suf} Year`;
-          } else {
-            acad = desig;
-          }
-        }
-        desig = 'Student';
-      }
-      return {
-        ...m,
-        designation: desig,
-        academicYear: acad
-      };
-    });
-    if (hadBadManpower) {
-      localStorage.setItem('acnabin_manpower_records', JSON.stringify(this.manpower));
-    }
 
     let hadBadUsers = false;
     this.users = this.users.map(u => {

@@ -24,7 +24,7 @@ function formatBDT(amount: number): string {
   return `৳ ${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
-export function renderAcademicYear(year?: string) {
+function renderAcademicYear(year?: string) {
   if (!year || year === '—' || !year.trim()) {
     return <span style={{ color: 'var(--ink-muted)' }}>—</span>;
   }

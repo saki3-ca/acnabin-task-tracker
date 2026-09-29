@@ -69,7 +69,6 @@ Project 101/
 ├── package.json                               # NPM project manifest, scripts, and dependencies
 ├── package-lock.json                          # Exact dependency lockfile
 ├── README.md                                  # Vite template readme
-├── sheets_dump.json                           # Snapshot of original data migrated from Google Sheets
 ├── supabase_schema_and_seed.sql               # Complete SQL schema, RLS policies, and seed data
 ├── tsconfig.json                              # TypeScript root config
 ├── tsconfig.app.json                          # TypeScript app bundle compiler configuration
