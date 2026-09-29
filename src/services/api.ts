@@ -542,8 +542,6 @@ export const api = {
             // If no restrictions are set, show all team engagement tasks.
             if (allowedClientIds.length > 0) {
               tasks = tasks.filter(t => {
-                const isGeneral = !t.clientId || t.clientId === 'general' || t.clientName?.toLowerCase() === 'general' || t.clientId === 'CLI-017' || t.clientId === 'CLI-018';
-                if (isGeneral) return true;
                 if (allowedClientIds.includes(t.clientId)) return true;
                 if (t.assignedToId === targetUserId || t.createdById === targetUserId) return true;
                 return false;
@@ -557,23 +555,43 @@ export const api = {
 
       case 'createTask': {
         const user = await this.getCurrentUser();
+        let clientId = payload.clientId;
         let clientName = payload.clientName;
-        if ((!clientName || clientName === 'General') && payload.clientId) {
-          const { data: c } = await supabase.from('clients').select('name').eq('id', payload.clientId).maybeSingle();
-          if (c?.name) clientName = c.name;
-        }
-
         let assignedToName = payload.assignedToName;
-        if (!assignedToName && payload.assignedToId) {
-          const { data: u } = await supabase.from('users').select('name, role, designation').eq('id', payload.assignedToId).maybeSingle();
+
+        const targetAssigneeId = payload.assignedToId || user?.id;
+        if (targetAssigneeId) {
+          const { data: u } = await supabase
+            .from('users')
+            .select('name, role, designation, signup_client_id')
+            .eq('id', targetAssigneeId)
+            .maybeSingle();
+
           if (u) {
             if (u.role === 'ADMIN' || u.designation === 'Admin') {
               if (user?.role !== 'ADMIN') {
                 throw new Error('Tasks cannot be assigned to Administrator.');
               }
             }
-            assignedToName = u.name;
+            if (!assignedToName) assignedToName = u.name;
+
+            // If clientId is empty, general, or ALL_CLIENTS, auto-resolve from the assignee's assigned client:
+            if (!clientId || clientId === 'general' || clientId === 'ALL_CLIENTS' || clientId === 'all') {
+              if (u.signup_client_id) {
+                const primaryCid = u.signup_client_id.split(',')[0].trim();
+                if (primaryCid && primaryCid !== 'ALL_CLIENTS' && primaryCid !== 'general') {
+                  clientId = primaryCid;
+                  const { data: c } = await supabase.from('clients').select('name').eq('id', primaryCid).maybeSingle();
+                  if (c?.name) clientName = c.name;
+                }
+              }
+            }
           }
+        }
+
+        if ((!clientName || clientName === 'General') && clientId && clientId !== 'general' && clientId !== 'ALL_CLIENTS') {
+          const { data: c } = await supabase.from('clients').select('name').eq('id', clientId).maybeSingle();
+          if (c?.name) clientName = c.name;
         }
 
         const newId = `TSK-${Math.floor(100 + Math.random() * 900)}`;
@@ -581,9 +599,9 @@ export const api = {
 
         const taskRow = {
           id: newId,
-          client_id: payload.clientId,
+          client_id: clientId || 'general',
           client_name: clientName || 'General',
-          assigned_to_id: payload.assignedToId || user?.id || 'b2906eef-124a-4abc-a60f-c0834da25ee0',
+          assigned_to_id: targetAssigneeId || 'b2906eef-124a-4abc-a60f-c0834da25ee0',
           assigned_to_name: assignedToName || user?.name || 'Unknown',
           created_by_id: user?.id || 'e53b4ed5-46d2-4566-a3dc-bb7e4ac39201',
           created_by_name: user?.name || 'Admin',
@@ -1801,8 +1819,6 @@ export const api = {
             }
             if (allowedClientIds.length > 0) {
               tasks = tasks.filter(t => {
-                const isGeneral = !t.clientId || t.clientId === 'general' || t.clientName?.toLowerCase() === 'general' || t.clientId === 'CLI-017' || t.clientId === 'CLI-018';
-                if (isGeneral) return true;
                 if (allowedClientIds.includes(t.clientId)) return true;
                 if (t.assignedToId === caller?.id || t.createdById === caller?.id) return true;
                 return false;
@@ -1826,12 +1842,34 @@ export const api = {
 
       case 'createTask': {
         const user = fallbackStore.currentUser;
+        let clientId = payload.clientId;
+        let clientName = payload.clientName;
+        let assignedToName = payload.assignedToName;
+
+        const targetAssigneeId = payload.assignedToId || user?.id;
+        const targetUser = fallbackStore.users.find(u => u.id === targetAssigneeId);
+        if (targetUser) {
+          if (!assignedToName) assignedToName = targetUser.name;
+          if (!clientId || clientId === 'general' || clientId === 'ALL_CLIENTS' || clientId === 'all') {
+            const userCids = targetUser.assignedClientIds || (targetUser.signupClientId ? targetUser.signupClientId.split(',').map(s => s.trim()).filter(Boolean) : []);
+            if (userCids.length > 0 && userCids[0] !== 'ALL_CLIENTS' && userCids[0] !== 'general') {
+              clientId = userCids[0];
+              const c = fallbackStore.clients.find(client => client.id === clientId);
+              if (c?.name) clientName = c.name;
+            }
+          }
+        }
+        if ((!clientName || clientName === 'General') && clientId && clientId !== 'general' && clientId !== 'ALL_CLIENTS') {
+          const c = fallbackStore.clients.find(client => client.id === clientId);
+          if (c?.name) clientName = c.name;
+        }
+
         const newTask: Task = {
           id: `TSK-${Math.floor(100 + Math.random() * 900)}`,
-          clientId: payload.clientId,
-          clientName: payload.clientName || 'General',
-          assignedToId: payload.assignedToId || user?.id || 'b2906eef-124a-4abc-a60f-c0834da25ee0',
-          assignedToName: payload.assignedToName || user?.name || 'Unknown',
+          clientId: clientId || 'general',
+          clientName: clientName || 'General',
+          assignedToId: targetAssigneeId || 'b2906eef-124a-4abc-a60f-c0834da25ee0',
+          assignedToName: assignedToName || user?.name || 'Unknown',
           createdById: user?.id || 'e53b4ed5-46d2-4566-a3dc-bb7e4ac39201',
           createdByName: user?.name || 'Admin',
           particular: payload.particular,

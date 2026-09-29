@@ -6,9 +6,10 @@ import {
   canAssignTasks,
   canViewAllClients,
   getAssignableUsers,
+  getUserAssignedClientIds,
   isAssistantDirectorOrAbove
 } from '../../lib/permissions';
-import { Priority, Task, TaskStatus } from '../../types';
+import { Priority, Task, TaskStatus, User } from '../../types';
 import { Modal } from '../ui/Modal';
 
 interface TaskModalProps {
@@ -115,7 +116,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setManagerComment(taskToEdit.managerComment || '');
     } else {
       // New task defaults
-      const defaultClient = availableClients[0]?.id || '';
+      const defaultClient = isADPlus ? 'ALL_CLIENTS' : (availableClients[0]?.id || '');
       setClientId(defaultClient);
       setAssignedToId(mode === 'team' ? '' : (currentUser?.id || ''));
       setParticular('');
@@ -126,7 +127,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setRemarks('');
       setManagerComment('');
     }
-  }, [taskToEdit, isOpen, currentUser, availableClients, mode, canSeeAll]);
+  }, [taskToEdit, isOpen, currentUser, availableClients, mode, canSeeAll, isADPlus]);
 
   // When in team mode, auto-select first assignable user if none is selected
   useEffect(() => {
@@ -157,13 +158,49 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       ? availableClients[0].id
       : (clientId || availableClients[0]?.id || '');
 
-    const resolvedClient = finalClientId === 'ALL_CLIENTS'
-      ? { id: 'general', name: 'General' }
-      : (availableClients.find(c => c.id === finalClientId) || { id: finalClientId, name: 'General' });
+    const resolveClientForUser = (targetUser?: User | null) => {
+      const isBulk = assignedToId === 'ALL_MEMBERS';
+      const isAllClientsSelected = !finalClientId || finalClientId === 'ALL_CLIENTS' || finalClientId === 'all';
+
+      // If a specific client was chosen from the dropdown and it is NOT a bulk ALL_MEMBERS assignment:
+      if (!isBulk && !isAllClientsSelected && finalClientId !== 'general') {
+        const found = availableClients.find(c => c.id === finalClientId) || allClients.find(c => c.id === finalClientId);
+        if (found) return { id: found.id, name: found.name };
+      }
+
+      // If target user is known, resolve to the user's assigned client:
+      if (targetUser) {
+        const userClientIds = getUserAssignedClientIds(targetUser);
+        if (userClientIds.length > 0) {
+          // If a specific client was selected and the user actually belongs to it, prioritize that client
+          if (!isAllClientsSelected && userClientIds.includes(finalClientId)) {
+            const found = allClients.find(c => c.id === finalClientId);
+            if (found) return { id: found.id, name: found.name };
+          }
+          // Otherwise, if user has multiple clients, show in one (the first / primary assigned client)
+          const primaryId = userClientIds[0];
+          const found = allClients.find(c => c.id === primaryId);
+          if (found) return { id: found.id, name: found.name };
+          return { id: primaryId, name: primaryId };
+        }
+      }
+
+      // If the user has no assigned clients, check if a specific client was selected
+      if (!isAllClientsSelected && finalClientId !== 'general') {
+        const found = availableClients.find(c => c.id === finalClientId) || allClients.find(c => c.id === finalClientId);
+        if (found) return { id: found.id, name: found.name };
+      }
+
+      return { id: 'general', name: 'General' };
+    };
 
     setIsSubmitting(true);
     try {
       if (isEditing && taskToEdit) {
+        const targetUser = mode === 'team'
+          ? (assignableUsers.find(u => u.id === assignedToId) || allUsers.find(u => u.id === assignedToId))
+          : currentUser;
+        const resolvedClient = resolveClientForUser(targetUser);
         await updateTask(taskToEdit.id, {
           clientId: resolvedClient.id,
           clientName: resolvedClient.name,
@@ -177,21 +214,28 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           managerComment
         });
       } else if (mode === 'team' && assignedToId === 'ALL_MEMBERS') {
-        const tasksToCreate = assignableUsers.map(u => ({
-          clientId: resolvedClient.id,
-          clientName: resolvedClient.name,
-          assignedToId: u.id,
-          assignedToName: u.name,
-          particular,
-          priority,
-          assignedDate,
-          deadline,
-          status,
-          remarks,
-          managerComment
-        }));
+        const tasksToCreate = assignableUsers.map(u => {
+          const clientInfo = resolveClientForUser(u);
+          return {
+            clientId: clientInfo.id,
+            clientName: clientInfo.name,
+            assignedToId: u.id,
+            assignedToName: u.name,
+            particular,
+            priority,
+            assignedDate,
+            deadline,
+            status,
+            remarks,
+            managerComment
+          };
+        });
         await createTasksBulk(tasksToCreate);
       } else {
+        const targetUser = mode === 'team'
+          ? (assignableUsers.find(u => u.id === assignedToId) || allUsers.find(u => u.id === assignedToId))
+          : currentUser;
+        const resolvedClient = resolveClientForUser(targetUser);
         await createTask({
           clientId: resolvedClient.id,
           clientName: resolvedClient.name,

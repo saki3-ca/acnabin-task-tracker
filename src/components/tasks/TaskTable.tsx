@@ -40,10 +40,8 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               {showTeamColumns && (
                 <th style={{ width: '12%', minWidth: '115px', textAlign: 'center' }}>Name</th>
               )}
-              <th style={{ width: showTeamColumns ? '22%' : '26%', minWidth: '220px', textAlign: 'center' }}>Particulars</th>
-              {showTeamColumns && (
-                <th style={{ width: '12%', minWidth: '115px', textAlign: 'center' }}>Client</th>
-              )}
+              <th style={{ width: showTeamColumns ? '22%' : '24%', minWidth: '200px', textAlign: 'center' }}>Particulars</th>
+              <th style={{ width: showTeamColumns ? '12%' : '14%', minWidth: '115px', textAlign: 'center' }}>Client</th>
               {!showTeamColumns && (
                 <th style={{ width: '110px', minWidth: '100px', textAlign: 'center' }}>Added By</th>
               )}
@@ -58,7 +56,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={showTeamColumns ? 10 : 9} style={{ textAlign: 'center', padding: 0 }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: 0 }}>
                   <div className="loading-indicator">
                     Loading tasks…
                   </div>
@@ -66,7 +64,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
               </tr>
             ) : tasks.length === 0 ? (
               <tr>
-                <td colSpan={showTeamColumns ? 10 : 9} className="empty-state">
+                <td colSpan={10} className="empty-state">
                   {emptyMessage}
                 </td>
               </tr>
