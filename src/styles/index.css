@@ -200,9 +200,10 @@ button, input, select, textarea {
   min-width: 180px;
 }
 
+/* The big "MY TASKS" page title keeps its original serif look */
 .masthead-title {
-  font-family: var(--font-sans);
-  font-weight: 600;
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
   font-size: clamp(24px, 4vw, 46px);
   color: var(--maroon);
   letter-spacing: -0.5px;
