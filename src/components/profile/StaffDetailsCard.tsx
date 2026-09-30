@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Briefcase, HeartPulse, Laptop, Phone, Wallet } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   academicYearFromStart,
@@ -6,7 +7,6 @@ import {
   isEmployeeId,
   principalDisplay
 } from '../../lib/academicYear';
-import { isStudentLevelDesignation } from '../../lib/permissions';
 import { notificationService } from '../../services/notificationService';
 import { staffService } from '../../services/staffService';
 import { MyInfo, MyStaff } from '../../types';
@@ -21,21 +21,88 @@ const fmtDate = (iso?: string) => {
 };
 const fmtMoney = (n?: number | null) => (n === null || n === undefined ? DASH : `৳ ${Math.round(n).toLocaleString('en-IN')}`);
 
-const Field: React.FC<{ label: string; children: React.ReactNode; wide?: boolean }> = ({ label, children, wide }) => (
-  <div style={{ gridColumn: wide ? '1 / -1' : undefined, minWidth: 0 }}>
-    <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-      {label}
-    </div>
-    <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginTop: '2px', wordBreak: 'break-word' }}>{children}</div>
+const HAIRLINE = '#EAE3D9';
+
+/** One "label ..... value" line. Empty values show a soft dash. */
+const Row: React.FC<{ label: string; children: React.ReactNode; last?: boolean }> = ({ label, children, last }) => (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'minmax(110px, 38%) 1fr',
+      gap: '12px',
+      alignItems: 'baseline',
+      padding: '9px 0',
+      borderBottom: last ? 'none' : `1px solid ${HAIRLINE}`
+    }}
+  >
+    <div style={{ fontSize: '12px', color: 'var(--ink-muted)', fontWeight: 500 }}>{label}</div>
+    <div style={{ fontSize: '13.5px', color: 'var(--ink)', fontWeight: 600, minWidth: 0, overflowWrap: 'anywhere' }}>{children}</div>
   </div>
 );
 
-const Group: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div style={{ marginBottom: '18px' }}>
-    <div style={{ fontSize: '11.5px', fontWeight: 800, color: 'var(--maroon)', letterSpacing: '0.8px', borderBottom: '1px solid var(--line)', paddingBottom: '4px', marginBottom: '10px' }}>
-      {title}
+const Panel: React.FC<{ title: string; icon: React.ReactNode; wide?: boolean; children: React.ReactNode; footer?: React.ReactNode }> = ({
+  title,
+  icon,
+  wide,
+  children,
+  footer
+}) => (
+  <section
+    style={{
+      gridColumn: wide ? '1 / -1' : undefined,
+      background: '#FFFFFF',
+      border: '1px solid var(--line)',
+      borderRadius: '10px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column'
+    }}
+  >
+    <header
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '11px 16px',
+        background: 'var(--cream-card)',
+        borderBottom: `1px solid ${HAIRLINE}`
+      }}
+    >
+      <span
+        style={{
+          width: '26px',
+          height: '26px',
+          borderRadius: '50%',
+          background: 'var(--maroon-light)',
+          color: 'var(--maroon)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}
+      >
+        {icon}
+      </span>
+      <span style={{ fontSize: '11.5px', fontWeight: 800, letterSpacing: '1px', color: 'var(--navy)' }}>{title}</span>
+    </header>
+    <div
+      style={{
+        padding: '4px 16px',
+        flex: 1,
+        ...(wide ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', columnGap: '28px' } : {})
+      }}
+    >
+      {children}
     </div>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '12px 18px' }}>{children}</div>
+    {footer}
+  </section>
+);
+
+/** A highlighted figure on top of the card. */
+const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div style={{ flex: '1 1 150px', minWidth: 0, padding: '12px 16px', borderLeft: '3px solid var(--maroon)', background: '#FFFFFF', borderRadius: '6px', border: '1px solid var(--line)', borderLeftWidth: '3px', borderLeftColor: 'var(--maroon)' }}>
+    <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--ink-muted)', letterSpacing: '0.7px', textTransform: 'uppercase' }}>{label}</div>
+    <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--navy)', marginTop: '3px', wordBreak: 'break-word' }}>{value}</div>
   </div>
 );
 
@@ -61,7 +128,6 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
   if (!currentUser) return null;
 
   const isEmp = isEmployeeId(currentUser.empId);
-  const studentLevel = isStudentLevelDesignation(currentUser.designation) && !isEmp;
 
   const yearValue = isEmp
     ? employmentYearFromJoining(staff?.joiningDate)
@@ -75,52 +141,76 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
   const emName = info?.emergencyName || staff?.emergencyName;
   const emPhone = info?.emergencyPhone || staff?.emergencyPhone;
 
+  const icon = 15;
+  const soft = (v?: string | number | null) => {
+    const t = show(v);
+    return t === DASH ? <span style={{ color: 'var(--line-strong)', fontWeight: 500 }}>{DASH}</span> : t;
+  };
+
   return (
     <div className="table-card">
       <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 20px' }}>
         <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>OFFICIAL EMPLOYEE PROFILE · FULL DETAILS</span>
+        <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.6px', background: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '4px' }}>
+          {show(currentUser.empId)}
+        </span>
       </div>
 
-      <div style={{ padding: '16px 20px 6px' }}>
-        <Group title="EMPLOYMENT">
-          <Field label="ID">{show(currentUser.empId)}</Field>
-          <Field label="Designation">{show(currentUser.designation)}</Field>
-          <Field label="Department">{show(staff?.department)}</Field>
-          {(isEmp || studentLevel || yearValue) && <Field label={yearLabel}>{show(yearValue)}</Field>}
-          <Field label="Joining Date">{fmtDate(staff?.joiningDate)}</Field>
-          {!isEmp && <Field label="Articleship Period">{show(staff?.articleshipPeriod)}</Field>}
-          {!isEmp && <Field label="Principal">{show(principalDisplay(staff?.principalName))}</Field>}
-        </Group>
+      <div style={{ padding: '18px 20px 14px', background: 'var(--cream)' }}>
+        {/* Key figures */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+          <Stat label={yearLabel} value={show(yearValue)} />
+          <Stat label="Joining Date" value={fmtDate(staff?.joiningDate)} />
+          <Stat label="Designation" value={show(currentUser.designation)} />
+        </div>
 
-        <Group title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'}>
-          <Field label={payLabel}>{fmtMoney(info?.salary)}</Field>
-          <Field label="Conveyance">{fmtMoney(info?.conveyance)}</Field>
-          <Field label="Total">
-            <span style={{ color: 'var(--maroon)', fontWeight: 800 }}>{fmtMoney(total)}</span>
-          </Field>
-        </Group>
+        <div className="fd-grid">
+          <Panel title="EMPLOYMENT" icon={<Briefcase size={icon} />}>
+            <Row label="ID">{soft(currentUser.empId)}</Row>
+            <Row label="Designation">{soft(currentUser.designation)}</Row>
+            <Row label="Department" last={isEmp}>{soft(staff?.department)}</Row>
+            {!isEmp && <Row label="Articleship Period">{soft(staff?.articleshipPeriod)}</Row>}
+            {!isEmp && <Row label="Principal" last>{soft(principalDisplay(staff?.principalName))}</Row>}
+          </Panel>
 
-        <Group title="CONTACT">
-          <Field label="Mobile">{show(currentUser.mobile || staff?.mobile)}</Field>
-          <Field label="Email">{show(currentUser.email || staff?.email)}</Field>
-          <Field label="Present Address">{show(staff?.presentAddress)}</Field>
-          <Field label="Blood Group">{show(blood)}</Field>
-        </Group>
+          <Panel title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'} icon={<Wallet size={icon} />}
+            footer={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon-dark)', letterSpacing: '0.6px' }}>TOTAL</span>
+                <span style={{ fontSize: '17px', fontWeight: 800, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
+              </div>
+            }
+          >
+            <Row label={payLabel}>{soft(info?.salary === null || info?.salary === undefined ? '' : fmtMoney(info.salary))}</Row>
+            <Row label="Conveyance" last>{soft(info?.conveyance === null || info?.conveyance === undefined ? '' : fmtMoney(info.conveyance))}</Row>
+          </Panel>
 
-        <Group title="EMERGENCY CONTACT">
-          <Field label="Name">{show(emName)}</Field>
-          <Field label="Relationship">{show(staff?.emergencyRelationship)}</Field>
-          <Field label="Mobile">{show(emPhone)}</Field>
-        </Group>
+          <Panel title="CONTACT" icon={<Phone size={icon} />}>
+            <Row label="Mobile">{soft(currentUser.mobile || staff?.mobile)}</Row>
+            <Row label="Email">{soft(currentUser.email || staff?.email)}</Row>
+            <Row label="Present Address">{soft(staff?.presentAddress)}</Row>
+            <Row label="Blood Group" last>{soft(blood)}</Row>
+          </Panel>
 
-        <Group title="LAPTOP">
-          <Field label="Availability">{show(staff?.laptopAvailable)}</Field>
-          <Field label="Ownership">{show(staff?.laptopOwnership)}</Field>
-          <Field label="Identification No.">{show(staff?.laptopId)}</Field>
-          <Field label="Remarks">{show(staff?.remarks)}</Field>
-        </Group>
+          <Panel title="EMERGENCY CONTACT" icon={<HeartPulse size={icon} />}>
+            <Row label="Name">{soft(emName)}</Row>
+            <Row label="Relationship">{soft(staff?.emergencyRelationship)}</Row>
+            <Row label="Mobile" last>{soft(emPhone)}</Row>
+          </Panel>
 
-        <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', padding: '0 0 12px' }}>
+          <Panel title="LAPTOP" icon={<Laptop size={icon} />} wide>
+            <div>
+              <Row label="Availability">{soft(staff?.laptopAvailable)}</Row>
+              <Row label="Ownership" last>{soft(staff?.laptopOwnership)}</Row>
+            </div>
+            <div>
+              <Row label="Identification No.">{soft(staff?.laptopId)}</Row>
+              <Row label="Remarks" last>{soft(staff?.remarks)}</Row>
+            </div>
+          </Panel>
+        </div>
+
+        <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', padding: '12px 2px 0' }}>
           Anything not on file shows as “—”. Use <strong>Edit Profile</strong> to change your details.
         </div>
       </div>
