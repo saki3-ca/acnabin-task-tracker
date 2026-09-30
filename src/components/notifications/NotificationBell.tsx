@@ -87,8 +87,8 @@ export const NotificationBell: React.FC = () => {
               right: '-4px',
               background: 'var(--maroon, #8A1526)',
               color: '#fff',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '10.5px',
+              fontWeight: 700,
               borderRadius: '10px',
               minWidth: '18px',
               height: '18px',
@@ -133,7 +133,7 @@ export const NotificationBell: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--navy)' }}>
+              <span style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--navy)' }}>
                 Notifications
               </span>
               {unreadCount > 0 && (
@@ -141,7 +141,7 @@ export const NotificationBell: React.FC = () => {
                   style={{
                     background: 'var(--maroon)',
                     color: '#fff',
-                    fontSize: 'var(--text-xs)',
+                    fontSize: '10.5px',
                     fontWeight: 600,
                     padding: '2px 6px',
                     borderRadius: '10px'
@@ -160,7 +160,7 @@ export const NotificationBell: React.FC = () => {
                   background: 'none',
                   border: 'none',
                   color: 'var(--teal)',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '11.5px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -178,8 +178,8 @@ export const NotificationBell: React.FC = () => {
             {notifications.length === 0 ? (
               <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink-muted)' }}>
                 <Bell size={28} style={{ opacity: 0.3, marginBottom: '8px' }} />
-                <div style={{ fontSize: 'var(--text-base)', fontWeight: 500 }}>No notifications yet</div>
-                <div style={{ fontSize: 'var(--text-sm)', marginTop: '4px' }}>You're all caught up!</div>
+                <div style={{ fontSize: '13px', fontWeight: 500 }}>No notifications yet</div>
+                <div style={{ fontSize: '11.5px', marginTop: '4px' }}>You're all caught up!</div>
               </div>
             ) : (
               notifications.map(item => (
@@ -215,15 +215,15 @@ export const NotificationBell: React.FC = () => {
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2px' }}>
-                      <span style={{ fontWeight: item.isRead ? 500 : 600, fontSize: 'var(--text-sm)', color: 'var(--ink)' }}>
+                      <span style={{ fontWeight: item.isRead ? 600 : 700, fontSize: '12px', color: 'var(--ink)' }}>
                         {item.title}
                       </span>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-muted)', marginLeft: '6px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--ink-muted)', marginLeft: '6px', whiteSpace: 'nowrap' }}>
                         {formatTimeAgo(item.createdAt)}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', lineHeight: '1.35', wordBreak: 'break-word' }}>
+                    <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', lineHeight: '1.35', wordBreak: 'break-word' }}>
                       {item.message}
                     </div>
                   </div>

@@ -180,7 +180,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
         <div className="auth-card-header">
           <div
             className="brand-logo-badge"
-            style={{ width: 56, height: 56, fontSize: 'var(--text-lg)', margin: '0 auto 12px' }}
+            style={{ width: 56, height: 56, fontSize: 20, margin: '0 auto 12px' }}
           >
             {BRAND.initials}
           </div>
@@ -196,7 +196,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
               <label style={{ margin: 0 }}>Employee / Student ID / Partner Initial</label>
               {hrAutofillHint && (
-                <span style={{ fontSize: 'var(--text-xs)', color: '#03543F', fontWeight: 600 }}>
+                <span style={{ fontSize: '11px', color: '#03543F', fontWeight: 600 }}>
                   ✓ Filled from HR records
                 </span>
               )}
@@ -298,7 +298,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                     style={{
                       padding: '8px 14px',
                       cursor: 'pointer',
-                      fontSize: 'var(--text-base)',
+                      fontSize: '13px',
                       color: 'var(--ink)'
                     }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
@@ -319,7 +319,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                 className="form-select"
                 value={academicYear}
                 onChange={e => setAcademicYear(e.target.value)}
-                style={{ width: '100%', height: '38px', fontSize: 'var(--text-base)' }}
+                style={{ width: '100%', height: '38px', fontSize: '13px' }}
               >
                 <option value="1st Year">1ˢᵗ Year</option>
                 <option value="2nd Year">2ⁿᵈ Year</option>
@@ -348,7 +348,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                         border: '1px solid var(--navy, #1B2A6B)',
                         borderRadius: '20px',
                         padding: '2px 10px',
-                        fontSize: 'var(--text-sm)',
+                        fontSize: '12px',
                         color: 'var(--navy, #1B2A6B)',
                         fontWeight: 600
                       }}
@@ -362,10 +362,10 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                           background: 'none',
                           cursor: 'pointer',
                           color: 'var(--maroon)',
-                          fontWeight: 600,
+                          fontWeight: 700,
                           padding: 0,
                           lineHeight: 1,
-                          fontSize: 'var(--text-base)'
+                          fontSize: '14px'
                         }}
                       >×</button>
                     </span>
@@ -407,7 +407,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       style={{
                         padding: '8px 14px',
                         cursor: 'pointer',
-                        fontSize: 'var(--text-base)',
+                        fontSize: '13px',
                         color: 'var(--ink)'
                       }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
@@ -439,7 +439,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+        <div style={{ textAlign: 'center', fontSize: '12.5px', color: 'var(--ink-soft)' }}>
           Already registered?{' '}
           <button type="button" onClick={onSwitchToLogin} className="btn-link" style={{ fontWeight: 600 }}>
             Back to Sign in

@@ -31,25 +31,22 @@ const fmtMoney = (n?: number | null): React.ReactNode =>
     </span>
   );
 
-const HAIRLINE = '#DDE3C8'; // soft green-grey, from the Linen Cloud palette
+const HAIRLINE = '#EAE3D9';
 
 /** One "label ..... value" line. Empty values show a soft dash. */
 const Row: React.FC<{ label: string; children: React.ReactNode; last?: boolean }> = ({ label, children, last }) => (
   <div
-    className="fd-row"
     style={{
       display: 'grid',
       gridTemplateColumns: 'minmax(110px, 38%) 1fr',
       gap: '12px',
       alignItems: 'baseline',
-      padding: '10px 8px',
-      margin: '0 -8px',
-      borderRadius: '6px',
-      borderBottom: last ? 'none' : `1px dotted ${HAIRLINE}`
+      padding: '9px 0',
+      borderBottom: last ? 'none' : `1px solid ${HAIRLINE}`
     }}
   >
-    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--plum)', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</div>
-    <div style={{ fontSize: 'var(--text-base)', color: 'var(--ink)', fontWeight: 500, lineHeight: 1.4, minWidth: 0, overflowWrap: 'anywhere' }}>{children}</div>
+    <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{label}</div>
+    <div style={{ fontSize: '13.5px', color: 'var(--ink)', fontWeight: 500, lineHeight: 1.4, minWidth: 0, overflowWrap: 'anywhere' }}>{children}</div>
   </div>
 );
 
@@ -64,10 +61,8 @@ const Panel: React.FC<{ title: string; icon: React.ReactNode; wide?: boolean; ch
     style={{
       gridColumn: wide ? '1 / -1' : undefined,
       background: '#FFFFFF',
-      border: '1px solid #E3E8D3',
-      borderLeft: '4px solid var(--forest)',
-      borderRadius: '12px',
-      boxShadow: '0 1px 3px rgba(1, 62, 55, 0.06)',
+      border: '1px solid var(--line)',
+      borderRadius: '10px',
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column'
@@ -79,17 +74,17 @@ const Panel: React.FC<{ title: string; icon: React.ReactNode; wide?: boolean; ch
         alignItems: 'center',
         gap: '10px',
         padding: '11px 16px',
-        background: 'var(--linen)',
+        background: 'var(--cream-card)',
         borderBottom: `1px solid ${HAIRLINE}`
       }}
     >
       <span
         style={{
-          width: '28px',
-          height: '28px',
-          borderRadius: '8px',
-          background: 'var(--butter)',
-          color: 'var(--forest)',
+          width: '26px',
+          height: '26px',
+          borderRadius: '50%',
+          background: 'var(--maroon-light)',
+          color: 'var(--maroon)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -98,7 +93,7 @@ const Panel: React.FC<{ title: string; icon: React.ReactNode; wide?: boolean; ch
       >
         {icon}
       </span>
-      <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, letterSpacing: '0.08em', color: 'var(--forest)' }}>{title}</span>
+      <span style={{ fontSize: '11.5px', fontWeight: 800, letterSpacing: '1px', color: 'var(--navy)' }}>{title}</span>
     </header>
     <div
       style={{
@@ -115,19 +110,9 @@ const Panel: React.FC<{ title: string; icon: React.ReactNode; wide?: boolean; ch
 
 /** A highlighted figure on top of the card. */
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div
-    style={{
-      flex: '1 1 150px',
-      minWidth: 0,
-      padding: '12px 16px',
-      background: 'var(--linen)',
-      border: '1px solid #E3E8D3',
-      borderLeft: '4px solid var(--forest)',
-      borderRadius: '10px'
-    }}
-  >
-    <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--plum)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</div>
-    <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--forest)', marginTop: '3px', overflowWrap: 'anywhere' }}>{value}</div>
+  <div style={{ flex: '1 1 150px', minWidth: 0, padding: '12px 16px', borderLeft: '3px solid var(--maroon)', background: '#FFFFFF', borderRadius: '6px', border: '1px solid var(--line)', borderLeftWidth: '3px', borderLeftColor: 'var(--maroon)' }}>
+    <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--ink-muted)', letterSpacing: '0.7px', textTransform: 'uppercase' }}>{label}</div>
+    <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--navy)', marginTop: '3px', wordBreak: 'break-word' }}>{value}</div>
   </div>
 );
 
@@ -194,9 +179,9 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
       title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'}
       icon={<Wallet size={icon} />}
       footer={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--butter)', borderTop: `1px solid ${HAIRLINE}` }}>
-          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--forest)', letterSpacing: '0.08em' }}>TOTAL</span>
-          <span style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--forest)' }}>{fmtMoney(total)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon-dark)', letterSpacing: '0.6px' }}>TOTAL</span>
+          <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
         </div>
       }
     >
@@ -249,7 +234,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
           </div>
         )}
 
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', padding: '12px 2px 0' }}>
+        <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', padding: '12px 2px 0' }}>
           Anything not on file shows as “—”. Use <strong>Edit Profile</strong> to change your details.
         </div>
       </div>

@@ -56,7 +56,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onD
         <div className="auth-card-header">
           <div
             className="brand-logo-badge"
-            style={{ width: 56, height: 56, fontSize: 'var(--text-lg)', margin: '0 auto 12px' }}
+            style={{ width: 56, height: 56, fontSize: 20, margin: '0 auto 12px' }}
           >
             {BRAND.initials}
           </div>
@@ -107,7 +107,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token, onD
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+        <div style={{ textAlign: 'center', fontSize: '12.5px', color: 'var(--ink-soft)' }}>
           <button
             type="button"
             onClick={() => onDone('')}

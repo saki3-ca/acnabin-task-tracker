@@ -145,8 +145,8 @@ export const ClientGrid: React.FC = () => {
       ) : visibleClients.length === 0 ? (
         <div className="table-card" style={{ padding: '36px 20px', textAlign: 'center' }}>
           <ShieldAlert size={32} color="var(--ink-soft)" style={{ margin: '0 auto 12px' }} />
-          <h4 style={{ fontSize: 'var(--text-base)', color: 'var(--ink)' }}>No Clients Assigned Yet</h4>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', maxWidth: '420px', margin: '6px auto 0' }}>
+          <h4 style={{ fontSize: '15px', color: 'var(--ink)' }}>No Clients Assigned Yet</h4>
+          <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', maxWidth: '420px', margin: '6px auto 0' }}>
             You do not currently have any client audit engagements assigned to your profile.
             Please ask an Administrator or Director to configure your client access.
           </p>
@@ -160,8 +160,8 @@ export const ClientGrid: React.FC = () => {
                 <span className="client-card-name">{client.name}</span>
                 <span
                   style={{
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
+                    fontSize: '10px',
+                    fontWeight: 700,
                     padding: '2px 6px',
                     borderRadius: '4px',
                     background: client.status === 'ACTIVE' ? '#DCFCE7' : '#F3F4F6',
@@ -181,7 +181,7 @@ export const ClientGrid: React.FC = () => {
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => openEdit(client)}
-                  style={{ padding: '4px 10px', fontSize: 'var(--text-sm)' }}
+                  style={{ padding: '4px 10px', fontSize: '11.5px' }}
                 >
                   <Edit size={12} style={{ marginRight: 4 }} /> Edit
                 </button>

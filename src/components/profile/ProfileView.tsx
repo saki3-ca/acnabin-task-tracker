@@ -597,7 +597,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const payShortLabel = isEmployeeId(currentUser.empId) ? 'Salary (৳)' : 'Allowance (৳)';
   const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
   const hasYearField = isStudentLevelDesignation(currentUser.designation) && !editArtStart;
-  const infoInputStyle: React.CSSProperties = { height: '38px', padding: '0 10px', margin: 0, fontSize: 'var(--text-sm)', lineHeight: '36px', boxSizing: 'border-box', width: '100%', minWidth: 0 };
+  const infoInputStyle: React.CSSProperties = { height: '38px', padding: '0 10px', margin: 0, fontSize: '12.5px', lineHeight: '36px', boxSizing: 'border-box', width: '100%', minWidth: 0 };
   const conveyanceDays = editClients.some(c => /walton/i.test(c.name)) ? 24 : 22;
   const conveyanceHint =
     `Daily conveyance × ${conveyanceDays} days = ৳ ${((Number(editDaily) || 0) * conveyanceDays).toLocaleString('en-IN')} / month` +
@@ -606,7 +606,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   // Assigned-client picker (search by name or job ID, like signup)
   const clientPicker = (
             <div className="form-field" style={{ position: 'relative' }}>
-              <label style={clientsInInfoBox ? { fontSize: 'var(--text-sm)' } : undefined}>Assigned Client(s)</label>
+              <label style={clientsInInfoBox ? { fontSize: '11.5px' } : undefined}>Assigned Client(s)</label>
               {editClients.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
                   {editClients.map(c => (
@@ -620,7 +620,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                         border: '1px solid var(--navy, #1B2A6B)',
                         borderRadius: '20px',
                         padding: '2px 10px',
-                        fontSize: 'var(--text-sm)',
+                        fontSize: '12px',
                         color: 'var(--navy, #1B2A6B)',
                         fontWeight: 600
                       }}
@@ -629,7 +629,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       <button
                         type="button"
                         onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 600, padding: 0, lineHeight: 1, fontSize: 'var(--text-base)' }}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
                       >×</button>
                     </span>
                   ))}
@@ -668,7 +668,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     <li
                       key={c.id}
                       onMouseDown={() => addEditClient(c)}
-                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: 'var(--text-base)', color: 'var(--ink)' }}
+                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                     >
@@ -688,12 +688,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           className="banner-strip banner-maroon"
           style={{ justifyContent: 'space-between', padding: '0 20px' }}
         >
-          <span style={{ fontSize: 'var(--text-base)', fontWeight: 600, letterSpacing: '0.8px' }}>
+          <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>
             {isPartner ? "OFFICIAL PARTNER'S PROFILE" : isEmployeeId(currentUser.empId) ? 'OFFICIAL EMPLOYEE PROFILE' : 'OFFICIAL STUDENT PROFILE'}
           </span>
           <span
             style={{
-              fontSize: 'var(--text-xs)',
+              fontSize: '11px',
               fontWeight: 600,
               opacity: 0.9,
               letterSpacing: '0.6px',
@@ -732,8 +732,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 'var(--text-xl)',
-                  fontWeight: 600,
+                  fontSize: '22px',
+                  fontWeight: 700,
                   letterSpacing: '1px',
                   boxShadow: '0 4px 12px rgba(27, 54, 93, 0.2)',
                   overflow: 'hidden',
@@ -754,16 +754,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               {/* Identity Info */}
               <div style={{ minWidth: '220px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--ink)' }}>
+                  <h2 style={{ margin: 0, fontSize: '19px', fontWeight: 700, color: 'var(--ink)' }}>
                     {currentUser.name}
                   </h2>
-                  <span className={`role-badge ${currentUser.role.toLowerCase()}`} style={{ fontSize: 'var(--text-xs)' }}>
+                  <span className={`role-badge ${currentUser.role.toLowerCase()}`} style={{ fontSize: '11px' }}>
                     {currentUser.designation}
                   </span>
                   <span
                     style={{
-                      fontSize: 'var(--text-xs)',
-                      fontWeight: 600,
+                      fontSize: '11px',
+                      fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: '12px',
                       background: currentUser.status === 'ACTIVE' ? '#DEF7EC' : '#FDE8E8',
@@ -780,7 +780,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     flexDirection: 'column',
                     gap: '4px',
                     marginTop: '6px',
-                    fontSize: 'var(--text-sm)',
+                    fontSize: '12px',
                     color: 'var(--ink-soft)'
                   }}
                 >
@@ -815,7 +815,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   alignItems: 'center',
                   gap: '6px',
                   padding: '6px 16px',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '12px',
                   fontWeight: 600,
                   borderRadius: '6px',
                   border: '1.5px solid var(--line-strong)',
@@ -861,10 +861,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="View assigned client engagements below"
             >
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Assigned Clients
               </div>
-              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: '#1E40AF', marginTop: '3px', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E40AF', marginTop: '3px', lineHeight: 1.1 }}>
                 {canSeeAll ? 'All' : assignedClientsList.length}
               </div>
             </div>
@@ -888,10 +888,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Total Active Tasks
               </div>
-              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: '#6B21A8', marginTop: '3px', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.total}
               </div>
             </div>
@@ -915,10 +915,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Click to open completed tasks window"
             >
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Completed Tasks
               </div>
-              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: '#166534', marginTop: '3px', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.completed}
               </div>
             </div>
@@ -942,10 +942,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Pending / In Progress
               </div>
-              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: '#92400E', marginTop: '3px', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400E', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.pending + myStats.inProgress}
               </div>
             </div>
@@ -969,10 +969,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Overdue Tasks
               </div>
-              <div style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: '#991B1B', marginTop: '3px', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.overdue}
               </div>
             </div>
@@ -1002,8 +1002,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 600,
+                fontSize: '11.5px',
+                fontWeight: 700,
                 color: '#0F5E57',
                 background: '#FFFFFF',
                 border: 'none',
@@ -1021,7 +1021,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 right: '16px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                fontSize: 'var(--text-sm)',
+                fontSize: '11.5px',
                 background: 'rgba(255,255,255,0.2)',
                 padding: '2px 8px',
                 borderRadius: '10px'
@@ -1038,7 +1038,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               margin: '10px 14px 0',
               padding: '8px 12px',
               borderRadius: '6px',
-              fontSize: 'var(--text-sm)',
+              fontSize: '12.5px',
               fontWeight: 600,
               background: clientNotice.type === 'success' ? '#DEF7EC' : '#FDE8E8',
               color: clientNotice.type === 'success' ? '#03543F' : '#9B1C1C',
@@ -1072,10 +1072,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 <tr>
                   <td colSpan={canEditClients || canDeleteClients ? 6 : 5} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
                     <Building size={32} style={{ color: 'var(--ink-muted)', marginBottom: '8px', opacity: 0.5 }} />
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)' }}>
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
                       No clients assigned to your profile yet
                     </div>
-                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginTop: '4px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '4px' }}>
                       Please contact an Administrator or Engagement Partner to have client engagements assigned to you.
                     </div>
                   </td>
@@ -1091,7 +1091,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
                         {idx + 1}
                       </td>
-                      <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--navy)' }}>
+                      <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: 'var(--navy)' }}>
                         {client.jobNumber || '—'}
                       </td>
                       <td style={{ fontWeight: 600, color: 'var(--ink)' }}>
@@ -1108,8 +1108,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                             gap: '4px',
                             padding: '2px 8px',
                             borderRadius: '12px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
+                            fontSize: '11px',
+                            fontWeight: 700,
                             background: badgeCount > 0 ? '#EBF4FF' : '#F1F5F9',
                             color: badgeCount > 0 ? '#1E40AF' : '#64748B'
                           }}
@@ -1125,8 +1125,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                             gap: '4px',
                             padding: '2px 8px',
                             borderRadius: '12px',
-                            fontSize: 'var(--text-xs)',
-                            fontWeight: 600,
+                            fontSize: '11px',
+                            fontWeight: 700,
                             background: client.status === 'ACTIVE' ? '#DEF7EC' : '#F3F4F6',
                             color: client.status === 'ACTIVE' ? '#03543F' : '#6B7280'
                           }}
@@ -1186,7 +1186,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 style={{
                   padding: '10px 14px',
                   borderRadius: '6px',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '12.5px',
                   fontWeight: 600,
                   background: modalFeedback.type === 'success' ? '#DEF7EC' : '#FDE8E8',
                   color: modalFeedback.type === 'success' ? '#03543F' : '#9B1C1C',
@@ -1219,8 +1219,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 'var(--text-lg)',
-                  fontWeight: 600,
+                  fontSize: '20px',
+                  fontWeight: 700,
                   overflow: 'hidden',
                   flexShrink: 0
                 }}
@@ -1237,7 +1237,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
 
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--ink)' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
                   Profile Photograph
                 </div>
 
@@ -1253,7 +1253,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="btn btn-secondary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-sm)', padding: '4px 10px' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', padding: '4px 10px' }}
                   >
                     <Upload size={13} /> Upload Photo
                   </button>
@@ -1263,7 +1263,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       type="button"
                       onClick={() => setEditAvatarUrl('')}
                       className="btn btn-danger btn-sm"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-sm)', padding: '4px 8px' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', padding: '4px 8px' }}
                       title="Remove photo"
                     >
                       <Trash2 size={13} /> Remove
@@ -1315,10 +1315,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             {/* Personal & work information (all optional) */}
             {!isPartner && (
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
-              <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--navy)', marginBottom: '4px' }}>
+              <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
                 Personal &amp; Work Information
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
                 {infoLoading ? 'Loading your saved information…' : 'Optional. Leave a field empty to keep it as it is.'}
               </div>
 
@@ -1327,7 +1327,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 {hasYearField ? (
                   <>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Academic Year</label>
+                      <label style={{ fontSize: '11.5px' }}>Academic Year</label>
                       <select className="form-select" value={editAcademicYear} onChange={e => setEditAcademicYear(e.target.value)} style={infoInputStyle}>
                         <option value="">Select…</option>
                         {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(y => (
@@ -1336,7 +1336,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       </select>
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Blood Group</label>
+                      <label style={{ fontSize: '11.5px' }}>Blood Group</label>
                       <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
                         <option value="">Select…</option>
                         {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
@@ -1345,11 +1345,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       </select>
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>{payFullLabel}</label>
+                      <label style={{ fontSize: '11.5px' }}>{payFullLabel}</label>
                       <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Daily Conveyance (৳ per day)</label>
+                      <label style={{ fontSize: '11.5px' }}>Daily Conveyance (৳ per day)</label>
                       <input type="number" min="0" className="form-input" value={editDaily} onChange={e => setEditDaily(e.target.value)} placeholder="e.g. 120" style={infoInputStyle} />
                     </div>
                   </>
@@ -1357,7 +1357,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <>
                     <div style={{ gridColumn: 'span 3' }}>{clientPicker}</div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Blood Group</label>
+                      <label style={{ fontSize: '11.5px' }}>Blood Group</label>
                       <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
                         <option value="">Select…</option>
                         {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
@@ -1366,18 +1366,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       </select>
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>{payFullLabel}</label>
+                      <label style={{ fontSize: '11.5px' }}>{payFullLabel}</label>
                       <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Daily Conveyance (৳ per day)</label>
+                      <label style={{ fontSize: '11.5px' }}>Daily Conveyance (৳ per day)</label>
                       <input type="number" min="0" className="form-input" value={editDaily} onChange={e => setEditDaily(e.target.value)} placeholder="e.g. 120" style={infoInputStyle} />
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Blood Group</label>
+                      <label style={{ fontSize: '11.5px' }}>Blood Group</label>
                       <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
                         <option value="">Select…</option>
                         {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
@@ -1386,11 +1386,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       </select>
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                      <label style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>{payShortLabel}</label>
+                      <label style={{ fontSize: '11.5px', whiteSpace: 'nowrap' }}>{payShortLabel}</label>
                       <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                      <label style={{ fontSize: 'var(--text-sm)', whiteSpace: 'nowrap' }}>Conveyance (৳/day)</label>
+                      <label style={{ fontSize: '11.5px', whiteSpace: 'nowrap' }}>Conveyance (৳/day)</label>
                       <input type="number" min="0" className="form-input" value={editDaily} onChange={e => setEditDaily(e.target.value)} placeholder="e.g. 120" style={infoInputStyle} />
                     </div>
                   </>
@@ -1398,22 +1398,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
 
 
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Emergency Name</label>
+                  <label style={{ fontSize: '11.5px' }}>Emergency Name</label>
                   <input type="text" className="form-input" value={editEmName} onChange={e => setEditEmName(e.target.value)} style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Relationship</label>
+                  <label style={{ fontSize: '11.5px' }}>Relationship</label>
                   <input type="text" className="form-input" value={editEmRel} onChange={e => setEditEmRel(e.target.value)} placeholder="e.g. Father" style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Emergency Mobile</label>
+                  <label style={{ fontSize: '11.5px' }}>Emergency Mobile</label>
                   <input type="tel" className="form-input" value={editEmPhone} onChange={e => setEditEmPhone(e.target.value)} placeholder="01XXXXXXXXX" style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Present Address</label>
+                  <label style={{ fontSize: '11.5px' }}>Present Address</label>
                   <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
                 </div>
-                <div style={{ gridColumn: '1 / -1', fontSize: 'var(--text-xs)', color: 'var(--ink-muted)' }}>
+                <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: 'var(--ink-muted)' }}>
                   {conveyanceHint}
                 </div>
               </div>
@@ -1423,44 +1423,44 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             {/* Official employee profile (full details); Partners have none */}
             {!isPartner && (
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
-              <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)', color: 'var(--navy)', marginBottom: '4px' }}>
+              <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
                 Official Employee Profile
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
                 Optional. Leave a field empty to keep it as it is.
               </div>
               <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
                 {!isPartner && (
                   <>
                 <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Department</label>
+                  <label style={{ fontSize: '11.5px' }}>Department</label>
                   <input type="text" className="form-input" value={editDept} onChange={e => setEditDept(e.target.value)} style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Joining Date</label>
+                  <label style={{ fontSize: '11.5px' }}>Joining Date</label>
                   <input type="date" className="form-input" value={editJoining} onChange={e => setEditJoining(e.target.value)} style={infoInputStyle} />
                 </div>
                 {isEmployeeId(currentUser.empId) ? (
                   <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                    <label style={{ fontSize: 'var(--text-sm)' }}>Employment Year</label>
+                    <label style={{ fontSize: '11.5px' }}>Employment Year</label>
                     <input type="text" className="form-input" readOnly value={employmentYearFromJoining(editJoining) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />
                   </div>
                 ) : (
                   <>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Academic Year (Articleship)</label>
+                      <label style={{ fontSize: '11.5px' }}>Academic Year (Articleship)</label>
                       <input type="text" className="form-input" readOnly value={academicYearFromStart(editArtStart, editArtEnd) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Articleship Start</label>
+                      <label style={{ fontSize: '11.5px' }}>Articleship Start</label>
                       <input type="date" className="form-input" value={editArtStart} onChange={e => setEditArtStart(e.target.value)} style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Articleship End</label>
+                      <label style={{ fontSize: '11.5px' }}>Articleship End</label>
                       <input type="date" className="form-input" value={editArtEnd} onChange={e => setEditArtEnd(e.target.value)} style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: 'var(--text-sm)' }}>Principal</label>
+                      <label style={{ fontSize: '11.5px' }}>Principal</label>
                       <select className="form-select" value={editPrincipal} onChange={e => setEditPrincipal(e.target.value)} style={infoInputStyle}>
                         <option value="">Select…</option>
                         {PRINCIPALS.map(p => (
@@ -1473,7 +1473,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   </>
                 )}
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Laptop Available</label>
+                  <label style={{ fontSize: '11.5px' }}>Laptop Available</label>
                   <select className="form-select" value={editLaptopAvail} onChange={e => setEditLaptopAvail(e.target.value)} style={infoInputStyle}>
                     <option value="">Select…</option>
                     <option value="Yes">Yes</option>
@@ -1482,15 +1482,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   </select>
                 </div>
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Laptop Ownership</label>
+                  <label style={{ fontSize: '11.5px' }}>Laptop Ownership</label>
                   <input type="text" className="form-input" value={editLaptopOwner} onChange={e => setEditLaptopOwner(e.target.value)} placeholder="e.g. Own / Office" style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Laptop ID</label>
+                  <label style={{ fontSize: '11.5px' }}>Laptop ID</label>
                   <input type="text" className="form-input" value={editLaptopId} onChange={e => setEditLaptopId(e.target.value)} style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Remarks</label>
+                  <label style={{ fontSize: '11.5px' }}>Remarks</label>
                   <input type="text" className="form-input" value={editRemarks} onChange={e => setEditRemarks(e.target.value)} style={infoInputStyle} />
                 </div>
               </div>
@@ -1540,36 +1540,36 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 border: '1px solid #FED7AA'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: 'var(--text-sm)', color: '#9A3412', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '12.5px', color: '#9A3412', marginBottom: '8px' }}>
                 <KeyRound size={14} />
                 Change Password (Optional)
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
                 Leave password fields blank if you do not want to change your password.
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div className="form-field">
-                  <label style={{ fontSize: 'var(--text-sm)' }}>New Password</label>
+                  <label style={{ fontSize: '11.5px' }}>New Password</label>
                   <input
                     type="password"
                     value={editNewPassword}
                     onChange={e => setEditNewPassword(e.target.value)}
                     placeholder="New password..."
                     className="form-input"
-                    style={{ fontSize: 'var(--text-sm)' }}
+                    style={{ fontSize: '12px' }}
                   />
                 </div>
 
                 <div className="form-field">
-                  <label style={{ fontSize: 'var(--text-sm)' }}>Confirm Password</label>
+                  <label style={{ fontSize: '11.5px' }}>Confirm Password</label>
                   <input
                     type="password"
                     value={editConfirmPassword}
                     onChange={e => setEditConfirmPassword(e.target.value)}
                     placeholder="Confirm new password..."
                     className="form-input"
-                    style={{ fontSize: 'var(--text-sm)' }}
+                    style={{ fontSize: '12px' }}
                   />
                 </div>
               </div>

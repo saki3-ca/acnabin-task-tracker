@@ -57,19 +57,19 @@ export const TaskRequestsView: React.FC = () => {
     switch (status) {
       case 'ACCEPTED':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, background: '#E0EFEA', color: '#11534D' }}>
+          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#E0EFEA', color: '#11534D' }}>
             Accepted
           </span>
         );
       case 'DECLINED':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, background: '#FEE2E2', color: '#991B1B' }}>
+          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#FEE2E2', color: '#991B1B' }}>
             Declined
           </span>
         );
       default:
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: 'var(--text-xs)', fontWeight: 600, background: '#FEF3C7', color: '#92400E' }}>
+          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#FEF3C7', color: '#92400E' }}>
             Pending Review
           </span>
         );
@@ -102,10 +102,10 @@ export const TaskRequestsView: React.FC = () => {
                 <tr>
                   <td colSpan={5} className="empty-state" style={{ padding: '31px 16px', textAlign: 'center', height: '133px' }}>
                     <FileText size={28} style={{ color: 'var(--maroon)', marginBottom: '6px', opacity: 0.7 }} />
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)' }}>
+                    <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
                       No incoming task requests!
                     </div>
-                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginTop: '3px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '3px' }}>
                       When team members request a task from you, it will appear here for review.
                     </div>
                   </td>
@@ -121,24 +121,24 @@ export const TaskRequestsView: React.FC = () => {
                       <div style={{ marginTop: '2px' }}>{getStatusBadge(req.status)}</div>
                     </td>
                     <td style={{ paddingLeft: '16px' }}>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)', marginBottom: '3px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--ink)', marginBottom: '3px' }}>
                         {req.particular}
                       </div>
                       {req.notes && (
-                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', lineHeight: '1.35' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.35' }}>
                           <strong>Notes:</strong> {req.notes}
                         </div>
                       )}
                       {req.responseRemarks && (
-                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', lineHeight: '1.35', marginTop: '2px' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.35', marginTop: '2px' }}>
                           <strong>Remarks:</strong> {req.responseRemarks}
                         </div>
                       )}
                     </td>
-                    <td style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
+                    <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                       <div style={{ fontWeight: 600, color: 'var(--teal)' }}><ClientLabel id={req.clientId} name={req.clientName} /></div>
                       {req.deadline && (
-                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--maroon)', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--maroon)', marginTop: '2px' }}>
                           Due: {fmtDate(req.deadline)}
                         </div>
                       )}
@@ -151,7 +151,7 @@ export const TaskRequestsView: React.FC = () => {
                             className="btn btn-teal btn-sm"
                             disabled={processingId === req.id}
                             onClick={() => setResponding({ req, status: 'ACCEPTED' })}
-                            style={{ padding: '4px 8px', fontSize: 'var(--text-sm)' }}
+                            style={{ padding: '4px 8px', fontSize: '11.5px' }}
                           >
                             <Check size={13} /> Accept
                           </button>
@@ -160,7 +160,7 @@ export const TaskRequestsView: React.FC = () => {
                             className="btn btn-danger btn-sm"
                             disabled={processingId === req.id}
                             onClick={() => setResponding({ req, status: 'DECLINED' })}
-                            style={{ padding: '4px 8px', fontSize: 'var(--text-sm)' }}
+                            style={{ padding: '4px 8px', fontSize: '11.5px' }}
                           >
                             <X size={13} /> Decline
                           </button>
@@ -198,7 +198,7 @@ export const TaskRequestsView: React.FC = () => {
               {outgoingRequests.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="empty-state" style={{ padding: '26px 16px', textAlign: 'center', height: '73px' }}>
-                    <div style={{ fontSize: 'var(--text-base)', color: 'var(--ink-muted)' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>
                       You have not submitted any task requests.
                     </div>
                   </td>
@@ -213,24 +213,24 @@ export const TaskRequestsView: React.FC = () => {
                       {req.superiorName}
                     </td>
                     <td style={{ paddingLeft: '16px' }}>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)', marginBottom: '3px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--ink)', marginBottom: '3px' }}>
                         {req.particular}
                       </div>
                       {req.notes && (
-                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', lineHeight: '1.35' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.35' }}>
                           <strong>Notes:</strong> {req.notes}
                         </div>
                       )}
                       {req.responseRemarks && (
-                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', lineHeight: '1.35', marginTop: '2px' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.35', marginTop: '2px' }}>
                           <strong>Remarks:</strong> {req.responseRemarks}
                         </div>
                       )}
                     </td>
-                    <td style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
+                    <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                       <div style={{ fontWeight: 600, color: 'var(--teal)' }}><ClientLabel id={req.clientId} name={req.clientName} /></div>
                       {req.deadline && (
-                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-muted)', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '2px' }}>
                           Due: {fmtDate(req.deadline)}
                         </div>
                       )}

@@ -93,7 +93,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal 
             value={teamFilters.clientId || ''}
             onChange={handleClientChange}
             className="form-select"
-            style={{ width: '100%', padding: '7px 12px', fontSize: 'var(--text-sm)', height: '36px', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '7px 12px', fontSize: '12.5px', height: '36px', boxSizing: 'border-box' }}
           >
             <option value="">All Clients</option>
             {allowedClients.map(c => (
@@ -111,7 +111,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal 
             value={teamFilters.memberId || ''}
             onChange={handleMemberChange}
             className="form-select"
-            style={{ width: '100%', padding: '7px 12px', fontSize: 'var(--text-sm)', height: '36px', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '7px 12px', fontSize: '12.5px', height: '36px', boxSizing: 'border-box' }}
           >
             <option value="">All Team Members</option>
             {allowedMembers.map(u => {
@@ -132,7 +132,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal 
             value={teamFilters.status || 'All'}
             onChange={handleStatusChange}
             className="form-select"
-            style={{ width: '100%', padding: '7px 12px', fontSize: 'var(--text-sm)', height: '36px', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '7px 12px', fontSize: '12.5px', height: '36px', boxSizing: 'border-box' }}
           >
             <option value="All">All Statuses</option>
             <option value="Pending">Pending</option>
@@ -153,7 +153,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal 
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            fontSize: 'var(--text-base)',
+            fontSize: '13px',
             fontWeight: 600
           }}
         >

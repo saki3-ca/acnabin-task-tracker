@@ -48,7 +48,7 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, onChanged, onClose }
         onClick={e => e.stopPropagation()}
       >
         <div className="banner-strip banner-maroon" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
-          <span style={{ fontSize: 'var(--text-base)', fontWeight: 600 }}>USER QUERIES ({queries.length} OPEN)</span>
+          <span style={{ fontSize: '14px', fontWeight: 700 }}>USER QUERIES ({queries.length} OPEN)</span>
           <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex' }}>
             <X size={18} />
           </button>
@@ -56,7 +56,7 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, onChanged, onClose }
 
         <div style={{ padding: '14px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {queries.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--ink-muted)', fontSize: 'var(--text-base)' }}>
+            <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--ink-muted)', fontSize: '13px' }}>
               No open queries. 🎉
             </div>
           )}
@@ -64,12 +64,12 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, onChanged, onClose }
           {queries.map(q => (
             <div key={q.id} style={{ border: '1px solid var(--line)', borderRadius: '8px', padding: '10px 12px', background: '#FFFDF9' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--navy)' }}>
-                  {q.userName} <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>({q.empId})</span>
+                <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--navy)' }}>
+                  {q.userName} <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>({q.empId})</span>
                 </span>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>{formatTime(q.createdAt)}</span>
+                <span style={{ fontSize: '11.5px', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>{formatTime(q.createdAt)}</span>
               </div>
-              <div style={{ fontSize: 'var(--text-base)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{q.message}</div>
+              <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{q.message}</div>
 
               {openId === q.id ? (
                 <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -79,7 +79,7 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, onChanged, onClose }
                     value={note}
                     onChange={e => setNote(e.target.value)}
                     placeholder="Optional note for the user…"
-                    style={{ height: '34px', fontSize: 'var(--text-sm)' }}
+                    style={{ height: '34px', fontSize: '12.5px' }}
                   />
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => setOpenId(null)} disabled={busy}>Cancel</button>

@@ -76,12 +76,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddTask, onOpenRequestTask
         {/* Quick Switcher (Admin Only) */}
         {currentUser.role === 'ADMIN' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>Switch User:</span>
+            <span style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Switch User:</span>
             <select
               value={currentUser.id}
               onChange={e => switchUser(e.target.value)}
               style={{
-                fontSize: 'var(--text-xs)',
+                fontSize: '11px',
                 padding: '2px 6px',
                 borderRadius: '4px',
                 border: '1px solid var(--line-strong)',

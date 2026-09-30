@@ -87,20 +87,20 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
           </div>
         </InstantTooltip>
         {task.assignedDate && (
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-muted)', marginTop: '3px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '3px' }}>
             Assigned: {fmtDate(task.assignedDate)}
           </div>
         )}
       </td>
 
       {/* Client */}
-      <td style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+      <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
         <ClientLabel id={task.clientId} name={task.clientName || 'General'} />
       </td>
 
       {/* Added By - Only displayed in personal tasks, hidden in Team Engagement view */}
       {!showTeamColumns && (
-        <td style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', whiteSpace: 'nowrap', textAlign: 'center' }}>
+        <td style={{ fontSize: '12px', color: 'var(--ink-soft)', whiteSpace: 'nowrap', textAlign: 'center' }}>
           {task.createdByName || '—'}
         </td>
       )}
@@ -112,16 +112,16 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
 
       {/* Deadline */}
       <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
-        <div style={{ fontWeight: overdue ? 600 : 500, color: overdue ? '#C53030' : 'var(--ink)' }}>
+        <div style={{ fontWeight: overdue ? 700 : 500, color: overdue ? '#C53030' : 'var(--ink)' }}>
           {fmtDate(task.deadline)}
         </div>
         {overdue && (
-          <span style={{ fontSize: 'var(--text-xs)', color: '#991B1B', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
+          <span style={{ fontSize: '10.5px', color: '#991B1B', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
             <AlertCircle size={12} /> Overdue by {Math.abs(daysLeft || 0)}d
           </span>
         )}
         {!overdue && nearDeadline && (
-          <span style={{ fontSize: 'var(--text-xs)', color: '#B45309', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
+          <span style={{ fontSize: '10.5px', color: '#B45309', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
             <Clock size={12} /> {daysLeft === 0 ? 'Due Today' : `Due in ${daysLeft}d`}
           </span>
         )}
@@ -140,7 +140,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
               cursor: 'pointer',
               border: 'none',
               outline: 'none',
-              fontSize: 'var(--text-xs)',
+              fontSize: '11px',
               fontWeight: 600
             }}
           >
@@ -152,7 +152,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {/* Remarks */}
-      <td style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
+      <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
         {task.remarks ? (
           <InstantTooltip content={task.remarks}>
             <div
@@ -175,13 +175,13 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {/* Manager Comment */}
-      <td style={{ fontSize: 'var(--text-sm)' }}>
+      <td style={{ fontSize: '12px' }}>
         {task.managerComment ? (
           <InstantTooltip content={task.managerComment}>
             <div
               className="comment-box"
               style={{
-                fontSize: 'var(--text-sm)',
+                fontSize: '11.5px',
                 padding: '6px 10px',
                 lineHeight: '1.35',
                 display: '-webkit-box',

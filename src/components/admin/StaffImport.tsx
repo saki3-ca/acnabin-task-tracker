@@ -107,10 +107,10 @@ export const StaffImport: React.FC = () => {
 
   return (
     <div className="table-card" style={{ padding: '20px' }}>
-      <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+      <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
         <FileUp size={18} /> Import Staff Sheet
       </h3>
-      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '14px' }}>
+      <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '14px' }}>
         Upload the staff sheet (File → Download → CSV). Each person is matched by STD / EMP ID. Blank cells never erase saved data.
         Always run the preview first: nothing is saved until you press Import.
       </p>
@@ -131,16 +131,16 @@ export const StaffImport: React.FC = () => {
         )}
       </div>
 
-      {fileName && <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>{fileName}: {rows.length} staff rows read.</div>}
+      {fileName && <div style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>{fileName}: {rows.length} staff rows read.</div>}
       {error && <div className="auth-alert-error" style={{ marginTop: '10px' }}>{error}</div>}
       {done && (
-        <div style={{ marginTop: '10px', fontSize: 'var(--text-sm)', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
+        <div style={{ marginTop: '10px', fontSize: '12.5px', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
           Import finished. {summary(done)}
         </div>
       )}
 
       {warnings.length > 0 && (
-        <details style={{ marginTop: '10px', fontSize: 'var(--text-sm)' }}>
+        <details style={{ marginTop: '10px', fontSize: '12px' }}>
           <summary style={{ cursor: 'pointer', color: '#B45309' }}>{warnings.length} things to check in the sheet</summary>
           <ul style={{ margin: '6px 0 0 18px' }}>
             {warnings.map((w, i) => <li key={i}>{w}</li>)}
@@ -150,7 +150,7 @@ export const StaffImport: React.FC = () => {
 
       {preview && (
         <div style={{ marginTop: '12px' }}>
-          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: '6px' }}>Preview: {summary(preview)}</div>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, marginBottom: '6px' }}>Preview: {summary(preview)}</div>
           <div style={{ maxHeight: '320px', overflow: 'auto', border: '1px solid var(--line)', borderRadius: '6px' }}>
             <table className="data-table">
               <thead>
@@ -163,7 +163,7 @@ export const StaffImport: React.FC = () => {
                     <td>{r.name}{r.nameMismatch && <span title="The account name is different from the sheet name" style={{ color: '#B45309' }}> ⚠ name differs</span>}</td>
                     <td style={{ color: STATUS_COLOR[r.status], fontWeight: 600 }}>{r.status}</td>
                     <td>{r.linked ? 'Linked' : r.account ? 'Not linked' : 'No account yet'}</td>
-                    <td style={{ fontSize: 'var(--text-sm)' }}>{r.error || (r.changed || []).join(', ')}</td>
+                    <td style={{ fontSize: '11.5px' }}>{r.error || (r.changed || []).join(', ')}</td>
                   </tr>
                 ))}
                 {shown.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center' }}>Nothing would change.</td></tr>}

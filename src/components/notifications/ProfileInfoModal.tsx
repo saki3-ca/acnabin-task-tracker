@@ -107,7 +107,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
           className="banner-strip banner-maroon"
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}
         >
-          <span style={{ fontSize: 'var(--text-base)', fontWeight: 600 }}>UPDATE YOUR INFORMATION</span>
+          <span style={{ fontSize: '14px', fontWeight: 700 }}>UPDATE YOUR INFORMATION</span>
           <button
             type="button"
             onClick={onClose}
@@ -119,18 +119,18 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
 
         <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {infoOptional && (
-            <div style={{ fontSize: 'var(--text-sm)', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
+            <div style={{ fontSize: '12.5px', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
               Optional for your role. You can submit without filling anything in. If you do fill something in, please complete every field.
             </div>
           )}
           {hasAcademicYear && (
           <div className="form-field">
-            <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Academic Year</label>
+            <label style={{ fontSize: '12px', fontWeight: 700 }}>Academic Year</label>
             <select
               className="form-select"
               value={academicYear}
               onChange={e => setAcademicYear(e.target.value)}
-              style={{ height: '36px', fontSize: 'var(--text-base)' }}
+              style={{ height: '36px', fontSize: '13px' }}
             >
               <option value="">Select…</option>
               {YEARS.map(y => (
@@ -141,7 +141,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
           )}
 
           <div className="form-field">
-            <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Monthly Salary / Allowance (৳)</label>
+            <label style={{ fontSize: '12px', fontWeight: 700 }}>Monthly Salary / Allowance (৳)</label>
             <input
               type="number"
               min="0"
@@ -149,12 +149,12 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
               value={salary}
               onChange={e => setSalary(e.target.value)}
               placeholder="e.g. 15000"
-              style={{ height: '36px', fontSize: 'var(--text-base)' }}
+              style={{ height: '36px', fontSize: '13px' }}
             />
           </div>
 
           <div className="form-field">
-            <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Daily Conveyance (৳ per day, total for going and returning)</label>
+            <label style={{ fontSize: '12px', fontWeight: 700 }}>Daily Conveyance (৳ per day, total for going and returning)</label>
             <input
               type="number"
               min="0"
@@ -162,21 +162,21 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
               value={daily}
               onChange={e => setDaily(e.target.value)}
               placeholder="e.g. 120"
-              style={{ height: '36px', fontSize: 'var(--text-base)' }}
+              style={{ height: '36px', fontSize: '13px' }}
             />
-            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px' }}>
               Monthly conveyance = ৳ {dailyNum.toLocaleString('en-IN')} × {days} days ={' '}
               <strong>৳ {monthlyConveyance.toLocaleString('en-IN')}</strong>
             </div>
           </div>
 
           <div className="form-field">
-            <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Blood Group</label>
+            <label style={{ fontSize: '12px', fontWeight: 700 }}>Blood Group</label>
             <select
               className="form-select"
               value={bloodGroup}
               onChange={e => setBloodGroup(e.target.value)}
-              style={{ height: '36px', fontSize: 'var(--text-base)' }}
+              style={{ height: '36px', fontSize: '13px' }}
             >
               <option value="">Select…</option>
               {BLOOD_GROUPS.map(b => (
@@ -187,24 +187,24 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="form-field">
-              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Emergency Contact Name</label>
+              <label style={{ fontSize: '12px', fontWeight: 700 }}>Emergency Contact Name</label>
               <input
                 type="text"
                 className="form-input"
                 value={emName}
                 onChange={e => setEmName(e.target.value)}
-                style={{ height: '36px', fontSize: 'var(--text-base)' }}
+                style={{ height: '36px', fontSize: '13px' }}
               />
             </div>
             <div className="form-field">
-              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Emergency Contact Mobile</label>
+              <label style={{ fontSize: '12px', fontWeight: 700 }}>Emergency Contact Mobile</label>
               <input
                 type="tel"
                 className="form-input"
                 value={emPhone}
                 onChange={e => setEmPhone(e.target.value)}
                 placeholder="01XXXXXXXXX"
-                style={{ height: '36px', fontSize: 'var(--text-base)' }}
+                style={{ height: '36px', fontSize: '13px' }}
               />
             </div>
           </div>

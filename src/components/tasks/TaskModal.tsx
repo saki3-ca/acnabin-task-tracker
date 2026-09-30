@@ -286,7 +286,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--bg-soft)',
                   border: '1.5px solid var(--line-strong)',
-                  fontSize: 'var(--text-base)',
+                  fontSize: '13.5px',
                   fontWeight: 600,
                   color: 'var(--ink-soft)'
                 }}
@@ -300,7 +300,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--bg-soft)',
                   border: '1.5px solid var(--line-strong)',
-                  fontSize: 'var(--text-base)',
+                  fontSize: '13.5px',
                   fontWeight: 600,
                   color: 'var(--ink)'
                 }}
@@ -317,7 +317,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               >
                 <option value="">Select client…</option>
                 {isADPlus && (
-                  <option value="ALL_CLIENTS" style={{ fontWeight: 600, color: '#1E40AF' }}>
+                  <option value="ALL_CLIENTS" style={{ fontWeight: 700, color: '#1E40AF' }}>
                     🌐 All Clients / Firm-wide
                   </option>
                 )}
@@ -350,7 +350,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 {isADPlus && !isEditing && assignableUsers.length > 0 && (
                   <option
                     value="ALL_MEMBERS"
-                    style={{ fontWeight: 600, color: '#1E40AF', background: '#EFF6FF' }}
+                    style={{ fontWeight: 700, color: '#1E40AF', background: '#EFF6FF' }}
                   >
                     👥 Assign to ALL Below Members ({assignableUsers.length} members)
                   </option>
@@ -368,7 +368,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               {assignedToId === 'ALL_MEMBERS' && (
                 <div
                   style={{
-                    fontSize: 'var(--text-sm)',
+                    fontSize: '11.5px',
                     color: '#1E40AF',
                     marginTop: '5px',
                     padding: '6px 10px',

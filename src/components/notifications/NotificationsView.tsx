@@ -113,8 +113,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#EBF4FF',
               color: '#1E40AF',
               border: '1px solid #BFDBFE'
@@ -132,8 +132,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#FEF2F2',
               color: '#991B1B',
               border: '1px solid #FECACA'
@@ -151,8 +151,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#F0FDF4',
               color: '#166534',
               border: '1px solid #BBF7D0'
@@ -170,8 +170,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#FFFBEB',
               color: '#92400E',
               border: '1px solid #FDE68A'
@@ -189,8 +189,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#F5F3FF',
               color: '#5B21B6',
               border: '1px solid #DDD6FE'
@@ -208,8 +208,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#ECFDF5',
               color: '#065F46',
               border: '1px solid #A7F3D0'
@@ -227,8 +227,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#FFF1F2',
               color: '#9F1239',
               border: '1px solid #FECDD3'
@@ -246,8 +246,8 @@ export const NotificationsView: React.FC = () => {
               gap: '4px',
               padding: '3px 8px',
               borderRadius: '12px',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '11px',
+              fontWeight: 700,
               background: '#F1F5F9',
               color: '#334155'
             }}
@@ -304,8 +304,8 @@ export const NotificationsView: React.FC = () => {
                 style={{
                   background: '#ffffff',
                   color: 'var(--maroon)',
-                  fontSize: 'var(--text-xs)',
-                  fontWeight: 600,
+                  fontSize: '11px',
+                  fontWeight: 800,
                   padding: '2px 8px',
                   borderRadius: '12px'
                 }}
@@ -342,7 +342,7 @@ export const NotificationsView: React.FC = () => {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '4px 10px',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '11.5px',
                   cursor: 'pointer'
                   }}
                 >
@@ -352,8 +352,8 @@ export const NotificationsView: React.FC = () => {
                       style={{
                         background: '#ffffff',
                         color: 'var(--maroon)',
-                        fontSize: 'var(--text-xs)',
-                        fontWeight: 600,
+                        fontSize: '10.5px',
+                        fontWeight: 800,
                         padding: '1px 7px',
                         borderRadius: '10px'
                       }}
@@ -374,7 +374,7 @@ export const NotificationsView: React.FC = () => {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '4px 10px',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '11.5px',
                   cursor: 'pointer'
                   }}
                 >
@@ -394,7 +394,7 @@ export const NotificationsView: React.FC = () => {
                   alignItems: 'center',
                   gap: '6px',
                   padding: '4px 10px',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '11.5px',
                   cursor: 'pointer'
                 }}
               >
@@ -414,7 +414,7 @@ export const NotificationsView: React.FC = () => {
                 alignItems: 'center',
                 gap: '6px',
                 padding: '4px 10px',
-                fontSize: 'var(--text-sm)',
+                fontSize: '11.5px',
                 cursor: 'pointer'
                 }}
               >
@@ -446,10 +446,10 @@ export const NotificationsView: React.FC = () => {
                 <tr>
                   <td colSpan={5} className="empty-state" style={{ padding: '31px 16px', textAlign: 'center', height: '133px' }}>
                     <CheckCheck size={28} style={{ color: '#166534', marginBottom: '6px' }} />
-                    <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)' }}>
+                    <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
                       No new notifications!
                     </div>
-                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginTop: '3px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '3px' }}>
                       You are completely caught up. Read notifications are listed below.
                     </div>
                   </td>
@@ -464,14 +464,14 @@ export const NotificationsView: React.FC = () => {
                       {renderTypeBadge(notif.type)}
                     </td>
                     <td style={{ paddingLeft: '16px' }}>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--navy)', marginBottom: '3px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--navy)', marginBottom: '3px' }}>
                         {notif.title}
                       </div>
-                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink)', lineHeight: '1.4' }}>
+                      <div style={{ fontSize: '12.5px', color: 'var(--ink)', lineHeight: '1.4' }}>
                         {notif.message}
                       </div>
                     </td>
-                    <td style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
+                    <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <Clock size={12} /> {formatTimestamp(notif.createdAt)}
                       </span>
@@ -486,7 +486,7 @@ export const NotificationsView: React.FC = () => {
                           }}
                           className="btn btn-primary btn-sm"
                           title="Open the query list to resolve it"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: 'var(--text-sm)', fontWeight: 600 }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
                         >
                           <MessagesSquare size={14} /> Open queries
                         </button>
@@ -496,7 +496,7 @@ export const NotificationsView: React.FC = () => {
                           onClick={() => setInfoFor(notif.id)}
                           className="btn btn-primary btn-sm"
                           title="Fill in your information to complete this request"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: 'var(--text-sm)', fontWeight: 600 }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
                         >
                           <ClipboardList size={14} /> Update info
                         </button>
@@ -511,7 +511,7 @@ export const NotificationsView: React.FC = () => {
                           alignItems: 'center',
                           gap: '5px',
                           padding: '5px 10px',
-                          fontSize: 'var(--text-sm)',
+                          fontSize: '11.5px',
                           fontWeight: 600
                         }}
                       >
@@ -548,7 +548,7 @@ export const NotificationsView: React.FC = () => {
               {readList.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="empty-state" style={{ padding: '26px 16px', textAlign: 'center', height: '73px' }}>
-                    <div style={{ fontSize: 'var(--text-base)', color: 'var(--ink-muted)' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>
                       No previous read notifications in the last 7 days.
                     </div>
                   </td>
@@ -563,14 +563,14 @@ export const NotificationsView: React.FC = () => {
                       {renderTypeBadge(notif.type)}
                     </td>
                     <td style={{ paddingLeft: '16px' }}>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--navy)', marginBottom: '3px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--navy)', marginBottom: '3px' }}>
                         {notif.title}
                       </div>
-                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', lineHeight: '1.35' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.35' }}>
                         {notif.message}
                       </div>
                     </td>
-                    <td style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>
+                    <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-muted)', whiteSpace: 'nowrap' }}>
                       {formatTimestamp(notif.createdAt)}
                     </td>
                     <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
@@ -581,7 +581,7 @@ export const NotificationsView: React.FC = () => {
                           gap: '4px',
                           color: '#166534',
                           fontWeight: 600,
-                          fontSize: 'var(--text-sm)'
+                          fontSize: '11.5px'
                         }}
                       >
                         <CheckCheck size={14} color="#166534" /> {notif.type === 'INFO_REQUEST' ? 'Completed' : notif.type === 'USER_QUERY' ? 'Handled' : 'Read'}

@@ -67,8 +67,8 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
                 marginLeft: '6px',
                 background: 'var(--maroon)',
                 color: '#fff',
-                fontSize: 'var(--text-xs)',
-                fontWeight: 600,
+                fontSize: '10.5px',
+                fontWeight: 700,
                 padding: '1px 6px',
                 borderRadius: '10px'
               }}
@@ -93,8 +93,8 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
               marginLeft: '6px',
               background: 'var(--maroon)',
               color: '#fff',
-              fontSize: 'var(--text-xs)',
-              fontWeight: 600,
+              fontSize: '10.5px',
+              fontWeight: 700,
               padding: '1px 6px',
               borderRadius: '10px'
             }}

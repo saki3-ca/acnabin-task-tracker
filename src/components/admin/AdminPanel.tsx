@@ -184,7 +184,7 @@ export const AdminPanel: React.FC = () => {
               color: 'var(--teal-dark)',
               padding: '2px 8px',
               borderRadius: '4px',
-              fontSize: 'var(--text-xs)'
+              fontSize: '11px'
             }}
           >
             {feedbackMsg}
@@ -196,10 +196,10 @@ export const AdminPanel: React.FC = () => {
 
       {/* 1. Manager Client Access Matrix */}
       <div className="table-card" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
           <Key size={18} /> Manager Client Access Control
         </h3>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
           Select a manager or supervisor to configure which client audit engagements they can view and supervise.
         </p>
 
@@ -239,7 +239,7 @@ export const AdminPanel: React.FC = () => {
                   padding: '8px 12px',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '12.5px',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -257,10 +257,10 @@ export const AdminPanel: React.FC = () => {
 
       {/* 2. Manager Student Assignments */}
       <div className="table-card" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
           <Users size={18} /> Manager Student Supervisory Assignments
         </h3>
-        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
           Assign articled students and trainees to specific managers for team task review and task delegation.
         </p>
 
@@ -300,7 +300,7 @@ export const AdminPanel: React.FC = () => {
                   padding: '8px 12px',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  fontSize: 'var(--text-sm)',
+                  fontSize: '12.5px',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -311,7 +311,7 @@ export const AdminPanel: React.FC = () => {
                 />
                 <div>
                   <div style={{ fontWeight: item.isAssigned ? 600 : 400 }}>{item.studentName}</div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)' }}>{item.empId}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>{item.empId}</div>
                 </div>
               </label>
             ))}
@@ -323,10 +323,10 @@ export const AdminPanel: React.FC = () => {
       <div className="table-card">
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--maroon)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--maroon)' }}>
               <UserCog size={18} /> User Accounts, Designations & Roles
             </h3>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', marginTop: '2px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px' }}>
               Update designations, security roles, primary client mapping, and account activation states.
             </p>
           </div>
@@ -359,7 +359,7 @@ export const AdminPanel: React.FC = () => {
                   <tr key={user.id}>
                     <td>
                       <div style={{ fontWeight: 600 }}>{user.name}</div>
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-muted)', fontFamily: 'var(--font-mono)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontFamily: 'monospace' }}>
                         {user.designation === 'Partner'
                           ? `# Initial: ${user.empId}`
                           : user.role === 'ADMIN'
@@ -367,13 +367,13 @@ export const AdminPanel: React.FC = () => {
                           : user.empId}
                       </div>
                     </td>
-                    <td style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>{user.email}</td>
+                    <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>{user.email}</td>
                     <td>
                       <select
                         value={designation}
                         onChange={e => handleUserChange(user.id, 'designation', e.target.value as Designation)}
                         className="form-select"
-                        style={{ fontSize: 'var(--text-sm)', padding: '4px 8px' }}
+                        style={{ fontSize: '11.5px', padding: '4px 8px' }}
                       >
                         {DESIGNATIONS.map(d => (
                           <option key={d} value={d}>
@@ -387,7 +387,7 @@ export const AdminPanel: React.FC = () => {
                         value={role}
                         onChange={e => handleUserChange(user.id, 'role', e.target.value as Role)}
                         className="form-select"
-                        style={{ fontSize: 'var(--text-sm)', padding: '4px 8px' }}
+                        style={{ fontSize: '11.5px', padding: '4px 8px' }}
                       >
                         {ROLES.map(r => (
                           <option key={r} value={r}>
@@ -405,7 +405,7 @@ export const AdminPanel: React.FC = () => {
                           setClientSearchFilter('');
                         }}
                         style={{
-                          fontSize: 'var(--text-sm)',
+                          fontSize: '11.5px',
                           padding: '5px 10px',
                           display: 'flex',
                           alignItems: 'center',
@@ -424,7 +424,7 @@ export const AdminPanel: React.FC = () => {
                             </span>
                           )}
                         </span>
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--maroon)', fontWeight: 600 }}>Edit</span>
+                        <span style={{ fontSize: '10.5px', color: 'var(--maroon)', fontWeight: 600 }}>Edit</span>
                       </button>
                     </td>
                     <td>
@@ -433,7 +433,7 @@ export const AdminPanel: React.FC = () => {
                         onChange={e => handleUserChange(user.id, 'status', e.target.value as 'ACTIVE' | 'INACTIVE')}
                         className="form-select"
                         style={{
-                          fontSize: 'var(--text-sm)',
+                          fontSize: '11.5px',
                           padding: '4px 8px',
                           fontWeight: 600,
                           color: status === 'ACTIVE' ? '#166534' : '#991B1B'
@@ -459,7 +459,7 @@ export const AdminPanel: React.FC = () => {
           title={`Assign Clients: ${editingClientAssignmentsUser.name}`}
         >
           <div className="modal-body">
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', margin: 0 }}>
+            <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', margin: 0 }}>
               Select one or multiple client engagements for <strong>{editingClientAssignmentsUser.name}</strong> ({editingClientAssignmentsUser.empId}).
             </p>
 
@@ -469,7 +469,7 @@ export const AdminPanel: React.FC = () => {
               placeholder="Search clients by name or job number..."
               value={clientSearchFilter}
               onChange={e => setClientSearchFilter(e.target.value)}
-              style={{ fontSize: 'var(--text-sm)' }}
+              style={{ fontSize: '12.5px' }}
             />
 
             <div
@@ -504,7 +504,7 @@ export const AdminPanel: React.FC = () => {
                         background: assigned ? 'var(--navy-light, #EBF0FE)' : '#fff',
                         border: `1px solid ${assigned ? 'var(--navy, #1B2A6B)' : 'var(--line)'}`,
                         cursor: 'pointer',
-                        fontSize: 'var(--text-sm)'
+                        fontSize: '12.5px'
                       }}
                     >
                       <input
@@ -516,7 +516,7 @@ export const AdminPanel: React.FC = () => {
                       />
                       <span style={{ fontWeight: assigned ? 600 : 400 }}>{client.name}</span>
                       {client.jobNumber && (
-                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-soft)', marginLeft: 'auto' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--ink-soft)', marginLeft: 'auto' }}>
                           {client.jobNumber}
                         </span>
                       )}
@@ -526,7 +526,7 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--navy)', fontWeight: 600 }}>
+            <span style={{ fontSize: '12px', color: 'var(--navy)', fontWeight: 600 }}>
               {getUserAssignedClientIds(editingClientAssignmentsUser).length} Client(s) Selected
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>

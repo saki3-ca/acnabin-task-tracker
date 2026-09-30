@@ -120,7 +120,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
             borderRadius: 'var(--radius-sm)',
             background: 'var(--bg-soft)',
             border: '1.5px solid var(--line-strong)',
-            fontSize: 'var(--text-base)',
+            fontSize: '13.5px',
             fontWeight: 600,
             color: 'var(--ink-soft)'
           }}
@@ -134,7 +134,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
             borderRadius: 'var(--radius-sm)',
             background: 'var(--bg-soft)',
             border: '1.5px solid var(--line-strong)',
-            fontSize: 'var(--text-base)',
+            fontSize: '13.5px',
             fontWeight: 600,
             color: 'var(--ink)'
           }}
