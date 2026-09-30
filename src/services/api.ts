@@ -1438,6 +1438,7 @@ export const api = {
           .order('name', { ascending: true });
 
         if (mpErr || !manpowerRows || manpowerRows.length === 0) {
+          console.warn('[getManpower] manpower table returned no rows, using local fallback:', mpErr?.message || 'empty result');
           // If Supabase table is empty or unreachable, use fallbackStore records
           manpowerRows = fallbackStore.manpower.map(m => ({
             emp_id: m.empId,
