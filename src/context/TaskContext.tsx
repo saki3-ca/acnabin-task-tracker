@@ -113,11 +113,18 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createTasksBulk = async (tasksData: Partial<Task>[]) => {
     // allSettled so one failed insert doesn't hide the ones that succeeded
     // (throwing would keep the modal open and a retry would duplicate them).
-    const results = await Promise.allSettled(tasksData.map(t => taskService.createTask(t)));
+    // skipEmail: the emails for the whole batch are sent together below, one per person
+    const results = await Promise.allSettled(tasksData.map(t => taskService.createTask({ ...t, skipEmail: true } as Partial<Task>)));
     const failed = tasksData.filter((_, i) => results[i].status === 'rejected');
     const succeededCount = tasksData.length - failed.length;
 
-    if (succeededCount > 0) await fetchTasks();
+    if (succeededCount > 0) {
+      const createdIds = results
+        .filter((r): r is PromiseFulfilledResult<Task> => r.status === 'fulfilled')
+        .map(r => r.value.id);
+      void taskService.emailAssigned(createdIds);
+      await fetchTasks();
+    }
 
     if (failed.length === 0) {
       showToast(`Successfully assigned tasks to ${tasksData.length} team members!`);

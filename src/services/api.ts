@@ -27,8 +27,13 @@ import {
 // nothing reached the database.
 const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary',
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
-  'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo']);
+  'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
+  'sendTaskEmail']);
 const MIN_PASSWORD_LENGTH = 4;
+
+// URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
+// If the Supabase dashboard gave it a different slug, change it here.
+const TASK_EMAIL_FUNCTION_SLUG = 'send-task-email';
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
 // It lets a logged-in user change their password without re-entering the old one.
@@ -391,6 +396,23 @@ export const api = {
     if (data === 'LAST_ADMIN') throw new Error('There must be at least one active Admin.');
     if (data !== 'OK') throw new Error('Invalid value.');
     return 'OK';
+  },
+
+  /**
+   * Email about a task / request (assignee, person asked, or requester). Never throws and never
+   * blocks the action: a failed email is only logged.
+   */
+  async sendTaskEmail(event: 'TASK_ASSIGNED' | 'TASK_REQUEST' | 'REQUEST_RESPONDED', ids: string[]): Promise<void> {
+    try {
+      const session = readSession();
+      if (!session || ids.length === 0) return;
+      const { error } = await supabase.functions.invoke(TASK_EMAIL_FUNCTION_SLUG, {
+        body: { session: session.token, event, ids }
+      });
+      if (error) console.warn('[sendTaskEmail] not sent:', error.message || error);
+    } catch (e: any) {
+      console.warn('[sendTaskEmail] not sent:', e?.message || e);
+    }
   },
 
   /** After Admin "Switch User" the saved session still belongs to the Admin: don't save data under the wrong account. */
@@ -879,6 +901,8 @@ export const api = {
             message: `${assigner} assigned you "${payload.particular}" for ${clientName || 'General'}`,
             data: { taskId: newId, assignerName: assigner }
           });
+          // Bulk assignments send their emails together afterwards (skipEmail)
+          if (!payload.skipEmail) void this.sendTaskEmail('TASK_ASSIGNED', [newId]);
         }
 
         return mapTaskFromDb(data) as T;
@@ -1141,6 +1165,11 @@ export const api = {
         return { count: rows.length } as T;
       }
 
+      case 'sendTaskEmail': {
+        await this.sendTaskEmail(payload.event, payload.ids || []);
+        return { success: true } as T;
+      }
+
       case 'setManpowerSalary': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again, then try again.');
@@ -1377,6 +1406,7 @@ export const api = {
           message: `${requesterName} submitted a task request: "${particular}" for ${clientName}`,
           data: { requestId: data.id, requesterId, action: 'SUBMITTED' }
         });
+        void this.sendTaskEmail('TASK_REQUEST', [String(data.id)]);
 
         return mapTaskRequestFromDb(data) as T;
       }
@@ -1464,6 +1494,7 @@ export const api = {
           });
         }
 
+        void this.sendTaskEmail('REQUEST_RESPONDED', [String(requestId)]);
         return { success: true } as T;
       }
 
