@@ -1027,12 +1027,14 @@ export const api = {
       case 'sendInfoRequest': {
         const { data: targets, error: tErr } = await supabase
           .from('users')
-          .select('id, role')
+          .select('id, role, designation')
           .eq('status', 'ACTIVE');
         if (tErr) throw tErr;
         const requestId = `INFO-${Date.now()}`;
         const rows = (targets || [])
-          .filter((u: any) => (u.role || '').toUpperCase() !== 'ADMIN')
+          .filter((u: any) =>
+            (u.role || '').toUpperCase() !== 'ADMIN' &&
+            (u.designation || '').toLowerCase().trim() !== 'partner')
           .map((u: any) => ({
             user_id: u.id,
             type: 'INFO_REQUEST',
