@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
+import { MyInfo } from '../../types';
 import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove, normalizeBDMobile } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
+import { notificationService } from '../../services/notificationService';
 import { api } from '../../services/api';
 import { clientService } from '../../services/clientService';
 import { useNotifications } from '../../context/NotificationContext';
-import { ProfileInfoModal } from '../notifications/ProfileInfoModal';
+import { ClientLabel } from '../ui/ClientLabel';
 import { Modal } from '../ui/Modal';
 import { CompletedTasksModal } from '../tasks/CompletedTasksModal';
 
@@ -119,6 +121,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const [editEmail, setEditEmail] = useState('');
   const [editMobile, setEditMobile] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState<string>('');
+  const [editAcademicYear, setEditAcademicYear] = useState('');
+  const [editSalary, setEditSalary] = useState('');
+  const [editDaily, setEditDaily] = useState('');
+  const [editBlood, setEditBlood] = useState('');
+  const [editEmName, setEditEmName] = useState('');
+  const [editEmPhone, setEditEmPhone] = useState('');
+  const [infoSnap, setInfoSnap] = useState<MyInfo | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [editClients, setEditClients] = useState<{ id: string; name: string }[]>([]);
+  const [clientsSnap, setClientsSnap] = useState('');
+  const [editClientInput, setEditClientInput] = useState('');
+  const [editClientSuggestions, setEditClientSuggestions] = useState<{ id: string; name: string }[]>([]);
   const [editNewPassword, setEditNewPassword] = useState('');
   const [editConfirmPassword, setEditConfirmPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -197,8 +211,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   }, [myTasks, teamTasks, isStudentLevel]);
 
   const { notifications, markAsRead } = useNotifications();
-  const [infoOpen, setInfoOpen] = useState(false);
-  const [infoSaved, setInfoSaved] = useState(false);
 
   if (!currentUser) return null;
 
@@ -218,7 +230,67 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     setEditNewPassword('');
     setEditConfirmPassword('');
     setModalFeedback(null);
+
+    // Assigned clients (same source as signup / Manpower edit)
+    const current = getUserAssignedClientIds(currentUser)
+      .map(id => allClients.find(c => c.id === id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+      .map(c => ({ id: c.id, name: c.name }));
+    setEditClients(current);
+    setClientsSnap(current.map(c => c.id).sort().join(','));
+    setEditClientInput('');
+    setEditClientSuggestions([]);
+
+    // Personal / work information: load what is saved so the form shows it
+    setEditAcademicYear('');
+    setEditSalary('');
+    setEditDaily('');
+    setEditBlood('');
+    setEditEmName('');
+    setEditEmPhone('');
+    setInfoSnap(null);
+    setInfoLoading(true);
+    notificationService
+      .getMyInfo()
+      .then(info => {
+        setInfoSnap(info);
+        if (info) {
+          setEditAcademicYear(info.academicYear || '');
+          setEditSalary(info.salary === null ? '' : String(info.salary));
+          setEditDaily(info.dailyConveyance === null ? '' : String(info.dailyConveyance));
+          setEditBlood(info.bloodGroup || '');
+          setEditEmName(info.emergencyName || '');
+          setEditEmPhone(info.emergencyPhone || '');
+        }
+      })
+      .catch(() => setInfoSnap(null))
+      .finally(() => setInfoLoading(false));
+
     setIsEditModalOpen(true);
+  };
+
+  const handleEditClientInput = (val: string) => {
+    setEditClientInput(val);
+    if (val.trim()) {
+      setEditClientSuggestions(
+        allClients
+          .filter(
+            c =>
+              (c.name.toLowerCase().includes(val.toLowerCase()) || (c.jobNumber || '').toLowerCase().includes(val.toLowerCase())) &&
+              !editClients.find(sc => sc.id === c.id)
+          )
+          .slice(0, 8)
+          .map(c => ({ id: c.id, name: c.name }))
+      );
+    } else {
+      setEditClientSuggestions([]);
+    }
+  };
+
+  const addEditClient = (c: { id: string; name: string }) => {
+    setEditClients(prev => (prev.find(x => x.id === c.id) ? prev : [...prev, c]));
+    setEditClientInput('');
+    setEditClientSuggestions([]);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,15 +352,61 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       normalizedMobile = norm;
     }
 
+    // Personal / work information (every field is optional; empty = leave as it is)
+    const hasYearField = ['student', 'trainee'].includes((currentUser.designation || '').toLowerCase().trim());
+    const salaryNum = editSalary.trim() === '' ? '' : Number(editSalary);
+    const dailyNum = editDaily.trim() === '' ? '' : Number(editDaily);
+    if (salaryNum !== '' && (Number.isNaN(salaryNum) || salaryNum < 0)) {
+      setModalFeedback({ type: 'error', text: 'Please enter a valid monthly salary/allowance.' });
+      return;
+    }
+    if (dailyNum !== '' && (Number.isNaN(dailyNum) || dailyNum < 0)) {
+      setModalFeedback({ type: 'error', text: 'Please enter a valid daily conveyance.' });
+      return;
+    }
+    let emPhoneNorm = '';
+    if (editEmPhone.trim()) {
+      const n = normalizeBDMobile(editEmPhone.trim());
+      if (!n) {
+        setModalFeedback({ type: 'error', text: 'Please enter a valid emergency contact mobile number (01XXXXXXXXX).' });
+        return;
+      }
+      emPhoneNorm = n;
+    }
+    const snap = infoSnap;
+    const infoChanged =
+      (hasYearField && editAcademicYear !== (snap?.academicYear || '')) ||
+      editSalary.trim() !== (snap?.salary == null ? '' : String(snap.salary)) ||
+      editDaily.trim() !== (snap?.dailyConveyance == null ? '' : String(snap.dailyConveyance)) ||
+      editBlood !== (snap?.bloodGroup || '') ||
+      editEmName.trim() !== (snap?.emergencyName || '') ||
+      emPhoneNorm !== (snap?.emergencyPhone || '');
+    const clientsChanged = editClients.map(c => c.id).sort().join(',') !== clientsSnap;
+
     setIsSaving(true);
     try {
-      // 1. Update basic profile and photo
+      // 1. Update basic profile, photo and (if changed) assigned clients
       await adminService.updateUser(currentUser.id, {
         name: editName.trim(),
         email: editEmail.trim(),
         avatarUrl: editAvatarUrl,
-        mobile: normalizedMobile
+        mobile: normalizedMobile,
+        ...(clientsChanged ? { assignedClientIds: editClients.map(c => c.id) } : {})
       });
+
+      // 1b. Personal / work information (after clients, so the Walton 24-day rule sees the new clients)
+      if (infoChanged) {
+        await notificationService.saveMyInfo({
+          academicYear: hasYearField ? editAcademicYear : '',
+          salary: salaryNum,
+          dailyConveyance: dailyNum,
+          bloodGroup: editBlood,
+          emergencyName: editEmName.trim(),
+          emergencyPhone: emPhoneNorm
+        });
+        // Filling this in also completes any pending "update info" request
+        notifications.filter(n => n.type === 'INFO_REQUEST' && !n.isRead).forEach(n => markAsRead(n.id));
+      }
 
       // 2. Update password if requested
       if (editNewPassword) {
@@ -684,34 +802,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
         </div>
       </div>
 
-      {/* My Information (academic year, salary, conveyance, blood group, emergency contact) */}
-      <div className="table-card">
-        <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 20px' }}>
-          <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>MY INFORMATION</span>
-        </div>
-        <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <div style={{ fontSize: '12.5px', color: 'var(--ink-soft)', maxWidth: '640px' }}>
-            Keep your academic year, salary/allowance, daily conveyance, blood group and emergency contact up to date.
-            {infoSaved && <strong style={{ color: '#166534' }}> Saved. Thank you!</strong>}
-          </div>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setInfoOpen(true)}>
-            Update my information
-          </button>
-        </div>
-      </div>
-
-      {infoOpen && (
-        <ProfileInfoModal
-          onClose={() => setInfoOpen(false)}
-          onDone={() => {
-            // Filling this in also completes any pending "update info" request
-            notifications.filter(n => n.type === 'INFO_REQUEST' && !n.isRead).forEach(n => markAsRead(n.id));
-            setInfoSaved(true);
-            setInfoOpen(false);
-          }}
-        />
-      )}
-
       {/* 2. Primary Section: Assigned Clients */}
       <div id="profile-assigned-clients-section" className="table-card">
         <div className="banner-strip banner-teal">
@@ -1036,6 +1126,177 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 className="form-input"
                 placeholder="e.g. 01XXXXXXXXX"
               />
+            </div>
+
+            {/* Assigned clients (search by name or job ID, like signup) */}
+            <div className="form-field" style={{ position: 'relative' }}>
+              <label>Assigned Client(s)</label>
+              {editClients.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                  {editClients.map(c => (
+                    <span
+                      key={c.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'var(--navy-light, #EBF0FE)',
+                        border: '1px solid var(--navy, #1B2A6B)',
+                        borderRadius: '20px',
+                        padding: '2px 10px',
+                        fontSize: '12px',
+                        color: 'var(--navy, #1B2A6B)',
+                        fontWeight: 600
+                      }}
+                    >
+                      <span><ClientLabel id={c.id} name={c.name} /></span>
+                      <button
+                        type="button"
+                        onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
+                      >×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                type="text"
+                className="form-input"
+                value={editClientInput}
+                onChange={e => handleEditClientInput(e.target.value)}
+                onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
+                placeholder="Type to search client name or job ID…"
+                autoComplete="off"
+              />
+              {editClientSuggestions.length > 0 && (
+                <ul
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 100,
+                    background: '#fff',
+                    border: '1px solid var(--line)',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                    margin: 0,
+                    padding: '4px 0',
+                    listStyle: 'none',
+                    maxHeight: '160px',
+                    overflowY: 'auto'
+                  }}
+                >
+                  {editClientSuggestions.map(c => (
+                    <li
+                      key={c.id}
+                      onMouseDown={() => addEditClient(c)}
+                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '')}
+                    >
+                      <ClientLabel id={c.id} name={c.name} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Personal & work information (all optional) */}
+            <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
+              <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
+                Personal &amp; Work Information
+              </div>
+              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+                {infoLoading ? 'Loading your saved information…' : 'Optional. Leave a field empty to keep it as it is.'}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {['student', 'trainee'].includes((currentUser.designation || '').toLowerCase().trim()) && (
+                  <div className="form-field">
+                    <label style={{ fontSize: '11.5px' }}>Academic Year</label>
+                    <select
+                      className="form-select"
+                      value={editAcademicYear}
+                      onChange={e => setEditAcademicYear(e.target.value)}
+                      style={{ fontSize: '12px' }}
+                    >
+                      <option value="">Select…</option>
+                      {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="form-field">
+                  <label style={{ fontSize: '11.5px' }}>Blood Group</label>
+                  <select
+                    className="form-select"
+                    value={editBlood}
+                    onChange={e => setEditBlood(e.target.value)}
+                    style={{ fontSize: '12px' }}
+                  >
+                    <option value="">Select…</option>
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-field">
+                  <label style={{ fontSize: '11.5px' }}>Monthly Salary / Allowance (৳)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    value={editSalary}
+                    onChange={e => setEditSalary(e.target.value)}
+                    placeholder="e.g. 15000"
+                    style={{ fontSize: '12px' }}
+                  />
+                </div>
+                <div className="form-field">
+                  <label style={{ fontSize: '11.5px' }}>Daily Conveyance (৳ per day)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    value={editDaily}
+                    onChange={e => setEditDaily(e.target.value)}
+                    placeholder="e.g. 120"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '3px' }}>
+                    {(() => {
+                      const isWalton = editClients.some(c => /walton/i.test(c.name));
+                      const days = isWalton ? 24 : 22;
+                      const d = Number(editDaily) || 0;
+                      return `× ${days} days = ৳ ${(d * days).toLocaleString('en-IN')} / month` +
+                        (infoSnap?.conveyance != null && editDaily.trim() === '' ? ` (saved: ৳ ${infoSnap.conveyance.toLocaleString('en-IN')})` : '');
+                    })()}
+                  </div>
+                </div>
+                <div className="form-field">
+                  <label style={{ fontSize: '11.5px' }}>Emergency Contact Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editEmName}
+                    onChange={e => setEditEmName(e.target.value)}
+                    style={{ fontSize: '12px' }}
+                  />
+                </div>
+                <div className="form-field">
+                  <label style={{ fontSize: '11.5px' }}>Emergency Contact Mobile</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    value={editEmPhone}
+                    onChange={e => setEditEmPhone(e.target.value)}
+                    placeholder="01XXXXXXXXX"
+                    style={{ fontSize: '12px' }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Read-Only Hierarchy Info */}

@@ -27,7 +27,7 @@ import {
 // nothing reached the database.
 const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary',
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
-  'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark']);
+  'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -1178,6 +1178,53 @@ export const api = {
         if (data === 'FORBIDDEN') throw new Error('Only Admin can resolve queries.');
         if (data === 'NOT_FOUND') throw new Error('This query was already resolved.');
         if (data !== 'OK') throw new Error('Could not resolve.');
+        return { success: true } as T;
+      }
+
+      case 'getMyInfo': {
+        const session = readSession();
+        if (!session) return null as T;
+        // After Switch User the session belongs to the Admin: don't show the Admin's data
+        const current = await this.getCurrentUser();
+        if (current && current.id !== session.userId) return null as T;
+        const { data, error } = await supabase.rpc('app_get_my_info', { p_session: session.token });
+        if (error) {
+          console.warn('[getMyInfo] failed (run supabase_my_info.sql?):', error.message);
+          return null as T;
+        }
+        const r = Array.isArray(data) ? data[0] : data;
+        if (!r) return null as T;
+        return {
+          academicYear: r.academic_year || '',
+          salary: r.salary === null || r.salary === undefined ? null : Number(r.salary),
+          conveyance: r.conveyance === null || r.conveyance === undefined ? null : Number(r.conveyance),
+          dailyConveyance: r.daily_conveyance === null || r.daily_conveyance === undefined ? null : Number(r.daily_conveyance),
+          bloodGroup: r.blood_group || '',
+          emergencyName: r.emergency_contact_name || '',
+          emergencyPhone: r.emergency_contact_phone || ''
+        } as T;
+      }
+
+      case 'saveMyInfo': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const orNull = (v: any) => (v === undefined || v === '' ? null : v);
+        const { data, error } = await supabase.rpc('app_save_my_info', {
+          p_session: session.token,
+          p_academic_year: orNull(payload.academicYear),
+          p_salary: orNull(payload.salary),
+          p_daily_conveyance: orNull(payload.dailyConveyance),
+          p_blood_group: orNull(payload.bloodGroup),
+          p_emergency_name: orNull(payload.emergencyName),
+          p_emergency_phone: orNull(payload.emergencyPhone)
+        });
+        if (error) {
+          console.error('app_save_my_info failed:', error);
+          throw new Error('Could not save your information. Has supabase_my_info.sql been run?');
+        }
+        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data !== 'OK') throw new Error('Some information is invalid. Please check and try again.');
         return { success: true } as T;
       }
 

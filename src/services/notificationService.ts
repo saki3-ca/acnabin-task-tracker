@@ -1,4 +1,4 @@
-import { AppNotification, UserQuery } from '../types';
+import { AppNotification, MyInfo, UserQuery } from '../types';
 import { api } from './api';
 
 export const notificationService = {
@@ -16,6 +16,21 @@ export const notificationService = {
 
   async sendAnnouncement(message: string, userId?: string): Promise<{ count: number }> {
     return api.callBackend('sendAnnouncement', { message, userId });
+  },
+
+  async getMyInfo(): Promise<MyInfo | null> {
+    return api.callBackend('getMyInfo', {});
+  },
+
+  async saveMyInfo(info: {
+    academicYear?: string;
+    salary?: number | '';
+    dailyConveyance?: number | '';
+    bloodGroup?: string;
+    emergencyName?: string;
+    emergencyPhone?: string;
+  }): Promise<void> {
+    await api.callBackend('saveMyInfo', info);
   },
 
   async submitProfileInfo(info: {

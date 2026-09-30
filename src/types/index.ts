@@ -101,6 +101,16 @@ export type NotificationType =
   | 'USER_QUERY'
   | 'QUERY_RESOLVED';
 
+export interface MyInfo {
+  academicYear: string;
+  salary: number | null;
+  conveyance: number | null;
+  dailyConveyance: number | null;
+  bloodGroup: string;
+  emergencyName: string;
+  emergencyPhone: string;
+}
+
 export interface UserQuery {
   id: number;
   userId: string;
