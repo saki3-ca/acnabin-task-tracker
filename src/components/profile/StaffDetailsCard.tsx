@@ -19,7 +19,17 @@ const fmtDate = (iso?: string) => {
   const d = new Date(`${iso}T00:00:00`);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
-const fmtMoney = (n?: number | null) => (n === null || n === undefined ? DASH : `৳ ${Math.round(n).toLocaleString('en-IN')}`);
+// Inter has no taka sign, so the browser borrows a tiny one from another font: draw it in a font that has it
+const TAKA_FONT = "'Noto Sans Bengali', 'Nirmala UI', 'Segoe UI', Arial, sans-serif";
+const fmtMoney = (n?: number | null): React.ReactNode =>
+  n === null || n === undefined ? (
+    DASH
+  ) : (
+    <span style={{ whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: TAKA_FONT, fontWeight: 600, marginRight: '4px' }}>৳</span>
+      {Math.round(n).toLocaleString('en-IN')}
+    </span>
+  );
 
 const HAIRLINE = '#EAE3D9';
 
@@ -35,8 +45,8 @@ const Row: React.FC<{ label: string; children: React.ReactNode; last?: boolean }
       borderBottom: last ? 'none' : `1px solid ${HAIRLINE}`
     }}
   >
-    <div style={{ fontSize: '12px', color: 'var(--ink-muted)', fontWeight: 500 }}>{label}</div>
-    <div style={{ fontSize: '13.5px', color: 'var(--ink)', fontWeight: 600, minWidth: 0, overflowWrap: 'anywhere' }}>{children}</div>
+    <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{label}</div>
+    <div style={{ fontSize: '13.5px', color: 'var(--ink)', fontWeight: 500, lineHeight: 1.4, minWidth: 0, overflowWrap: 'anywhere' }}>{children}</div>
   </div>
 );
 
@@ -142,9 +152,9 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
   const emPhone = info?.emergencyPhone || staff?.emergencyPhone;
 
   const icon = 15;
-  const soft = (v?: string | number | null) => {
-    const t = show(v);
-    return t === DASH ? <span style={{ color: 'var(--line-strong)', fontWeight: 500 }}>{DASH}</span> : t;
+  const soft = (v?: React.ReactNode) => {
+    const empty = v === null || v === undefined || v === '' || v === DASH;
+    return empty ? <span style={{ color: 'var(--line-strong)', fontWeight: 500 }}>{DASH}</span> : v;
   };
 
   return (
@@ -177,7 +187,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
             footer={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon-dark)', letterSpacing: '0.6px' }}>TOTAL</span>
-                <span style={{ fontSize: '17px', fontWeight: 800, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
+                <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
               </div>
             }
           >
