@@ -129,10 +129,15 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   }, [taskToEdit, isOpen, currentUser, availableClients, mode, canSeeAll, isADPlus]);
 
+  // Firm-wide assignment by AD and above: only the "all below members" choice, no individual list
+  const firmWideBulk = mode === 'team' && !taskToEdit && isADPlus && clientId === 'ALL_CLIENTS';
+
   // When in team mode, auto-select first assignable user if none is selected
   useEffect(() => {
     if (mode === 'team' && !taskToEdit) {
-      if (assignableUsers.length > 0) {
+      if (firmWideBulk) {
+        setAssignedToId(assignableUsers.length > 0 ? 'ALL_MEMBERS' : '');
+      } else if (assignableUsers.length > 0) {
         if (!assignedToId || (assignedToId !== 'ALL_MEMBERS' && !assignableUsers.some(u => u.id === assignedToId))) {
           setAssignedToId(assignableUsers[0].id);
         }
@@ -140,7 +145,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         setAssignedToId('');
       }
     }
-  }, [assignableUsers, mode, taskToEdit, assignedToId]);
+  }, [assignableUsers, mode, taskToEdit, assignedToId, firmWideBulk]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -334,7 +339,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     👥 Assign to ALL Below Members ({assignableUsers.length} members)
                   </option>
                 )}
-                {assignableUsers.length > 0 && (
+                {assignableUsers.length > 0 && !firmWideBulk && (
                   <optgroup label="Individual Team Members">
                     {assignableUsers.map(u => (
                       <option key={u.id} value={u.id}>
