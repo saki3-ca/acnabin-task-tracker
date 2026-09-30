@@ -28,6 +28,8 @@ export interface RequestRow {
   id: string | number; requester_id: string; requester_name: string; superior_id: string; superior_name: string;
   particular: string; client_name: string; priority: string; deadline: string; notes: string;
   status: string; created_at: string; updated_at?: string | null;
+  /** Remarks written by whoever accepted / declined (column may not exist yet) */
+  response_remarks?: string | null;
 }
 export interface Mail { to: string; subject: string; text: string; html: string }
 
@@ -97,7 +99,7 @@ export function responseMail(appUrl: string, r: RequestRow, to: MailUser): Mail 
     appUrl,
     to.name || 'there',
     `${r.superior_name || 'Your colleague'} ${accepted ? 'accepted' : 'declined'} your task request.`,
-    [['Task', r.particular], ['Client', r.client_name], ['Result', accepted ? 'Accepted' : 'Declined']]
+    [['Task', r.particular], ['Client', r.client_name], ['Result', accepted ? 'Accepted' : 'Declined'], ['Remarks', r.response_remarks || '']]
   );
   return { to: to.email, subject: `Your task request was ${accepted ? 'accepted' : 'declined'}: ${clip(r.particular, 70)}`, ...m };
 }

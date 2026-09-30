@@ -21,7 +21,7 @@ export const taskRequestService = {
     return api.callBackend('createTaskRequest', payload);
   },
 
-  async respondTaskRequest(requestId: string, status: 'ACCEPTED' | 'DECLINED'): Promise<void> {
-    await api.callBackend('respondTaskRequest', { requestId, status });
+  async respondTaskRequest(requestId: string, status: 'ACCEPTED' | 'DECLINED', remarks = ''): Promise<void> {
+    await api.callBackend('respondTaskRequest', { requestId, status, remarks });
   }
 };

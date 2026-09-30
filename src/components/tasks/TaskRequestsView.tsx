@@ -9,12 +9,14 @@ import { fmtDate } from '../../lib/dateUtils';
 import { TaskRequest } from '../../types';
 
 import { StatPills } from '../dashboard/StatPills';
+import { RespondRequestModal } from './RespondRequestModal';
 
 export const TaskRequestsView: React.FC = () => {
   const { currentUser } = useAuth();
   const { taskRequests, refreshRequests, refreshNotifications } = useNotifications();
   const { fetchTasks } = useTasks();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [responding, setResponding] = useState<{ req: TaskRequest; status: 'ACCEPTED' | 'DECLINED' } | null>(null);
 
   if (!currentUser) return null;
 
@@ -37,13 +39,11 @@ export const TaskRequestsView: React.FC = () => {
     { label: 'DECLINED', value: declinedRequests, valueColor: declinedRequests > 0 ? '#991B1B' : undefined }
   ];
 
-  const handleRespond = async (requestId: string, status: 'ACCEPTED' | 'DECLINED') => {
-    const actionText = status === 'ACCEPTED' ? 'accept' : 'decline';
-    if (!window.confirm(`Are you sure you want to ${actionText} this task request?`)) return;
-
+  const handleRespond = async (requestId: string, status: 'ACCEPTED' | 'DECLINED', remarks: string) => {
     setProcessingId(requestId);
     try {
-      await taskRequestService.respondTaskRequest(requestId, status);
+      await taskRequestService.respondTaskRequest(requestId, status, remarks);
+      setResponding(null);
       await Promise.all([refreshRequests(), refreshNotifications(), fetchTasks()]);
     } catch (e) {
       console.error('Failed to respond to request', e);
@@ -129,6 +129,11 @@ export const TaskRequestsView: React.FC = () => {
                           <strong>Notes:</strong> {req.notes}
                         </div>
                       )}
+                      {req.responseRemarks && (
+                        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.35', marginTop: '2px' }}>
+                          <strong>Remarks:</strong> {req.responseRemarks}
+                        </div>
+                      )}
                     </td>
                     <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                       <div style={{ fontWeight: 600, color: 'var(--teal)' }}><ClientLabel id={req.clientId} name={req.clientName} /></div>
@@ -145,7 +150,7 @@ export const TaskRequestsView: React.FC = () => {
                             type="button"
                             className="btn btn-teal btn-sm"
                             disabled={processingId === req.id}
-                            onClick={() => handleRespond(req.id, 'ACCEPTED')}
+                            onClick={() => setResponding({ req, status: 'ACCEPTED' })}
                             style={{ padding: '4px 8px', fontSize: '11.5px' }}
                           >
                             <Check size={13} /> Accept
@@ -154,7 +159,7 @@ export const TaskRequestsView: React.FC = () => {
                             type="button"
                             className="btn btn-danger btn-sm"
                             disabled={processingId === req.id}
-                            onClick={() => handleRespond(req.id, 'DECLINED')}
+                            onClick={() => setResponding({ req, status: 'DECLINED' })}
                             style={{ padding: '4px 8px', fontSize: '11.5px' }}
                           >
                             <X size={13} /> Decline
@@ -216,6 +221,11 @@ export const TaskRequestsView: React.FC = () => {
                           <strong>Notes:</strong> {req.notes}
                         </div>
                       )}
+                      {req.responseRemarks && (
+                        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', lineHeight: '1.35', marginTop: '2px' }}>
+                          <strong>Remarks:</strong> {req.responseRemarks}
+                        </div>
+                      )}
                     </td>
                     <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
                       <div style={{ fontWeight: 600, color: 'var(--teal)' }}><ClientLabel id={req.clientId} name={req.clientName} /></div>
@@ -235,6 +245,15 @@ export const TaskRequestsView: React.FC = () => {
           </table>
         </div>
       </div>
+      {responding && (
+        <RespondRequestModal
+          request={responding.req}
+          status={responding.status}
+          busy={processingId === responding.req.id}
+          onClose={() => setResponding(null)}
+          onConfirm={remarks => handleRespond(responding.req.id, responding.status, remarks)}
+        />
+      )}
     </div>
   );
 };

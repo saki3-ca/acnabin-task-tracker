@@ -145,6 +145,8 @@ export interface TaskRequest {
   priority: Priority;
   deadline?: string;
   notes?: string;
+  /** Remarks written by the person who accepted / declined */
+  responseRemarks?: string;
   status: TaskRequestStatus;
   createdAt: string;
   updatedAt?: string;

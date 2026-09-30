@@ -204,6 +204,7 @@ function mapTaskRequestFromDb(row: any): TaskRequest {
     priority: row.priority || 'Medium',
     deadline: row.deadline || '',
     notes: row.notes || '',
+    responseRemarks: row.response_remarks || '',
     status: row.status || 'PENDING',
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -1438,6 +1439,7 @@ export const api = {
 
       case 'respondTaskRequest': {
         const { requestId, status } = payload; // 'ACCEPTED' | 'DECLINED'
+        const remarks = String(payload.remarks || '').trim().slice(0, 500);
         const { data: req, error: fetchErr } = await supabase
           .from('task_requests')
           .select('*')
@@ -1456,12 +1458,23 @@ export const api = {
 
         const now = new Date().toISOString();
         // .eq('status','PENDING') makes a double click / second tab a no-op instead of a duplicate task
-        const { data: updatedRows, error: updateErr } = await supabase
+        let { data: updatedRows, error: updateErr } = await supabase
           .from('task_requests')
-          .update({ status, updated_at: now })
+          .update({ status, updated_at: now, ...(remarks ? { response_remarks: remarks } : {}) })
           .eq('id', requestId)
           .eq('status', 'PENDING')
           .select('id');
+
+        // The remarks column may not exist yet (supabase_request_remarks.sql): save the answer without it
+        if (updateErr && remarks) {
+          console.warn('Could not save remarks (run supabase_request_remarks.sql?):', updateErr.message);
+          ({ data: updatedRows, error: updateErr } = await supabase
+            .from('task_requests')
+            .update({ status, updated_at: now })
+            .eq('id', requestId)
+            .eq('status', 'PENDING')
+            .select('id'));
+        }
 
         if (updateErr) throw updateErr;
         if (!updatedRows || updatedRows.length === 0) {
@@ -1493,7 +1506,7 @@ export const api = {
             user_id: req.requester_id,
             type: 'TASK_REQUEST',
             title: 'Task Request Accepted',
-            message: `${req.superior_name} accepted your task request: "${req.particular}". Added to their task list.`,
+            message: `${req.superior_name} accepted your task request: "${req.particular}". Added to their task list.${remarks ? ` Remarks: ${remarks}` : ''}`,
             data: { requestId, taskId: newTaskId, status: 'ACCEPTED' }
           });
         } else {
@@ -1502,7 +1515,7 @@ export const api = {
             user_id: req.requester_id,
             type: 'TASK_REQUEST',
             title: 'Task Request Declined',
-            message: `${req.superior_name} declined your task request: "${req.particular}".`,
+            message: `${req.superior_name} declined your task request: "${req.particular}".${remarks ? ` Remarks: ${remarks}` : ''}`,
             data: { requestId, status: 'DECLINED' }
           });
         }

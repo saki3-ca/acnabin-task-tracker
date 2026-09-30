@@ -51,10 +51,8 @@ function createProductionHandler() {
       return data || [];
     },
     async getRequests(ids) {
-      const { data, error } = await supabase
-        .from('task_requests')
-        .select('id, requester_id, requester_name, superior_id, superior_name, particular, client_name, priority, deadline, notes, status, created_at, updated_at')
-        .in('id', ids);
+      // select('*'): works whether or not the response_remarks column exists yet
+      const { data, error } = await supabase.from('task_requests').select('*').in('id', ids);
       if (error) throw error;
       return data || [];
     },
