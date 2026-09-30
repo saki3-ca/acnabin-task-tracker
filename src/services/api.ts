@@ -422,6 +422,25 @@ export const api = {
     }
   },
 
+  /**
+   * Throws unless the person may use this client: Admin and Assistant Director and above may use any
+   * client; everyone else only their assigned clients (signup list + manager access). "General" is
+   * always allowed.
+   */
+  async assertMayUseClient(userId: string | undefined, clientId?: string) {
+    if (!userId || !clientId || ['general', 'ALL_CLIENTS', 'all'].includes(clientId)) return;
+    const { data: u } = await supabase.from('users').select('role, designation, signup_client_id').eq('id', userId).maybeSingle();
+    if (!u) return;
+    if (u.role === 'ADMIN' || ['Assistant Director', 'Deputy Director', 'Director', 'Partner'].includes(u.designation)) return;
+    const allowed = new Set<string>(String(u.signup_client_id || '').split(',').map((x: string) => x.trim()).filter(Boolean));
+    const { data: access } = await supabase
+      .from('manager_client_access').select('client_id').eq('manager_user_id', userId).eq('status', 'ACTIVE');
+    (access || []).forEach((r: any) => allowed.add(r.client_id));
+    if (!allowed.has(clientId)) {
+      throw new Error('You can only use the clients assigned to you.');
+    }
+  },
+
   /** After Admin "Switch User" the saved session still belongs to the Admin: don't save data under the wrong account. */
   async assertSessionIsCurrentUser(session: { userId: string }) {
     const current = await this.getCurrentUser();
@@ -832,6 +851,7 @@ export const api = {
 
       case 'createTask': {
         const user = await this.getCurrentUser();
+        await this.assertMayUseClient(user?.id, payload.clientId);
         let clientId = payload.clientId;
         let clientName = payload.clientName;
         let assignedToName = payload.assignedToName;
@@ -1369,6 +1389,8 @@ export const api = {
           deadline,
           notes
         } = payload;
+
+        await this.assertMayUseClient(requesterId, clientId);
 
         // Block requests to System Administrator
         const { data: targetSuperior } = await supabase

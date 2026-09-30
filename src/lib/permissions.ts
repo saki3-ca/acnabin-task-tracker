@@ -113,6 +113,22 @@ export function isAssistantDirectorOrAbove(designation?: Designation | string): 
   ].includes(designation);
 }
 
+/**
+ * The clients a person may pick when creating a task or task request:
+ * Admin and Assistant Director and above may pick any client; everyone else only their own
+ * assigned clients (none assigned = only "General"). Never falls back to all clients.
+ */
+export function getSelectableClients<T extends { id: string }>(
+  user: User | null | undefined,
+  allClients: T[],
+  extraClientIds: string[] = [] // e.g. clients from the manager-access list
+): T[] {
+  if (!user) return [];
+  if (user.role === 'ADMIN' || isAssistantDirectorOrAbove(user.designation)) return allClients;
+  const ids = new Set([...getUserAssignedClientIds(user), ...extraClientIds]);
+  return allClients.filter(c => ids.has(c.id));
+}
+
 export function isAllAccessDesignation(designation?: Designation | string): boolean {
   return isAssistantDirectorOrAbove(designation);
 }

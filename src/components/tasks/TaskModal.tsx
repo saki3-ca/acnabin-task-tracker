@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
+import { adminService } from '../../services/adminService';
 import { todayInputDate, toInputDate } from '../../lib/dateUtils';
 import {
   canAssignTasks,
   canViewAllClients,
   getAssignableUsers,
+  getSelectableClients,
   getUserAssignedClientIds,
   isAssistantDirectorOrAbove
 } from '../../lib/permissions';
@@ -53,7 +55,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const availableClients = useMemo(() => {
     if (canSeeAll) return allClients;
 
-    let list = allClients.filter(c => userClientIds.includes(c.id));
+    let list = getSelectableClients(currentUser, allClients, adminService.getCachedManagerClientIds(currentUser?.id || '') || []);
 
     // When editing an existing task, preserve the task's existing client in the options
     if (taskToEdit?.clientId && !list.some(c => c.id === taskToEdit.clientId)) {
@@ -63,8 +65,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       }
     }
 
-    return list.length > 0 ? list : allClients;
-  }, [canSeeAll, allClients, userClientIds, taskToEdit]);
+    return list; // no fallback to every client: someone with no assigned client gets only "General"
+  }, [canSeeAll, allClients, currentUser, taskToEdit]);
 
   const [clientId, setClientId] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
@@ -277,7 +279,21 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           {/* Client selector (Single client displays as text; multiple clients display as scoped dropdown) */}
           <div className="form-field">
             <label>Client</label>
-            {!canSeeAll && availableClients.length === 1 ? (
+            {!canSeeAll && availableClients.length === 0 ? (
+              <div
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-soft)',
+                  border: '1.5px solid var(--line-strong)',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  color: 'var(--ink-soft)'
+                }}
+              >
+                General (no client is assigned to you)
+              </div>
+            ) : !canSeeAll && availableClients.length === 1 ? (
               <div
                 style={{
                   padding: '9px 12px',

@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { adminService } from '../../services/adminService';
 import { taskRequestService } from '../../services/taskRequestService';
-import { canViewAllClients, getEligibleTaskRequestRecipients, isAssistantDirectorOrAbove } from '../../lib/permissions';
+import { canViewAllClients, getEligibleTaskRequestRecipients, getSelectableClients, isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { Priority } from '../../types';
 import { Modal } from '../ui/Modal';
 
@@ -19,27 +20,11 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
   const isStudent = currentUser?.designation === 'Student';
   const isADPlus = isAssistantDirectorOrAbove(currentUser?.designation);
 
-  // Client scoping for the requester
-  const userClientIds = useMemo(() => {
-    if (!currentUser) return [];
-    const ids: string[] = [];
-    if (currentUser.assignedClientIds && Array.isArray(currentUser.assignedClientIds)) {
-      ids.push(...currentUser.assignedClientIds);
-    }
-    if (currentUser.signupClientId) {
-      currentUser.signupClientId.split(',').forEach(s => {
-        const trimmed = s.trim();
-        if (trimmed && !ids.includes(trimmed)) ids.push(trimmed);
-      });
-    }
-    return ids;
-  }, [currentUser]);
-
-  const availableClients = useMemo(() => {
-    if (canSeeAll) return allClients;
-    const filtered = allClients.filter(c => userClientIds.includes(c.id));
-    return filtered.length > 0 ? filtered : allClients;
-  }, [canSeeAll, allClients, userClientIds]);
+  // Only the requester's own clients (all clients for Admin and AD+). No fallback to every client.
+  const availableClients = useMemo(
+    () => getSelectableClients(currentUser, allClients, adminService.getCachedManagerClientIds(currentUser?.id || '') || []),
+    [currentUser, allClients]
+  );
 
   const [clientId, setClientId] = useState('');
   const [targetUserId, setTargetUserId] = useState('');
@@ -91,7 +76,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
 
     const allRecipients = [...peers, ...superiors];
     const targetUser = allRecipients.find(u => u.id === targetUserId);
-    const selectedClient = availableClients.find(c => c.id === clientId) || allClients.find(c => c.id === clientId);
+    const selectedClient = availableClients.find(c => c.id === clientId);
 
     setIsSubmitting(true);
     try {
@@ -128,7 +113,21 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
   const renderClientSelect = () => (
     <div className="form-field">
       <label>{isADPlus ? 'Client (Optional / General Engagement)' : 'Client'}</label>
-      {!canSeeAll && availableClients.length === 1 && !isADPlus ? (
+      {!canSeeAll && availableClients.length === 0 ? (
+        <div
+          style={{
+            padding: '9px 12px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-soft)',
+            border: '1.5px solid var(--line-strong)',
+            fontSize: '13.5px',
+            fontWeight: 600,
+            color: 'var(--ink-soft)'
+          }}
+        >
+          General (no client is assigned to you)
+        </div>
+      ) : !canSeeAll && availableClients.length === 1 && !isADPlus ? (
         <div
           style={{
             padding: '9px 12px',
@@ -153,7 +152,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
           <option value="">
             {isADPlus ? 'General / Firm Internal (Optional)' : 'Select client…'}
           </option>
-          {allClients.map(c => (
+          {availableClients.map(c => (
             <option key={c.id} value={c.id}>
               {c.name} {c.jobNumber ? `(${c.jobNumber})` : ''}
             </option>
