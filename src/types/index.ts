@@ -95,7 +95,8 @@ export type NotificationType =
   | 'TASK_ASSIGNED'
   | 'DEADLINE_ALERT'
   | 'MANAGER_COMMENT'
-  | 'TASK_REQUEST';
+  | 'TASK_REQUEST'
+  | 'INFO_REQUEST';
 
 export interface AppNotification {
   id: string;

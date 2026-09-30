@@ -109,7 +109,7 @@ export const ManpowerView: React.FC = () => {
           const salaryById = new Map(salaryRows.map(x => [x.empId, x]));
           setRecords((mpData || []).map(r => {
             const hit = salaryById.get((r.empId || '').trim().toUpperCase());
-            if (!hit || r.salary || r.conveyance) return r;
+            if (!hit) return r;
             return { ...r, salary: hit.salary, conveyance: hit.conveyance, total: hit.salary + hit.conveyance };
           }));
           setRemarksMap(remarksData || {});

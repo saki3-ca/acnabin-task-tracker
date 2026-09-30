@@ -10,6 +10,21 @@ export const notificationService = {
     await api.callBackend('markNotificationRead', { notificationId });
   },
 
+  async sendInfoRequest(): Promise<{ count: number }> {
+    return api.callBackend('sendInfoRequest', {});
+  },
+
+  async submitProfileInfo(info: {
+    academicYear: string;
+    salary: number;
+    dailyConveyance: number;
+    bloodGroup: string;
+    emergencyName: string;
+    emergencyPhone: string;
+  }): Promise<void> {
+    await api.callBackend('submitProfileInfo', info);
+  },
+
   async markAllAsRead(userId: string): Promise<void> {
     await api.callBackend('markAllNotificationsRead', { userId });
   }

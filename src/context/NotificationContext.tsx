@@ -82,7 +82,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const markAllAsRead = async () => {
     if (!currentUser) return;
     try {
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifications(prev => prev.map(n => (n.type === 'INFO_REQUEST' ? n : { ...n, isRead: true })));
       await notificationService.markAllAsRead(currentUser.id);
     } catch (e) {
       console.warn('Failed to mark all read', e);

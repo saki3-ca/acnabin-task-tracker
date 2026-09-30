@@ -24,7 +24,7 @@ import {
 
 // Actions that must never fall back to the local store: credential checks (it has
 // no passwords) and client-list changes (a silent local save would look like success).
-const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient']);
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -973,11 +973,12 @@ export const api = {
         }
 
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        // Last 7 days, plus any info request that hasn't been filled in yet (stays until completed)
         const { data, error } = await supabase
           .from('notifications')
           .select('*')
           .eq('user_id', userId)
-          .gte('created_at', sevenDaysAgo)
+          .or(`created_at.gte.${sevenDaysAgo},and(type.eq.INFO_REQUEST,is_read.eq.false)`)
           .order('created_at', { ascending: false })
           .limit(200);
 
@@ -1014,10 +1015,55 @@ export const api = {
 
       case 'markAllNotificationsRead': {
         const { userId } = payload;
+        // Info requests can only be cleared by filling in the form
         await supabase
           .from('notifications')
           .update({ is_read: true })
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .neq('type', 'INFO_REQUEST');
+        return { success: true } as T;
+      }
+
+      case 'sendInfoRequest': {
+        const { data: targets, error: tErr } = await supabase
+          .from('users')
+          .select('id, role')
+          .eq('status', 'ACTIVE');
+        if (tErr) throw tErr;
+        const requestId = `INFO-${Date.now()}`;
+        const rows = (targets || [])
+          .filter((u: any) => (u.role || '').toUpperCase() !== 'ADMIN')
+          .map((u: any) => ({
+            user_id: u.id,
+            type: 'INFO_REQUEST',
+            title: 'Please update your information',
+            message: 'Tap "Update info" to fill in your academic year, salary/allowance, daily conveyance, blood group and emergency contact.',
+            data: { requestId, kind: 'PROFILE_INFO' }
+          }));
+        if (rows.length === 0) return { count: 0 } as T;
+        const { error: insErr } = await supabase.from('notifications').insert(rows);
+        if (insErr) throw insErr;
+        return { count: rows.length } as T;
+      }
+
+      case 'submitProfileInfo': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_submit_profile_info', {
+          p_session: session.token,
+          p_academic_year: payload.academicYear,
+          p_salary: payload.salary,
+          p_daily_conveyance: payload.dailyConveyance,
+          p_blood_group: payload.bloodGroup,
+          p_emergency_name: payload.emergencyName,
+          p_emergency_phone: payload.emergencyPhone
+        });
+        if (error) {
+          console.error('app_submit_profile_info failed:', error);
+          throw new Error('Could not save your information. Please tell the administrator.');
+        }
+        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data !== 'OK') throw new Error('Some fields are missing or invalid. Please check and try again.');
         return { success: true } as T;
       }
 

@@ -1,26 +1,52 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AlertCircle,
   Bell,
   CheckCheck,
   Clock,
   FileText,
+  ClipboardList,
   MessageSquare,
+  Send,
   UserCheck
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { notificationService } from '../../services/notificationService';
+import { ProfileInfoModal } from './ProfileInfoModal';
 import { AppNotification } from '../../types';
 
 import { StatPills } from '../dashboard/StatPills';
 
 export const NotificationsView: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, isLoading } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, refreshNotifications, isLoading } = useNotifications();
+  const { currentUser } = useAuth();
+  const [infoFor, setInfoFor] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendMsg, setSendMsg] = useState<string | null>(null);
+
+  const handleSendInfoRequest = async () => {
+    if (!window.confirm('Send an "update your information" request to ALL active users?')) return;
+    setSending(true);
+    setSendMsg(null);
+    try {
+      const { count } = await notificationService.sendInfoRequest();
+      setSendMsg(`Request sent to ${count} user${count === 1 ? '' : 's'}.`);
+      await refreshNotifications();
+    } catch (e: any) {
+      setSendMsg(`Could not send: ${e?.message || 'unknown error'}`);
+    } finally {
+      setSending(false);
+    }
+  };
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   // Filter within 7 days
   const recentNotifications = notifications.filter(n => {
     try {
+      // An unfilled info request stays in NEW until completed, however old
+      if (n.type === 'INFO_REQUEST' && !n.isRead) return true;
       return new Date(n.createdAt).getTime() >= sevenDaysAgo;
     } catch {
       return true;
@@ -129,6 +155,25 @@ export const NotificationsView: React.FC = () => {
             <MessageSquare size={12} /> Manager Comment
           </span>
         );
+      case 'INFO_REQUEST':
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 700,
+              background: '#FFFBEB',
+              color: '#92400E',
+              border: '1px solid #FDE68A'
+            }}
+          >
+            <ClipboardList size={12} /> Info Request
+          </span>
+        );
       case 'TASK_REQUEST':
         return (
           <span
@@ -172,6 +217,31 @@ export const NotificationsView: React.FC = () => {
   return (
     <div className="notifications-page" style={{ display: 'contents' }}>
       <StatPills items={notifStats} variant="maroon" />
+
+      {currentUser?.role === 'ADMIN' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleSendInfoRequest}
+            disabled={sending}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <Send size={14} /> {sending ? 'Sending…' : 'Request info update from all users'}
+          </button>
+          {sendMsg && <span style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>{sendMsg}</span>}
+        </div>
+      )}
+
+      {infoFor && (
+        <ProfileInfoModal
+          onClose={() => setInfoFor(null)}
+          onDone={() => {
+            markAsRead(infoFor);
+            setInfoFor(null);
+          }}
+        />
+      )}
 
       {/* SECTION 1: Red Table - New / Unread Notifications */}
       <div className="table-card">
@@ -273,6 +343,17 @@ export const NotificationsView: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {notif.type === 'INFO_REQUEST' ? (
+                        <button
+                          type="button"
+                          onClick={() => setInfoFor(notif.id)}
+                          className="btn btn-primary btn-sm"
+                          title="Fill in your information to complete this request"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
+                        >
+                          <ClipboardList size={14} /> Update info
+                        </button>
+                      ) : (
                       <button
                         type="button"
                         onClick={() => markAsRead(notif.id)}
@@ -289,6 +370,7 @@ export const NotificationsView: React.FC = () => {
                       >
                         <CheckCheck size={14} /> Read
                       </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -355,7 +437,7 @@ export const NotificationsView: React.FC = () => {
                           fontSize: '11.5px'
                         }}
                       >
-                        <CheckCheck size={14} color="#166534" /> Read
+                        <CheckCheck size={14} color="#166534" /> {notif.type === 'INFO_REQUEST' ? 'Completed' : 'Read'}
                       </span>
                     </td>
                   </tr>
