@@ -181,7 +181,7 @@ export function createHandler(deps: Deps) {
       return json({ ok: true, sent, skipped });
     } catch (err) {
       console.error('send-task-email failed:', err);
-      return json({ ok: false, message: 'Could not send emails.' }, 500);
+      return json({ ok: false, message: 'Could not send emails.', detail: String((err as { message?: string })?.message ?? err).slice(0, 300) }, 500);
     }
   };
 }

@@ -82,7 +82,7 @@ Deno.serve(async req => {
     handler ??= createProductionHandler();
   } catch (err) {
     console.error(err);
-    return json({ ok: false, message: 'Email is not configured.' }, 500);
+    return json({ ok: false, message: 'Email is not configured.', detail: String((err as { message?: string })?.message ?? err).slice(0, 300) }, 500);
   }
   return handler(req);
 });
