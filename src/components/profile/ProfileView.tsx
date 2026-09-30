@@ -657,49 +657,47 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             <Briefcase size={16} />
             <span>YOUR ASSIGNED CLIENT ENGAGEMENTS</span>
           </div>
-          <span
-            style={{
-              position: 'absolute',
-              right: '16px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '11.5px',
-              background: 'rgba(255,255,255,0.2)',
-              padding: '2px 8px',
-              borderRadius: '10px'
-            }}
-          >
-            {canSeeAll ? 'FIRM-WIDE OVERSIGHT' : `${assignedClientsList.length} CLIENTS ASSIGNED`}
-          </span>
-        </div>
-
-        {canAddClients && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-              flexWrap: 'wrap',
-              padding: '10px 14px',
-              borderBottom: '1px solid var(--line)'
-            }}
-          >
-            <div style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>
-              {canDeleteClients
-                ? 'Add or delete clients. Changes apply to the whole firm-wide client list.'
-                : 'Add clients to the firm-wide client list.'}
-            </div>
+          {canAddClients ? (
             <button
               type="button"
               onClick={openAddClient}
-              className="btn btn-primary btn-sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                color: '#0F5E57',
+                background: '#FFFFFF',
+                border: 'none',
+                padding: '4px 10px',
+                borderRadius: '12px',
+                cursor: 'pointer'
+              }}
             >
-              <Plus size={14} /> Add Client
+              <Plus size={13} /> Add Client
             </button>
-          </div>
-        )}
+          ) : (
+            <span
+              style={{
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '11.5px',
+                background: 'rgba(255,255,255,0.2)',
+                padding: '2px 8px',
+                borderRadius: '10px'
+              }}
+            >
+              {`${assignedClientsList.length} CLIENTS ASSIGNED`}
+            </span>
+          )}
+        </div>
 
         {clientNotice && (
           <div
