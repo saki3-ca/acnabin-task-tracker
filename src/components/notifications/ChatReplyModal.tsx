@@ -52,7 +52,7 @@ export const ChatReplyModal: React.FC<Props> = ({ questionId, userId, question, 
     setSending(true);
     setError(null);
     try {
-      await notificationService.chatReply(questionId, text.trim());
+      await notificationService.chatReply(questionId, text.trim(), userId);
       setAnswered(true);
       setText('');
       await load();

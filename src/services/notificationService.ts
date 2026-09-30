@@ -33,8 +33,8 @@ export const notificationService = {
     await api.callBackend('chatSendQuestion', { userId, message });
   },
 
-  async chatReply(questionId: number, message: string): Promise<void> {
-    await api.callBackend('chatReply', { questionId, message });
+  async chatReply(questionId: number, message: string, userId?: string): Promise<void> {
+    await api.callBackend('chatReply', { questionId, message, userId });
   },
 
   async chatGetThread(userId?: string): Promise<ChatMessage[]> {

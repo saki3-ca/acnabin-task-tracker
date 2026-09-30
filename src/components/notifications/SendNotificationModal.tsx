@@ -23,13 +23,15 @@ const segStyle = (active: boolean): React.CSSProperties => ({
 interface Props {
   onClose: () => void;
   onSent: () => void;
+  /** Open straight into a chat with this user */
+  presetUserId?: string;
 }
 
-export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
+export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent, presetUserId }) => {
   const { currentUser, allUsers } = useAuth();
-  const [audience, setAudience] = useState<Audience>('ALL');
+  const [audience, setAudience] = useState<Audience>(presetUserId ? 'ONE' : 'ALL');
   const [kind, setKind] = useState<Kind>('MESSAGE');
-  const [userId, setUserId] = useState('');
+  const [userId, setUserId] = useState(presetUserId || '');
   const [text, setText] = useState('');
   const [thread, setThread] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);

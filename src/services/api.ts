@@ -1127,6 +1127,24 @@ export const api = {
         if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
         if (data === 'NOT_FOUND') throw new Error('This question is no longer available.');
         if (data !== 'OK') throw new Error('Please type your answer first.');
+
+        // Tell the Admin(s) an answer has arrived
+        try {
+          const { data: me } = await supabase.from('users').select('id, name, emp_id').eq('id', session.userId).maybeSingle();
+          const { data: admins } = await supabase.from('users').select('id').eq('role', 'ADMIN').eq('status', 'ACTIVE');
+          const asUserId = payload.userId || me?.id;
+          const asUser = asUserId === me?.id ? me : (await supabase.from('users').select('id, name, emp_id').eq('id', asUserId).maybeSingle()).data;
+          const rows = (admins || []).map((a: any) => ({
+            user_id: a.id,
+            type: 'USER_REPLY',
+            title: `Reply from ${asUser?.name || 'a user'}${asUser?.emp_id ? ` (${asUser.emp_id})` : ''}`,
+            message: String(payload.message || '').trim(),
+            data: { kind: 'USER_REPLY', fromUserId: asUserId, questionId: payload.questionId, sentAt: Date.now() }
+          }));
+          if (rows.length > 0) await supabase.from('notifications').insert(rows);
+        } catch (nErr) {
+          console.warn('Could not notify admin of the reply:', nErr);
+        }
         return { success: true } as T;
       }
 

@@ -98,7 +98,8 @@ export type NotificationType =
   | 'TASK_REQUEST'
   | 'INFO_REQUEST'
   | 'ADMIN_QUERY'
-  | 'ANNOUNCEMENT';
+  | 'ANNOUNCEMENT'
+  | 'USER_REPLY';
 
 export interface ChatMessage {
   id: number;

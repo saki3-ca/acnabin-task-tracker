@@ -27,6 +27,7 @@ export const NotificationsView: React.FC = () => {
   const [infoFor, setInfoFor] = useState<string | null>(null);
   const [replyFor, setReplyFor] = useState<{ notifId: string; questionId: number; userId: string; question: string } | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
+  const [chatWith, setChatWith] = useState<string | undefined>(undefined);
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
@@ -181,6 +182,25 @@ export const NotificationsView: React.FC = () => {
             <MessagesSquare size={12} /> Admin Question
           </span>
         );
+      case 'USER_REPLY':
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 700,
+              background: '#ECFDF5',
+              color: '#065F46',
+              border: '1px solid #A7F3D0'
+            }}
+          >
+            <MessagesSquare size={12} /> User Reply
+          </span>
+        );
       case 'TASK_REQUEST':
         return (
           <span
@@ -227,7 +247,11 @@ export const NotificationsView: React.FC = () => {
 
       {sendOpen && (
         <SendNotificationModal
-          onClose={() => setSendOpen(false)}
+          presetUserId={chatWith}
+          onClose={() => {
+            setSendOpen(false);
+            setChatWith(undefined);
+          }}
           onSent={() => {
             refreshNotifications();
           }}
@@ -383,7 +407,32 @@ export const NotificationsView: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {notif.type === 'ADMIN_QUERY' ? (
+                      {notif.type === 'USER_REPLY' ? (
+                        <div style={{ display: 'inline-flex', gap: '6px' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setChatWith(notif.data?.fromUserId);
+                              setSendOpen(true);
+                              markAsRead(notif.id);
+                            }}
+                            className="btn btn-primary btn-sm"
+                            title="Open the chat with this user"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
+                          >
+                            <MessagesSquare size={14} /> Open chat
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => markAsRead(notif.id)}
+                            className="btn btn-teal btn-sm"
+                            title="Mark as read"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
+                          >
+                            <CheckCheck size={14} /> Read
+                          </button>
+                        </div>
+                      ) : notif.type === 'ADMIN_QUERY' ? (
                         <button
                           type="button"
                           onClick={() => setReplyFor({ notifId: notif.id, questionId: Number(notif.data?.questionId), userId: notif.userId, question: notif.message })}
