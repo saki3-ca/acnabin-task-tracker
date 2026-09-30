@@ -362,6 +362,37 @@ export const api = {
     }
   },
 
+  /**
+   * Role / designation / status / ID changes go through an Admin-only database function
+   * (supabase_lockdown_users.sql). Returns 'LEGACY' when that function isn't installed yet,
+   * so the caller can use the old direct update until the SQL has been run.
+   */
+  async adminUpdateUser(
+    userId: string,
+    fields: { emp_id?: string; role?: string; designation?: string; status?: string }
+  ): Promise<'OK' | 'LEGACY'> {
+    const session = readSession();
+    if (!session) throw new Error('Please log out and log in again, then try again.');
+    const { data, error } = await supabase.rpc('app_admin_update_user', {
+      p_session: session.token,
+      p_user_id: userId,
+      p_emp_id: fields.emp_id ?? null,
+      p_role: fields.role ?? null,
+      p_designation: fields.designation ?? null,
+      p_status: fields.status ?? null
+    });
+    if (error) {
+      if (isMissingFunction(error)) return 'LEGACY';
+      throw error;
+    }
+    if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+    if (data === 'FORBIDDEN') throw new Error('Only Admin can change roles, designations, status or IDs.');
+    if (data === 'DUPLICATE') throw new Error('Another user already has that ID.');
+    if (data === 'LAST_ADMIN') throw new Error('There must be at least one active Admin.');
+    if (data !== 'OK') throw new Error('Invalid value.');
+    return 'OK';
+  },
+
   /** After Admin "Switch User" the saved session still belongs to the Admin: don't save data under the wrong account. */
   async assertSessionIsCurrentUser(session: { userId: string }) {
     const current = await this.getCurrentUser();
@@ -498,42 +529,71 @@ export const api = {
         }
 
         const newId = `u-${Date.now()}`;
-        const userRow = {
-          id: newId,
-          name,
-          emp_id: hrmEmpId,
-          email,
-          role: 'USER',
-          designation: reqDesignation || 'Student',
-          signup_client_id: clientId || '',
-          status: 'ACTIVE',
-          created_date: new Date().toISOString(),
-          mobile: mobile || ''
-        };
+        const signupYear = academicYear || (reqDesignation === 'Trainee' ? '1st Year' : '');
+        let created: any = null;
 
-        const { data: created, error } = await supabase
-          .from('users')
-          .insert(userRow)
-          .select()
-          .single();
-
-        if (error) {
-          // 23505 = unique violation: someone signed up with this ID at the same moment
-          if ((error as any).code === '23505') {
-            throw new Error('A user with this Employee/Student ID already exists.');
-          }
-          throw error;
-        }
-
-        const { data: pwSet, error: pwErr } = await supabase.rpc('app_set_initial_password', {
-          p_user_id: newId,
+        // Preferred: one database function creates the account (always role USER, status ACTIVE)
+        // and sets the password (supabase_lockdown_users.sql).
+        const { data: regResult, error: regErr } = await supabase.rpc('app_register_user', {
+          p_id: newId,
+          p_name: name,
+          p_emp_id: hrmEmpId,
+          p_email: email,
+          p_designation: reqDesignation || 'Student',
+          p_signup_client_id: clientId || '',
+          p_mobile: mobile || '',
+          p_academic_year: signupYear,
           p_password: String(password)
         });
-        if (pwErr || !pwSet) {
-          console.error('app_set_initial_password failed:', pwErr);
-          // Don't leave behind an account with no password (anyone could claim it).
-          await supabase.from('users').delete().eq('id', newId);
-          throw new Error('Could not save your password. Please try again or contact an administrator.');
+
+        if (!regErr) {
+          if (regResult === 'DUPLICATE') throw new Error('A user with this Employee/Student ID already exists.');
+          if (regResult !== 'OK') throw new Error('Please check your details and try again.');
+          const { data: row, error: rowErr } = await supabase.from('users').select('*').eq('id', newId).single();
+          if (rowErr) throw rowErr;
+          created = row;
+        } else if (!isMissingFunction(regErr)) {
+          throw regErr;
+        } else {
+          // Function not installed yet: the older direct signup (used until the SQL has been run)
+          const userRow = {
+            id: newId,
+            name,
+            emp_id: hrmEmpId,
+            email,
+            role: 'USER',
+            designation: reqDesignation || 'Student',
+            signup_client_id: clientId || '',
+            status: 'ACTIVE',
+            created_date: new Date().toISOString(),
+            mobile: mobile || ''
+          };
+
+          const { data: legacyCreated, error } = await supabase
+            .from('users')
+            .insert(userRow)
+            .select()
+            .single();
+
+          if (error) {
+            // 23505 = unique violation: someone signed up with this ID at the same moment
+            if ((error as any).code === '23505') {
+              throw new Error('A user with this Employee/Student ID already exists.');
+            }
+            throw error;
+          }
+          created = legacyCreated;
+
+          const { data: pwSet, error: pwErr } = await supabase.rpc('app_set_initial_password', {
+            p_user_id: newId,
+            p_password: String(password)
+          });
+          if (pwErr || !pwSet) {
+            console.error('app_set_initial_password failed:', pwErr);
+            // Don't leave behind an account with no password (anyone could claim it).
+            await supabase.from('users').delete().eq('id', newId);
+            throw new Error('Could not save your password. Please try again or contact an administrator.');
+          }
         }
         try {
           const { token } = await verifyPassword(newId, String(password));
@@ -1571,12 +1631,24 @@ export const api = {
           clientIdsToSync = updates.signupClientId.split(',').map((s: string) => s.trim()).filter(Boolean);
         }
 
-        const { data, error } = await supabase
-          .from('users')
-          .update(dbUpdates)
-          .eq('id', userId)
-          .select()
-          .single();
+        // Privilege-bearing columns go through the Admin-only function (falls back to a direct
+        // update until supabase_lockdown_users.sql has been run).
+        const sensitive: any = {};
+        for (const k of ['emp_id', 'role', 'designation', 'status']) {
+          if (dbUpdates[k] !== undefined) {
+            sensitive[k] = dbUpdates[k];
+            delete dbUpdates[k];
+          }
+        }
+        if (Object.keys(sensitive).length > 0) {
+          const outcome = await this.adminUpdateUser(userId, sensitive);
+          if (outcome === 'LEGACY') Object.assign(dbUpdates, sensitive);
+        }
+
+        const { data, error } =
+          Object.keys(dbUpdates).length > 0
+            ? await supabase.from('users').update(dbUpdates).eq('id', userId).select().single()
+            : await supabase.from('users').select('*').eq('id', userId).single();
 
         if (error) throw error;
         const updated = mapUserFromDb(data);
@@ -2022,9 +2094,22 @@ export const api = {
           if (academicYear !== undefined) {
             userUpdates.academic_year = academicYear;
           }
-          if (designation !== undefined && designation !== 'TBA') {
-            userUpdates.designation = designation;
+          // Designation is privilege-bearing: only Admin may change it, through the Admin-only function
+          // (falls back to a direct update until supabase_lockdown_users.sql has been run).
+          const wantsDesignation = designation !== undefined && designation !== 'TBA';
+          const actor = wantsDesignation ? await this.getCurrentUser() : null;
+          const adminChangesDesignation = wantsDesignation && actor?.role === 'ADMIN';
+          let designationNeedsLegacyWrite = false;
+
+          if (adminChangesDesignation) {
+            const { data: targets } = await supabase.from('users').select('id, designation').in('emp_id', targetIds);
+            for (const t of targets || []) {
+              if (t.designation === designation) continue;
+              const outcome = await this.adminUpdateUser(t.id, { designation });
+              if (outcome === 'LEGACY') designationNeedsLegacyWrite = true;
+            }
           }
+          if (designationNeedsLegacyWrite) userUpdates.designation = designation;
 
           await supabase
             .from('users')
