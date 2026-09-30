@@ -233,7 +233,7 @@ export async function buildManpowerWorkbook(
   });
 
   ws2.autoFilter = { from: { row: 4, column: 1 }, to: { row: 4, column: cols.length } };
-  ws2.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '4:4', paperSize: 8 };
+  ws2.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '4:4' };
 
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
 }
