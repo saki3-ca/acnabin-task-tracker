@@ -178,8 +178,8 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
         <div className="fd-grid">
           <Panel title="EMPLOYMENT" icon={<Briefcase size={icon} />}>
             <Row label="ID">{soft(currentUser.empId)}</Row>
-            <Row label="Designation">{soft(currentUser.designation)}</Row>
-            <Row label="Department" last={isEmp || isPartner}>{soft(staff?.department)}</Row>
+            <Row label="Designation" last={isPartner}>{soft(currentUser.designation)}</Row>
+            {!isPartner && <Row label="Department" last={isEmp}>{soft(staff?.department)}</Row>}
             {!isEmp && !isPartner && <Row label="Articleship Period">{soft(staff?.articleshipPeriod)}</Row>}
             {!isEmp && !isPartner && <Row label="Principal" last>{soft(principalDisplay(staff?.principalName))}</Row>}
           </Panel>
@@ -201,9 +201,9 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
 
           <Panel title="CONTACT" icon={<Phone size={icon} />}>
             <Row label="Mobile">{soft(currentUser.mobile || staff?.mobile)}</Row>
-            <Row label="Email">{soft(currentUser.email || staff?.email)}</Row>
+            <Row label="Email" last={isPartner}>{soft(currentUser.email || staff?.email)}</Row>
             {!isPartner && <Row label="Present Address">{soft(staff?.presentAddress)}</Row>}
-            <Row label="Blood Group" last>{soft(blood)}</Row>
+            {!isPartner && <Row label="Blood Group" last>{soft(blood)}</Row>}
           </Panel>
 
           {!isPartner && (

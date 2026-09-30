@@ -1312,26 +1312,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             {/* Below Senior Assistant Manager: the client field stays on its own, above the info box */}
             {!clientsInInfoBox && !isPartner && clientPicker}
 
-            {/* Partner: only the blood group is asked here */}
-            {isPartner && (
-              <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
-                <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '10px' }}>
-                  Personal Information
-                </div>
-                <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
-                  <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                    <label style={{ fontSize: '11.5px' }}>Blood Group</label>
-                    <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
-                      <option value="">Select…</option>
-                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
-                        <option key={b} value={b}>{b}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Personal & work information (all optional) */}
             {!isPartner && (
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
