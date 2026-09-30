@@ -97,7 +97,8 @@ export type NotificationType =
   | 'MANAGER_COMMENT'
   | 'TASK_REQUEST'
   | 'INFO_REQUEST'
-  | 'ADMIN_QUERY';
+  | 'ADMIN_QUERY'
+  | 'ANNOUNCEMENT';
 
 export interface ChatMessage {
   id: number;

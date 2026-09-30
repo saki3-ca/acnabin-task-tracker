@@ -24,7 +24,7 @@ import {
 
 // Actions that must never fall back to the local store: credential checks (it has
 // no passwords) and client-list changes (a silent local save would look like success).
-const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'chatSendQuestion', 'chatReply', 'chatGetThread']);
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'chatSendQuestion', 'chatReply', 'chatGetThread', 'sendAnnouncement']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -1033,14 +1033,41 @@ export const api = {
         const requestId = `INFO-${Date.now()}`;
         const rows = (targets || [])
           .filter((u: any) =>
-            (u.role || '').toUpperCase() !== 'ADMIN' &&
-            (u.designation || '').toLowerCase().trim() !== 'partner')
+            payload?.userId
+              ? u.id === payload.userId
+              : (u.role || '').toUpperCase() !== 'ADMIN' &&
+                (u.designation || '').toLowerCase().trim() !== 'partner')
           .map((u: any) => ({
             user_id: u.id,
             type: 'INFO_REQUEST',
             title: 'Please update your information',
             message: 'Tap "Update info" to fill in your academic year, salary/allowance, daily conveyance, blood group and emergency contact.',
             data: { requestId, kind: 'PROFILE_INFO' }
+          }));
+        if (rows.length === 0) return { count: 0 } as T;
+        const { error: insErr } = await supabase.from('notifications').insert(rows);
+        if (insErr) throw insErr;
+        return { count: rows.length } as T;
+      }
+
+      case 'sendAnnouncement': {
+        const message = String(payload?.message || '').trim();
+        if (!message) throw new Error('Please type your message.');
+        const { data: targets, error: tErr } = await supabase
+          .from('users')
+          .select('id, role, designation')
+          .eq('status', 'ACTIVE');
+        if (tErr) throw tErr;
+        const rows = (targets || [])
+          .filter((u: any) =>
+            (u.role || '').toUpperCase() !== 'ADMIN' &&
+            (u.designation || '').toLowerCase().trim() !== 'partner')
+          .map((u: any) => ({
+            user_id: u.id,
+            type: 'ANNOUNCEMENT',
+            title: 'Message from Admin',
+            message,
+            data: { kind: 'ANNOUNCEMENT', sentAt: Date.now() }
           }));
         if (rows.length === 0) return { count: 0 } as T;
         const { error: insErr } = await supabase.from('notifications').insert(rows);

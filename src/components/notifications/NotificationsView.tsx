@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { notificationService } from '../../services/notificationService';
-import { AdminChatPanel } from './AdminChatPanel';
+import { SendNotificationModal } from './SendNotificationModal';
 import { ChatReplyModal } from './ChatReplyModal';
 import { ProfileInfoModal } from './ProfileInfoModal';
 import { AppNotification } from '../../types';
@@ -26,23 +26,7 @@ export const NotificationsView: React.FC = () => {
   const { currentUser } = useAuth();
   const [infoFor, setInfoFor] = useState<string | null>(null);
   const [replyFor, setReplyFor] = useState<{ notifId: string; questionId: number } | null>(null);
-  const [sending, setSending] = useState(false);
-  const [sendMsg, setSendMsg] = useState<string | null>(null);
-
-  const handleSendInfoRequest = async () => {
-    if (!window.confirm('Send an "update your information" request to ALL active users?')) return;
-    setSending(true);
-    setSendMsg(null);
-    try {
-      const { count } = await notificationService.sendInfoRequest();
-      setSendMsg(`Request sent to ${count} user${count === 1 ? '' : 's'}.`);
-      await refreshNotifications();
-    } catch (e: any) {
-      setSendMsg(`Could not send: ${e?.message || 'unknown error'}`);
-    } finally {
-      setSending(false);
-    }
-  };
+  const [sendOpen, setSendOpen] = useState(false);
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
@@ -241,22 +225,14 @@ export const NotificationsView: React.FC = () => {
     <div className="notifications-page" style={{ display: 'contents' }}>
       <StatPills items={notifStats} variant="maroon" />
 
-      {currentUser?.role === 'ADMIN' && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleSendInfoRequest}
-            disabled={sending}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Send size={14} /> {sending ? 'Sending…' : 'Request info update from all users'}
-          </button>
-          {sendMsg && <span style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>{sendMsg}</span>}
-        </div>
+      {sendOpen && (
+        <SendNotificationModal
+          onClose={() => setSendOpen(false)}
+          onSent={() => {
+            refreshNotifications();
+          }}
+        />
       )}
-
-      {currentUser?.role === 'ADMIN' && <AdminChatPanel />}
 
       {replyFor && (
         <ChatReplyModal
@@ -300,17 +276,23 @@ export const NotificationsView: React.FC = () => {
             )}
           </div>
 
-          {unreadList.length > 0 && (
-            <button
-              type="button"
-              onClick={markAllAsRead}
-              className="btn btn-sm"
-              style={{
-                position: 'absolute',
-                right: '16px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'rgba(255, 255, 255, 0.2)',
+          <div
+            style={{
+              position: 'absolute',
+              right: '16px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'flex',
+              gap: '8px'
+            }}
+          >
+            {currentUser?.role === 'ADMIN' && (
+              <button
+                type="button"
+                onClick={() => setSendOpen(true)}
+                className="btn btn-sm"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
                 color: '#ffffff',
                 border: '1px solid rgba(255, 255, 255, 0.4)',
                 display: 'inline-flex',
@@ -319,11 +301,32 @@ export const NotificationsView: React.FC = () => {
                 padding: '4px 10px',
                 fontSize: '11.5px',
                 cursor: 'pointer'
-              }}
-            >
-              <CheckCheck size={14} /> Mark all read
-            </button>
-          )}
+                }}
+              >
+                <Send size={14} /> Send Notification
+              </button>
+            )}
+            {unreadList.length > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="btn btn-sm"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.4)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                fontSize: '11.5px',
+                cursor: 'pointer'
+                }}
+              >
+                <CheckCheck size={14} /> Mark all read
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="table-responsive" style={{ minHeight: '170px' }}>

@@ -10,8 +10,12 @@ export const notificationService = {
     await api.callBackend('markNotificationRead', { notificationId });
   },
 
-  async sendInfoRequest(): Promise<{ count: number }> {
-    return api.callBackend('sendInfoRequest', {});
+  async sendInfoRequest(userId?: string): Promise<{ count: number }> {
+    return api.callBackend('sendInfoRequest', { userId });
+  },
+
+  async sendAnnouncement(message: string): Promise<{ count: number }> {
+    return api.callBackend('sendAnnouncement', { message });
   },
 
   async submitProfileInfo(info: {
