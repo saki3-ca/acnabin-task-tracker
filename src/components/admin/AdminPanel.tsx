@@ -1,3 +1,4 @@
+import { ClientLabel } from '../ui/ClientLabel';
 import React, { useEffect, useState } from 'react';
 import { Check, Key, Shield, UserCog, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -244,7 +245,7 @@ export const AdminPanel: React.FC = () => {
                   checked={item.hasAccess}
                   onChange={() => toggleClientAccess(item.clientId)}
                 />
-                <span style={{ fontWeight: item.hasAccess ? 600 : 400 }}>{item.clientName}</span>
+                <span style={{ fontWeight: item.hasAccess ? 600 : 400 }}><ClientLabel id={item.clientId} name={item.clientName} /></span>
               </label>
             ))}
           </div>

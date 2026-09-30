@@ -1690,9 +1690,11 @@ export const api = {
 
             let assignedClient = 'Unassigned';
             let resolvedClientId: string | null = null;
+            let rowClientIds: string[] = [];
             if (appClientNames.length > 0) {
               assignedClient = appClientNames.join(', ');
               resolvedClientId = Array.from(userClientIds)[0] || null;
+              rowClientIds = Array.from(userClientIds).filter((cid: string) => clientMap.has(cid));
             } else if (mp && mp.client_name && mp.client_name !== '-' && mp.client_name.toLowerCase() !== 'none') {
               assignedClient = mp.client_name;
               resolvedClientId = mp.client_id || null;
@@ -1724,6 +1726,7 @@ export const api = {
               empId: u.emp_id,
               name: u.name,
               clientId: resolvedClientId,
+              clientIds: rowClientIds,
               assignedClient,
               designation: (desig as string) === 'TBA' ? '' : (desig || ''),
               academicYear: acad || '—',
@@ -1751,6 +1754,7 @@ export const api = {
             let assignedClient = mp.client_name || 'Unassigned';
             let designation = mp.designation || '';
             let name = mp.name || '';
+            let rowClientIds: string[] = mp.client_id ? [mp.client_id] : [];
 
             if (matchedUser) {
               name = matchedUser.name;
@@ -1775,6 +1779,7 @@ export const api = {
               if (appClientNames.length > 0) {
                 assignedClient = appClientNames.join(', ');
                 resolvedClientId = Array.from(userClientIds)[0] || mp.client_id || null;
+                rowClientIds = Array.from(userClientIds).filter((cid: string) => clientMap.has(cid));
               }
             } else {
               if (!mp.client_name || mp.client_name === '-' || mp.client_name.toLowerCase() === 'none') {
@@ -1809,6 +1814,7 @@ export const api = {
               empId: mpEmpId,
               name: name || (matchedUser ? matchedUser.name : ''),
               clientId: resolvedClientId,
+              clientIds: rowClientIds,
               assignedClient,
               designation: finalDesig,
               academicYear: acad || '—',

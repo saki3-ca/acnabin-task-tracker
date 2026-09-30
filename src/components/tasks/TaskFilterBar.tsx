@@ -1,3 +1,4 @@
+import { clientText } from '../ui/ClientLabel';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Filter, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -97,7 +98,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal 
             <option value="">All Clients</option>
             {allowedClients.map(c => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {clientText(c.name, c.jobNumber)}
               </option>
             ))}
           </select>

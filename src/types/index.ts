@@ -144,6 +144,8 @@ export interface ManpowerRecord {
   empId: string;
   name: string;
   clientId?: string | null;
+  /** All assigned client ids, in the same order as the names in assignedClient */
+  clientIds?: string[];
   assignedClient: string;
   designation: string;
   academicYear: string;
@@ -171,6 +173,8 @@ export interface ClientManpowerSummaryItem {
   totalConveyance: number;
   totalCost: number;
   remarks: string;
+  /** Set when the row is one single client, so its job ID can be shown */
+  jobClientId?: string | null;
 }
 
 export interface ClientManpowerRemark {

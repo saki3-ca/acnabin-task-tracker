@@ -1,3 +1,4 @@
+import { ClientLabel } from '../ui/ClientLabel';
 import React from 'react';
 import { AlertCircle, Clock, Edit2, MessageSquare, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -94,7 +95,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
 
       {/* Client */}
       <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
-        {task.clientName || 'General'}
+        <ClientLabel id={task.clientId} name={task.clientName || 'General'} />
       </td>
 
       {/* Added By - Only displayed in personal tasks, hidden in Team Engagement view */}

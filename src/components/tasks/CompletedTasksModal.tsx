@@ -1,3 +1,4 @@
+import { ClientLabel, clientText } from '../ui/ClientLabel';
 import React, { useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -39,7 +40,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   onEditTask,
   onOpenComment
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, allClients } = useAuth();
   const { updateTask, deleteTask } = useTasks();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,7 +199,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                   <option value="">All Clients</option>
                   {clientOptions.map(c => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {clientText(c.name, allClients.find(x => x.id === c.id)?.jobNumber)}
                     </option>
                   ))}
                 </select>
@@ -295,7 +296,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                       <td style={{ fontSize: '12.5px', color: 'var(--navy)', fontWeight: 500 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <Building size={13} color="var(--ink-soft)" />
-                          <span>{task.clientName || 'General'}</span>
+                          <span><ClientLabel id={task.clientId} name={task.clientName || 'General'} /></span>
                         </div>
                       </td>
 

@@ -1,3 +1,4 @@
+import { ClientLabel } from '../ui/ClientLabel';
 import React, { useState } from 'react';
 import { Check, X, Clock, AlertCircle, FileText, UserCheck, Briefcase } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -130,7 +131,7 @@ export const TaskRequestsView: React.FC = () => {
                       )}
                     </td>
                     <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--teal)' }}>{req.clientName}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--teal)' }}><ClientLabel id={req.clientId} name={req.clientName} /></div>
                       {req.deadline && (
                         <div style={{ fontSize: '11px', color: 'var(--maroon)', marginTop: '2px' }}>
                           Due: {fmtDate(req.deadline)}
@@ -217,7 +218,7 @@ export const TaskRequestsView: React.FC = () => {
                       )}
                     </td>
                     <td style={{ textAlign: 'center', fontSize: '11.5px', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--teal)' }}>{req.clientName}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--teal)' }}><ClientLabel id={req.clientId} name={req.clientName} /></div>
                       {req.deadline && (
                         <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '2px' }}>
                           Due: {fmtDate(req.deadline)}

@@ -18,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
 import { isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
+import { ClientLabel, clientText } from '../ui/ClientLabel';
 import { manpowerService } from '../../services/manpowerService';
 import { ClientManpowerSummaryItem, ManpowerRecord } from '../../types';
 
@@ -207,6 +208,7 @@ export const ManpowerView: React.FC = () => {
     const groupMap = new Map<string, {
       clientId: string;
       clientName: string;
+      jobClientId: string | null;
       manpowerCount: number;
       totalSalary: number;
       totalConveyance: number;
@@ -218,13 +220,17 @@ export const ManpowerView: React.FC = () => {
         cName = 'Unassigned';
       }
 
-      const key = cName.toLowerCase();
+      // A single-client row is grouped by client id, so two clients with the same
+      // name but different job IDs stay separate.
+      const singleId = r.clientIds && r.clientIds.length === 1 ? r.clientIds[0] : null;
+      const key = singleId ? `${cName.toLowerCase()}|${singleId}` : cName.toLowerCase();
       const cId = r.clientId || (cName === 'Unassigned' ? 'UNASSIGNED' : cName);
 
       if (!groupMap.has(key)) {
         groupMap.set(key, {
           clientId: cId,
           clientName: cName,
+          jobClientId: singleId,
           manpowerCount: 0,
           totalSalary: 0,
           totalConveyance: 0
@@ -242,6 +248,7 @@ export const ManpowerView: React.FC = () => {
       items.push({
         clientId: g.clientId,
         clientName: g.clientName,
+        jobClientId: g.jobClientId,
         manpowerCount: g.manpowerCount,
         totalSalary: g.totalSalary,
         totalConveyance: g.totalConveyance,
@@ -346,6 +353,14 @@ export const ManpowerView: React.FC = () => {
     setViewMode('details');
   };
 
+  const jobOf = (id?: string | null) => (id ? allClients.find(c => c.id === id)?.jobNumber : undefined);
+  const assignedClientText = (r: ManpowerRecord) =>
+    r.clientIds && r.clientIds.length > 0
+      ? r.clientIds
+          .map(id => clientText(allClients.find(c => c.id === id)?.name || r.assignedClient, jobOf(id)))
+          .join(', ')
+      : r.assignedClient;
+
   const handleExportExcel = () => {
     const today = new Date().toISOString().split('T')[0];
     const fileName = `ACNABIN_Manpower_Summary_and_Details_${today}.xlsx`;
@@ -353,7 +368,7 @@ export const ManpowerView: React.FC = () => {
     // 1. Sheet 1: Client-wise Summary Data
     const summaryData = sortedSummaryList.map((item, idx) => ({
       'SL': idx + 1,
-      'Client Name': item.clientName,
+      'Client Name': clientText(item.clientName, jobOf(item.jobClientId)),
       'Manpower': item.manpowerCount,
       'Total Salary': item.totalSalary,
       'Total Conveyance': item.totalConveyance,
@@ -376,7 +391,7 @@ export const ManpowerView: React.FC = () => {
       'SL': idx + 1,
       'EMP/STD ID': item.empId,
       'Name': item.name,
-      'Assigned Client': item.assignedClient,
+      'Assigned Client': assignedClientText(item),
       'Designation': /year/i.test(item.designation || '') ? 'Student' : (item.designation || ''),
       'Academic Year': item.academicYear && item.academicYear !== '—' ? item.academicYear : '',
       'Monthly Salary': item.salary,
@@ -460,7 +475,7 @@ export const ManpowerView: React.FC = () => {
     if (val.trim()) {
       setEditClientSuggestions(
         allClients
-          .filter(c => c.name.toLowerCase().includes(val.toLowerCase()) && !editClients.find(sc => sc.id === c.id))
+          .filter(c => (c.name.toLowerCase().includes(val.toLowerCase()) || (c.jobNumber || '').toLowerCase().includes(val.toLowerCase())) && !editClients.find(sc => sc.id === c.id))
           .slice(0, 8)
           .map(c => ({ id: c.id, name: c.name }))
       );
@@ -1089,7 +1104,13 @@ export const ManpowerView: React.FC = () => {
                           {item.name}
                         </td>
                         <td style={{ color: 'var(--ink)', fontSize: '12.5px' }}>
-                          {item.assignedClient}
+                          {item.clientIds && item.clientIds.length > 0
+                            ? item.clientIds.map(id => (
+                                <div key={id}>
+                                  <ClientLabel id={id} name={allClients.find(c => c.id === id)?.name || item.assignedClient} />
+                                </div>
+                              ))
+                            : item.assignedClient}
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           {item.designation && item.designation !== 'TBA' ? (
@@ -1343,7 +1364,9 @@ export const ManpowerView: React.FC = () => {
                           <td style={{ fontWeight: 700, color: isUnassigned ? '#B45309' : 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <Building size={14} color={isUnassigned ? '#B45309' : 'var(--navy)'} />
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.clientName}</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {item.jobClientId ? <ClientLabel id={item.jobClientId} name={item.clientName} /> : item.clientName}
+                              </span>
                             </div>
                           </td>
 
@@ -1656,7 +1679,7 @@ export const ManpowerView: React.FC = () => {
                           fontWeight: 600
                         }}
                       >
-                        {c.name}
+                        <span><ClientLabel id={c.id} name={c.name} /></span>
                         <button
                           type="button"
                           onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
@@ -1703,7 +1726,7 @@ export const ManpowerView: React.FC = () => {
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
                         onMouseLeave={e => (e.currentTarget.style.background = '')}
                       >
-                        {c.name}
+                        <ClientLabel id={c.id} name={c.name} />
                       </li>
                     ))}
                   </ul>
