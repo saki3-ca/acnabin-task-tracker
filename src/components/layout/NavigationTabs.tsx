@@ -104,16 +104,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
         )}
       </button>
 
-      {/* 5. My Profile */}
-      <button
-        className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
-        onClick={() => onSelectTab('profile')}
-      >
-        <UserIcon size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-        My Profile
-      </button>
-
-      {/* 6. Manpower */}
+      {/* 5. Manpower */}
       {showManpowerTab && (
         <button
           className={`tab-btn ${activeTab === 'manpower' ? 'active' : ''}`}
@@ -123,6 +114,15 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
           Manpower
         </button>
       )}
+
+      {/* 6. My Profile */}
+      <button
+        className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+        onClick={() => onSelectTab('profile')}
+      >
+        <UserIcon size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+        My Profile
+      </button>
 
       {/* 7. Admin Panel */}
       {showAdminTab && (
