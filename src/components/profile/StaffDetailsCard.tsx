@@ -161,7 +161,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
   return (
     <div className="table-card">
       <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 20px' }}>
-        <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>{isPartner ? "OFFICIAL PARTNER'S PROFILE" : 'OFFICIAL EMPLOYEE PROFILE · FULL DETAILS'}</span>
+        <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>{isPartner ? "OFFICIAL PARTNER'S PROFILE" : isEmp ? 'OFFICIAL EMPLOYEE PROFILE' : 'OFFICIAL STUDENT PROFILE'}</span>
         <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.6px', background: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '4px' }}>
           {show(currentUser.empId)}
         </span>
