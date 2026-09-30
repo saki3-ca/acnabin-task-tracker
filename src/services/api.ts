@@ -22,7 +22,9 @@ import {
   INITIAL_USERS
 } from './mockData';
 
-const AUTH_ACTIONS = new Set(['login', 'register', 'changePassword']);
+// Actions that must never fall back to the local store: credential checks (it has
+// no passwords) and client-list changes (a silent local save would look like success).
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -361,9 +363,7 @@ export const api = {
     try {
       return await (this.dispatchSupabase(action, payload) as Promise<T>);
     } catch (err: any) {
-      // Never fall back to the local store for credential checks: it has no
-      // passwords, so a wrong-password error would turn into a successful login.
-      if (AUTH_ACTIONS.has(action)) throw err;
+      if (NO_FALLBACK_ACTIONS.has(action)) throw err;
       console.warn(`[Supabase API] Failed action "${action}", falling back to local store:`, err?.message || err);
       return (this.dispatchFallback(action, payload) as T);
     }
@@ -1168,7 +1168,19 @@ export const api = {
       }
 
       case 'addClient': {
-        const { name, jobNumber } = payload;
+        const name = String(payload.name || '').trim();
+        const jobNumber = String(payload.jobNumber || '').trim();
+        if (!name) throw new Error('Please enter the client name.');
+
+        const { data: existing, error: existingErr } = await supabase.from('clients').select('name, job_number');
+        if (existingErr) throw existingErr;
+        if ((existing || []).some((c: any) => (c.name || '').trim().toLowerCase() === name.toLowerCase())) {
+          throw new Error(`A client named "${name}" already exists.`);
+        }
+        if (jobNumber && (existing || []).some((c: any) => (c.job_number || '').trim().toLowerCase() === jobNumber.toLowerCase())) {
+          throw new Error(`Job number ${jobNumber} is already used by another client.`);
+        }
+
         const newClientRow = {
           id: `c-${Date.now()}`,
           name,
@@ -1199,6 +1211,31 @@ export const api = {
 
         if (error) throw error;
         return mapClientFromDb(data) as T;
+      }
+
+      case 'deleteClient': {
+        const { clientId } = payload;
+        if (!clientId) throw new Error('No client selected.');
+
+        const { error } = await supabase.from('clients').delete().eq('id', clientId);
+        if (error) throw error;
+
+        // Drop the client from manager access lists and from users' assigned clients.
+        // Existing tasks keep their stored client name, so history still reads correctly.
+        await supabase.from('manager_client_access').delete().eq('client_id', clientId);
+        const { data: assignedUsers } = await supabase
+          .from('users')
+          .select('id, signup_client_id')
+          .ilike('signup_client_id', `%${clientId}%`);
+        for (const u of assignedUsers || []) {
+          const ids = String(u.signup_client_id || '').split(',').map((x: string) => x.trim()).filter(Boolean);
+          if (!ids.includes(clientId)) continue;
+          await supabase
+            .from('users')
+            .update({ signup_client_id: ids.filter((x: string) => x !== clientId).join(', ') })
+            .eq('id', u.id);
+        }
+        return { success: true } as T;
       }
 
       // ----------------------------------------------------------------------

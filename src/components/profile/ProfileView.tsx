@@ -9,6 +9,7 @@ import {
   KeyRound,
   Mail,
   Phone,
+  Plus,
   Trash2,
   Upload
 } from 'lucide-react';
@@ -17,6 +18,7 @@ import { useTasks } from '../../context/TaskContext';
 import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove, normalizeBDMobile } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { api } from '../../services/api';
+import { clientService } from '../../services/clientService';
 import { Modal } from '../ui/Modal';
 import { CompletedTasksModal } from '../tasks/CompletedTasksModal';
 
@@ -77,6 +79,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const { myTasks, teamTasks, myStats } = useTasks();
 
   const canSeeAll = canViewAllClients(currentUser);
+  // Client list management: AD and above (and Admin) can add clients; only Admin can delete.
+  const canAddClients = canSeeAll;
+  const canDeleteClients = currentUser?.role === 'ADMIN';
+
+  const [isAddClientOpen, setIsAddClientOpen] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientJobNumber, setNewClientJobNumber] = useState('');
+  const [isSavingClient, setIsSavingClient] = useState(false);
+  const [addClientError, setAddClientError] = useState<string | null>(null);
+  const [clientNotice, setClientNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
 
   const [assignedClientIds, setAssignedClientIds] = useState<string[]>(() => {
     if (!currentUser) return [];
@@ -285,6 +298,55 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       setModalFeedback({ type: 'error', text: err?.message || 'Failed to update profile.' });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const openAddClient = () => {
+    setNewClientName('');
+    setNewClientJobNumber('');
+    setAddClientError(null);
+    setIsAddClientOpen(true);
+  };
+
+  const handleAddClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClientName.trim()) {
+      setAddClientError('Please enter the client name.');
+      return;
+    }
+    setAddClientError(null);
+    setIsSavingClient(true);
+    try {
+      const created = await clientService.addClient(newClientName.trim(), newClientJobNumber.trim() || undefined);
+      await refreshContextData();
+      setIsAddClientOpen(false);
+      setClientNotice({ type: 'success', text: `Client "${created.name}" added (Job ID ${created.jobNumber}).` });
+    } catch (err: any) {
+      setAddClientError(err?.message || 'Could not add the client. Please try again.');
+    } finally {
+      setIsSavingClient(false);
+    }
+  };
+
+  const handleDeleteClient = async (clientId: string, clientName: string) => {
+    const taskCount = clientTaskCounts[clientId]?.total || 0;
+    const warning =
+      `Delete client "${clientName}"?\n\n` +
+      `It will be removed from the client list and from every user and manager it is assigned to.` +
+      (taskCount > 0 ? `\n${taskCount} existing task(s) keep the client name for history.` : '') +
+      `\n\nThis cannot be undone.`;
+    if (!window.confirm(warning)) return;
+
+    setDeletingClientId(clientId);
+    setClientNotice(null);
+    try {
+      await clientService.deleteClient(clientId);
+      await refreshContextData();
+      setClientNotice({ type: 'success', text: `Client "${clientName}" deleted.` });
+    } catch (err: any) {
+      setClientNotice({ type: 'error', text: err?.message || 'Could not delete the client. Please try again.' });
+    } finally {
+      setDeletingClientId(null);
     }
   };
 
@@ -611,6 +673,51 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           </span>
         </div>
 
+        {canAddClients && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              flexWrap: 'wrap',
+              padding: '10px 14px',
+              borderBottom: '1px solid var(--line)'
+            }}
+          >
+            <div style={{ fontSize: '12px', color: 'var(--ink-muted)' }}>
+              {canDeleteClients
+                ? 'Add or delete clients. Changes apply to the whole firm-wide client list.'
+                : 'Add clients to the firm-wide client list.'}
+            </div>
+            <button
+              type="button"
+              onClick={openAddClient}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={14} /> Add Client
+            </button>
+          </div>
+        )}
+
+        {clientNotice && (
+          <div
+            style={{
+              margin: '10px 14px 0',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              background: clientNotice.type === 'success' ? '#DEF7EC' : '#FDE8E8',
+              color: clientNotice.type === 'success' ? '#03543F' : '#9B1C1C',
+              border: `1px solid ${clientNotice.type === 'success' ? '#31C48D' : '#F98080'}`
+            }}
+          >
+            {clientNotice.text}
+          </div>
+        )}
+
         <div className="table-responsive">
           <table className="data-table teal-table">
             <thead>
@@ -620,18 +727,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 <th style={{ textAlign: 'left', minWidth: '240px' }}>Client / Company Name</th>
                 <th style={{ width: '130px', textAlign: 'center' }}>ACTIVE TASKS</th>
                 <th style={{ width: '130px', textAlign: 'center' }}>Engagement Status</th>
+                {canDeleteClients && <th style={{ width: '90px', textAlign: 'center' }}>Action</th>}
               </tr>
             </thead>
             <tbody>
               {isLoadingClients ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '24px' }}>
+                  <td colSpan={canDeleteClients ? 6 : 5} style={{ textAlign: 'center', padding: '24px' }}>
                     <div className="loading-indicator">Loading your assigned clients…</div>
                   </td>
                 </tr>
               ) : assignedClientsList.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <td colSpan={canDeleteClients ? 6 : 5} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
                     <Building size={32} style={{ color: 'var(--ink-muted)', marginBottom: '8px', opacity: 0.5 }} />
                     <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
                       No clients assigned to your profile yet
@@ -696,6 +804,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                           <CheckCircle2 size={11} /> {client.status}
                         </span>
                       </td>
+                      {canDeleteClients && (
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteClient(client.id, client.name)}
+                            disabled={deletingClientId === client.id}
+                            className="btn btn-secondary btn-sm"
+                            title={`Delete ${client.name}`}
+                            aria-label={`Delete ${client.name}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#B91C1C' }}
+                          >
+                            <Trash2 size={13} /> {deletingClientId === client.id ? '…' : 'Delete'}
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -937,6 +1060,45 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
               {isSaving ? 'Saving Changes…' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Client Modal (AD and above / Admin) */}
+      <Modal isOpen={isAddClientOpen} onClose={() => setIsAddClientOpen(false)} title="Add Client" maxWidth="460px">
+        <form onSubmit={handleAddClient}>
+          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {addClientError && <div className="auth-alert-error">{addClientError}</div>}
+            <div className="form-field">
+              <label>Client / Company Name</label>
+              <input
+                type="text"
+                value={newClientName}
+                onChange={e => setNewClientName(e.target.value)}
+                className="form-input"
+                placeholder="e.g. Walton Plaza"
+                autoFocus
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label>Job ID (optional)</label>
+              <input
+                type="text"
+                value={newClientJobNumber}
+                onChange={e => setNewClientJobNumber(e.target.value)}
+                className="form-input"
+                placeholder="e.g. C-25066 (auto-generated if left blank)"
+              />
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={() => setIsAddClientOpen(false)} disabled={isSavingClient}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={isSavingClient} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Plus size={14} /> {isSavingClient ? 'Adding…' : 'Add Client'}
             </button>
           </div>
         </form>

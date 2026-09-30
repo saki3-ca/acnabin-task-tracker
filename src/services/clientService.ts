@@ -46,6 +46,15 @@ export const clientService = {
     return res;
   },
 
+  async deleteClient(clientId: string): Promise<void> {
+    await api.callBackend('deleteClient', { clientId });
+    inMemoryClientsCache = (inMemoryClientsCache || []).filter(c => c.id !== clientId);
+    try {
+      localStorage.setItem(CLIENTS_CACHE_KEY, JSON.stringify(inMemoryClientsCache));
+    } catch {}
+    this.getAllClients().catch(() => {});
+  },
+
   async updateClient(clientId: string, updates: Partial<Client>): Promise<Client> {
     const res = await api.callBackend<Client>('updateClient', { clientId, ...updates });
     // Invalidate/refresh cache
