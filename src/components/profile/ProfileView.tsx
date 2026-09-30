@@ -16,7 +16,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
 import { MyInfo } from '../../types';
-import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove, normalizeBDMobile } from '../../lib/permissions';
+import { canViewAllClients, DESIGNATION_RANKS, getUserAssignedClientIds, getUserRank, isSAMOrAbove, normalizeBDMobile } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { notificationService } from '../../services/notificationService';
 import { api } from '../../services/api';
@@ -353,7 +353,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     }
 
     // Personal / work information (every field is optional; empty = leave as it is)
-    const hasYearField = ['student', 'trainee'].includes((currentUser.designation || '').toLowerCase().trim());
     const salaryNum = editSalary.trim() === '' ? '' : Number(editSalary);
     const dailyNum = editDaily.trim() === '' ? '' : Number(editDaily);
     if (salaryNum !== '' && (Number.isNaN(salaryNum) || salaryNum < 0)) {
@@ -501,6 +500,91 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       setDeletingClientId(null);
     }
   };
+
+  // Assigned-client picker (search by name or job ID, like signup)
+  const clientPicker = (
+            <div className="form-field" style={{ position: 'relative' }}>
+              <label>Assigned Client(s)</label>
+              {editClients.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                  {editClients.map(c => (
+                    <span
+                      key={c.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'var(--navy-light, #EBF0FE)',
+                        border: '1px solid var(--navy, #1B2A6B)',
+                        borderRadius: '20px',
+                        padding: '2px 10px',
+                        fontSize: '12px',
+                        color: 'var(--navy, #1B2A6B)',
+                        fontWeight: 600
+                      }}
+                    >
+                      <span><ClientLabel id={c.id} name={c.name} /></span>
+                      <button
+                        type="button"
+                        onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
+                      >×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <input
+                type="text"
+                className="form-input"
+                value={editClientInput}
+                onChange={e => handleEditClientInput(e.target.value)}
+                onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
+                placeholder="Type to search client name or job ID…"
+                autoComplete="off"
+              />
+              {editClientSuggestions.length > 0 && (
+                <ul
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 100,
+                    background: '#fff',
+                    border: '1px solid var(--line)',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                    margin: 0,
+                    padding: '4px 0',
+                    listStyle: 'none',
+                    maxHeight: '160px',
+                    overflowY: 'auto'
+                  }}
+                >
+                  {editClientSuggestions.map(c => (
+                    <li
+                      key={c.id}
+                      onMouseDown={() => addEditClient(c)}
+                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = '')}
+                    >
+                      <ClientLabel id={c.id} name={c.name} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+  );
+
+  // Assigned clients sit inside the info box for Manager and above; below Manager they stay above it
+  const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Manager'];
+  const hasYearField = ['student', 'trainee'].includes((currentUser.designation || '').toLowerCase().trim());
+  const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%' };
+  const conveyanceDays = editClients.some(c => /walton/i.test(c.name)) ? 24 : 22;
+  const conveyanceHint =
+    `Daily conveyance × ${conveyanceDays} days = ৳ ${((Number(editDaily) || 0) * conveyanceDays).toLocaleString('en-IN')} / month` +
+    (infoSnap?.conveyance != null && editDaily.trim() === '' ? ` (saved: ৳ ${infoSnap.conveyance.toLocaleString('en-IN')})` : '');
 
   return (
     <div className="profile-page" style={{ display: 'contents' }}>
@@ -1128,6 +1212,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               />
             </div>
 
+            {/* Below Manager: the client field stays on its own, above the info box */}
+            {!clientsInInfoBox && clientPicker}
+
             {/* Personal & work information (all optional) */}
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
               <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
@@ -1137,163 +1224,72 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 {infoLoading ? 'Loading your saved information…' : 'Optional. Leave a field empty to keep it as it is.'}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {/* Assigned clients (search by name or job ID, like signup) */}
-                <div className="form-field" style={{ position: 'relative', gridColumn: '1 / -1' }}>
-                  <label>Assigned Client(s)</label>
-                  {editClients.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
-                      {editClients.map(c => (
-                        <span
-                          key={c.id}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: 'var(--navy-light, #EBF0FE)',
-                            border: '1px solid var(--navy, #1B2A6B)',
-                            borderRadius: '20px',
-                            padding: '2px 10px',
-                            fontSize: '12px',
-                            color: 'var(--navy, #1B2A6B)',
-                            fontWeight: 600
-                          }}
-                        >
-                          <span><ClientLabel id={c.id} name={c.name} /></span>
-                          <button
-                            type="button"
-                            onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
-                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
-                          >×</button>
-                        </span>
-                      ))}
+              {/* 6-column grid so every row is evenly filled and every field is the same size */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', alignItems: 'start' }}>
+                {clientsInInfoBox && <div style={{ gridColumn: '1 / -1' }}>{clientPicker}</div>}
+
+                {hasYearField ? (
+                  <>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Academic Year</label>
+                      <select className="form-select" value={editAcademicYear} onChange={e => setEditAcademicYear(e.target.value)} style={infoInputStyle}>
+                        <option value="">Select…</option>
+                        {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(y => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={editClientInput}
-                    onChange={e => handleEditClientInput(e.target.value)}
-                    onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
-                    placeholder="Type to search client name or job ID…"
-                    autoComplete="off"
-                  />
-                  {editClientSuggestions.length > 0 && (
-                    <ul
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        zIndex: 100,
-                        background: '#fff',
-                        border: '1px solid var(--line)',
-                        borderRadius: '6px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                        margin: 0,
-                        padding: '4px 0',
-                        listStyle: 'none',
-                        maxHeight: '160px',
-                        overflowY: 'auto'
-                      }}
-                    >
-                      {editClientSuggestions.map(c => (
-                        <li
-                          key={c.id}
-                          onMouseDown={() => addEditClient(c)}
-                          style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = '')}
-                        >
-                          <ClientLabel id={c.id} name={c.name} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                {['student', 'trainee'].includes((currentUser.designation || '').toLowerCase().trim()) && (
-                  <div className="form-field">
-                    <label style={{ fontSize: '11.5px' }}>Academic Year</label>
-                    <select
-                      className="form-select"
-                      value={editAcademicYear}
-                      onChange={e => setEditAcademicYear(e.target.value)}
-                      style={{ fontSize: '12px' }}
-                    >
-                      <option value="">Select…</option>
-                      {['1st Year', '2nd Year', '3rd Year', '4th Year'].map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
-                  </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Blood Group</label>
+                      <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
+                        <option value="">Select…</option>
+                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Monthly Salary / Allowance (৳)</label>
+                      <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Daily Conveyance (৳ per day)</label>
+                      <input type="number" min="0" className="form-input" value={editDaily} onChange={e => setEditDaily(e.target.value)} placeholder="e.g. 120" style={infoInputStyle} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '11.5px' }}>Blood Group</label>
+                      <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
+                        <option value="">Select…</option>
+                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '11.5px', whiteSpace: 'nowrap' }}>Salary (৳)</label>
+                      <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                      <label style={{ fontSize: '11.5px', whiteSpace: 'nowrap' }}>Conveyance (৳/day)</label>
+                      <input type="number" min="0" className="form-input" value={editDaily} onChange={e => setEditDaily(e.target.value)} placeholder="e.g. 120" style={infoInputStyle} />
+                    </div>
+                  </>
                 )}
-                <div className="form-field">
-                  <label style={{ fontSize: '11.5px' }}>Blood Group</label>
-                  <select
-                    className="form-select"
-                    value={editBlood}
-                    onChange={e => setEditBlood(e.target.value)}
-                    style={{ fontSize: '12px' }}
-                  >
-                    <option value="">Select…</option>
-                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
+
+                <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: 'var(--ink-muted)', marginTop: '-4px' }}>
+                  {conveyanceHint}
                 </div>
-                <div className="form-field">
-                  <label style={{ fontSize: '11.5px' }}>Monthly Salary / Allowance (৳)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="form-input"
-                    value={editSalary}
-                    onChange={e => setEditSalary(e.target.value)}
-                    placeholder="e.g. 15000"
-                    style={{ fontSize: '12px' }}
-                  />
-                </div>
-                <div className="form-field">
-                  <label style={{ fontSize: '11.5px' }}>Daily Conveyance (৳ per day)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="form-input"
-                    value={editDaily}
-                    onChange={e => setEditDaily(e.target.value)}
-                    placeholder="e.g. 120"
-                    style={{ fontSize: '12px' }}
-                  />
-                  <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '3px' }}>
-                    {(() => {
-                      const isWalton = editClients.some(c => /walton/i.test(c.name));
-                      const days = isWalton ? 24 : 22;
-                      const d = Number(editDaily) || 0;
-                      return `× ${days} days = ৳ ${(d * days).toLocaleString('en-IN')} / month` +
-                        (infoSnap?.conveyance != null && editDaily.trim() === '' ? ` (saved: ৳ ${infoSnap.conveyance.toLocaleString('en-IN')})` : '');
-                    })()}
-                  </div>
-                </div>
-                <div className="form-field">
+
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
                   <label style={{ fontSize: '11.5px' }}>Emergency Contact Name</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={editEmName}
-                    onChange={e => setEditEmName(e.target.value)}
-                    style={{ fontSize: '12px' }}
-                  />
+                  <input type="text" className="form-input" value={editEmName} onChange={e => setEditEmName(e.target.value)} style={infoInputStyle} />
                 </div>
-                <div className="form-field">
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
                   <label style={{ fontSize: '11.5px' }}>Emergency Contact Mobile</label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    value={editEmPhone}
-                    onChange={e => setEditEmPhone(e.target.value)}
-                    placeholder="01XXXXXXXXX"
-                    style={{ fontSize: '12px' }}
-                  />
+                  <input type="tel" className="form-input" value={editEmPhone} onChange={e => setEditEmPhone(e.target.value)} placeholder="01XXXXXXXXX" style={infoInputStyle} />
                 </div>
               </div>
             </div>
