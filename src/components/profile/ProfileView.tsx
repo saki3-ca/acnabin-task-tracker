@@ -285,6 +285,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
         setEditLaptopOwner(st.laptopOwnership || '');
         setEditLaptopId(st.laptopId || '');
         setEditRemarks(st.remarks || '');
+        // Same fallback as the profile page: what the sheet has, unless the person saved their own
+        setEditBlood(v => v || st.bloodGroup || '');
+        setEditEmName(v => v || st.emergencyName || '');
+        setEditEmPhone(v => v || st.emergencyPhone || '');
       })
       .catch(() => setStaffSnap(null));
     setInfoLoading(true);
@@ -296,9 +300,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           setEditAcademicYear(info.academicYear || '');
           setEditSalary(info.salary === null ? '' : String(info.salary));
           setEditDaily(info.dailyConveyance === null ? '' : String(info.dailyConveyance));
-          setEditBlood(info.bloodGroup || '');
-          setEditEmName(info.emergencyName || '');
-          setEditEmPhone(info.emergencyPhone || '');
+          setEditBlood(v => info.bloodGroup || v);
+          setEditEmName(v => info.emergencyName || v);
+          setEditEmPhone(v => info.emergencyPhone || v);
         }
       })
       .catch(() => setInfoSnap(null))
