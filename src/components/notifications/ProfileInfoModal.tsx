@@ -148,7 +148,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
               className="form-input"
               value={daily}
               onChange={e => setDaily(e.target.value)}
-              placeholder="e.g. 180"
+              placeholder="e.g. 120"
               style={{ height: '36px', fontSize: '13px' }}
             />
             <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px' }}>
