@@ -82,10 +82,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   // Client list management: AD and above (and Admin) can add clients; only Admin can delete.
   const canAddClients = canSeeAll;
   const canDeleteClients = currentUser?.role === 'ADMIN';
+  const canEditClients = currentUser?.role === 'ADMIN';
 
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
   const [newClientJobNumber, setNewClientJobNumber] = useState('');
+  const [newClientStatus, setNewClientStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  // Set when the client modal is editing an existing client (Admin) instead of adding one.
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [isSavingClient, setIsSavingClient] = useState(false);
   const [addClientError, setAddClientError] = useState<string | null>(null);
   const [clientNotice, setClientNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -302,8 +306,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   };
 
   const openAddClient = () => {
+    setEditingClientId(null);
     setNewClientName('');
     setNewClientJobNumber('');
+    setNewClientStatus('ACTIVE');
+    setAddClientError(null);
+    setIsAddClientOpen(true);
+  };
+
+  const openEditClient = (client: { id: string; name: string; jobNumber?: string; status: 'ACTIVE' | 'INACTIVE' }) => {
+    setEditingClientId(client.id);
+    setNewClientName(client.name);
+    setNewClientJobNumber(client.jobNumber || '');
+    setNewClientStatus(client.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE');
     setAddClientError(null);
     setIsAddClientOpen(true);
   };
@@ -317,12 +332,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     setAddClientError(null);
     setIsSavingClient(true);
     try {
-      const created = await clientService.addClient(newClientName.trim(), newClientJobNumber.trim() || undefined);
-      await refreshContextData();
-      setIsAddClientOpen(false);
-      setClientNotice({ type: 'success', text: `Client "${created.name}" added (Job ID ${created.jobNumber}).` });
+      if (editingClientId) {
+        const updated = await clientService.updateClient(editingClientId, {
+          name: newClientName.trim(),
+          // Leaving the Job ID blank keeps the current one.
+          jobNumber: newClientJobNumber.trim() || undefined,
+          status: newClientStatus
+        });
+        await refreshContextData();
+        setIsAddClientOpen(false);
+        setClientNotice({ type: 'success', text: `Client "${updated.name}" updated.` });
+      } else {
+        const created = await clientService.addClient(newClientName.trim(), newClientJobNumber.trim() || undefined);
+        await refreshContextData();
+        setIsAddClientOpen(false);
+        setClientNotice({ type: 'success', text: `Client "${created.name}" added (Job ID ${created.jobNumber}).` });
+      }
     } catch (err: any) {
-      setAddClientError(err?.message || 'Could not add the client. Please try again.');
+      setAddClientError(err?.message || (editingClientId ? 'Could not save the client.' : 'Could not add the client.') + ' Please try again.');
     } finally {
       setIsSavingClient(false);
     }
@@ -725,19 +752,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 <th style={{ textAlign: 'left', minWidth: '240px' }}>Client / Company Name</th>
                 <th style={{ width: '130px', textAlign: 'center' }}>ACTIVE TASKS</th>
                 <th style={{ width: '130px', textAlign: 'center' }}>Engagement Status</th>
-                {canDeleteClients && <th style={{ width: '90px', textAlign: 'center' }}>Action</th>}
+                {(canEditClients || canDeleteClients) && <th style={{ width: '170px', textAlign: 'center' }}>Action</th>}
               </tr>
             </thead>
             <tbody>
               {isLoadingClients ? (
                 <tr>
-                  <td colSpan={canDeleteClients ? 6 : 5} style={{ textAlign: 'center', padding: '24px' }}>
+                  <td colSpan={canEditClients || canDeleteClients ? 6 : 5} style={{ textAlign: 'center', padding: '24px' }}>
                     <div className="loading-indicator">Loading your assigned clients…</div>
                   </td>
                 </tr>
               ) : assignedClientsList.length === 0 ? (
                 <tr>
-                  <td colSpan={canDeleteClients ? 6 : 5} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <td colSpan={canEditClients || canDeleteClients ? 6 : 5} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
                     <Building size={32} style={{ color: 'var(--ink-muted)', marginBottom: '8px', opacity: 0.5 }} />
                     <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
                       No clients assigned to your profile yet
@@ -802,8 +829,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                           <CheckCircle2 size={11} /> {client.status}
                         </span>
                       </td>
-                      {canDeleteClients && (
-                        <td style={{ textAlign: 'center' }}>
+                      {(canEditClients || canDeleteClients) && (
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          {canEditClients && (
+                            <button
+                              type="button"
+                              onClick={() => openEditClient(client)}
+                              className="btn btn-secondary btn-sm"
+                              title={`Edit ${client.name}`}
+                              aria-label={`Edit ${client.name}`}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginRight: canDeleteClients ? '6px' : 0 }}
+                            >
+                              <Edit3 size={13} /> Edit
+                            </button>
+                          )}
+                          {canDeleteClients && (
                           <button
                             type="button"
                             onClick={() => handleDeleteClient(client.id, client.name)}
@@ -815,6 +855,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                           >
                             <Trash2 size={13} /> {deletingClientId === client.id ? '…' : 'Delete'}
                           </button>
+                          )}
                         </td>
                       )}
                     </tr>
@@ -1064,7 +1105,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       </Modal>
 
       {/* Add Client Modal (AD and above / Admin) */}
-      <Modal isOpen={isAddClientOpen} onClose={() => setIsAddClientOpen(false)} title="Add Client" maxWidth="460px">
+      <Modal isOpen={isAddClientOpen} onClose={() => setIsAddClientOpen(false)} title={editingClientId ? 'Edit Client' : 'Add Client'} maxWidth="460px">
         <form onSubmit={handleAddClient}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {addClientError && <div className="auth-alert-error">{addClientError}</div>}
@@ -1081,22 +1122,36 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               />
             </div>
             <div className="form-field">
-              <label>Job ID (optional)</label>
+              <label>{editingClientId ? 'Job ID' : 'Job ID (optional)'}</label>
               <input
                 type="text"
                 value={newClientJobNumber}
                 onChange={e => setNewClientJobNumber(e.target.value)}
                 className="form-input"
-                placeholder="e.g. C-25066 (auto-generated if left blank)"
+                placeholder={editingClientId ? 'e.g. C-25066' : 'e.g. C-25066 (auto-generated if left blank)'}
               />
             </div>
+            {editingClientId && (
+              <div className="form-field">
+                <label>Engagement Status</label>
+                <select
+                  value={newClientStatus}
+                  onChange={e => setNewClientStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
+                  className="form-select"
+                >
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
+            )}
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={() => setIsAddClientOpen(false)} disabled={isSavingClient}>
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSavingClient} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <Plus size={14} /> {isSavingClient ? 'Adding…' : 'Add Client'}
+              {editingClientId ? <Edit3 size={14} /> : <Plus size={14} />}{' '}
+              {isSavingClient ? 'Saving…' : editingClientId ? 'Save Changes' : 'Add Client'}
             </button>
           </div>
         </form>

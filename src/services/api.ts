@@ -1196,7 +1196,25 @@ export const api = {
       }
 
       case 'updateClient': {
-        const { clientId, name, jobNumber, status } = payload;
+        const { clientId, status } = payload;
+        const name = payload.name !== undefined ? String(payload.name).trim() : undefined;
+        const jobNumber = payload.jobNumber !== undefined ? String(payload.jobNumber).trim() : undefined;
+        if (name !== undefined && !name) throw new Error('Client name cannot be empty.');
+
+        if (name !== undefined || jobNumber) {
+          const { data: others, error: othersErr } = await supabase
+            .from('clients')
+            .select('name, job_number')
+            .neq('id', clientId);
+          if (othersErr) throw othersErr;
+          if (name !== undefined && (others || []).some((c: any) => (c.name || '').trim().toLowerCase() === name.toLowerCase())) {
+            throw new Error(`A client named "${name}" already exists.`);
+          }
+          if (jobNumber && (others || []).some((c: any) => (c.job_number || '').trim().toLowerCase() === jobNumber.toLowerCase())) {
+            throw new Error(`Job number ${jobNumber} is already used by another client.`);
+          }
+        }
+
         const dbUpdates: any = { last_updated: new Date().toISOString() };
         if (name !== undefined) dbUpdates.name = name;
         if (jobNumber !== undefined) dbUpdates.job_number = jobNumber;
@@ -1210,6 +1228,12 @@ export const api = {
           .single();
 
         if (error) throw error;
+
+        // Tasks store the client name; keep existing tasks in step with a rename.
+        if (name !== undefined) {
+          const { error: taskErr } = await supabase.from('tasks').update({ client_name: name }).eq('client_id', clientId);
+          if (taskErr) console.warn('Could not update client name on tasks:', taskErr);
+        }
         return mapClientFromDb(data) as T;
       }
 
