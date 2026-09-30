@@ -1128,80 +1128,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               />
             </div>
 
-            {/* Assigned clients (search by name or job ID, like signup) */}
-            <div className="form-field" style={{ position: 'relative' }}>
-              <label>Assigned Client(s)</label>
-              {editClients.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
-                  {editClients.map(c => (
-                    <span
-                      key={c.id}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: 'var(--navy-light, #EBF0FE)',
-                        border: '1px solid var(--navy, #1B2A6B)',
-                        borderRadius: '20px',
-                        padding: '2px 10px',
-                        fontSize: '12px',
-                        color: 'var(--navy, #1B2A6B)',
-                        fontWeight: 600
-                      }}
-                    >
-                      <span><ClientLabel id={c.id} name={c.name} /></span>
-                      <button
-                        type="button"
-                        onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
-                      >×</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <input
-                type="text"
-                className="form-input"
-                value={editClientInput}
-                onChange={e => handleEditClientInput(e.target.value)}
-                onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
-                placeholder="Type to search client name or job ID…"
-                autoComplete="off"
-              />
-              {editClientSuggestions.length > 0 && (
-                <ul
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    zIndex: 100,
-                    background: '#fff',
-                    border: '1px solid var(--line)',
-                    borderRadius: '6px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-                    margin: 0,
-                    padding: '4px 0',
-                    listStyle: 'none',
-                    maxHeight: '160px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {editClientSuggestions.map(c => (
-                    <li
-                      key={c.id}
-                      onMouseDown={() => addEditClient(c)}
-                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '')}
-                    >
-                      <ClientLabel id={c.id} name={c.name} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
             {/* Personal & work information (all optional) */}
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
               <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
@@ -1212,6 +1138,79 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {/* Assigned clients (search by name or job ID, like signup) */}
+                <div className="form-field" style={{ position: 'relative', gridColumn: '1 / -1' }}>
+                  <label>Assigned Client(s)</label>
+                  {editClients.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                      {editClients.map(c => (
+                        <span
+                          key={c.id}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            background: 'var(--navy-light, #EBF0FE)',
+                            border: '1px solid var(--navy, #1B2A6B)',
+                            borderRadius: '20px',
+                            padding: '2px 10px',
+                            fontSize: '12px',
+                            color: 'var(--navy, #1B2A6B)',
+                            fontWeight: 600
+                          }}
+                        >
+                          <span><ClientLabel id={c.id} name={c.name} /></span>
+                          <button
+                            type="button"
+                            onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
+                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
+                          >×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editClientInput}
+                    onChange={e => handleEditClientInput(e.target.value)}
+                    onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
+                    placeholder="Type to search client name or job ID…"
+                    autoComplete="off"
+                  />
+                  {editClientSuggestions.length > 0 && (
+                    <ul
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 100,
+                        background: '#fff',
+                        border: '1px solid var(--line)',
+                        borderRadius: '6px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                        margin: 0,
+                        padding: '4px 0',
+                        listStyle: 'none',
+                        maxHeight: '160px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {editClientSuggestions.map(c => (
+                        <li
+                          key={c.id}
+                          onMouseDown={() => addEditClient(c)}
+                          style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = '')}
+                        >
+                          <ClientLabel id={c.id} name={c.name} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 {['student', 'trainee'].includes((currentUser.designation || '').toLowerCase().trim()) && (
                   <div className="form-field">
                     <label style={{ fontSize: '11.5px' }}>Academic Year</label>
