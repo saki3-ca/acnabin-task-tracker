@@ -689,7 +689,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           style={{ justifyContent: 'space-between', padding: '0 20px' }}
         >
           <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>
-            OFFICIAL EMPLOYEE PROFILE
+            {isPartner ? "OFFICIAL PARTNER'S PROFILE" : isEmployeeId(currentUser.empId) ? 'OFFICIAL EMPLOYEE PROFILE' : 'OFFICIAL STUDENT PROFILE'}
           </span>
           <span
             style={{
@@ -978,10 +978,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Full details (department, articleship, pay, contact, emergency contact, laptop) */}
-      <StaffDetailsCard refreshKey={detailsKey} />
+        {/* Full details (employment, contact, emergency contact, pay, laptop) in the same card */}
+        <StaffDetailsCard refreshKey={detailsKey} />
+      </div>
 
       {/* 2. Primary Section: Assigned Clients */}
       <div id="profile-assigned-clients-section" className="table-card">
