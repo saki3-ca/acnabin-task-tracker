@@ -1,3 +1,4 @@
+import { ClientLabel } from '../ui/ClientLabel';
 import React, { useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -109,7 +110,8 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
     if (val.trim().length > 0) {
       const matches = allClients.filter(
         c =>
-          c.name.toLowerCase().includes(val.toLowerCase()) &&
+          (c.name.toLowerCase().includes(val.toLowerCase()) ||
+            (c.jobNumber || '').toLowerCase().includes(val.toLowerCase())) &&
           !selectedClients.find(sc => sc.id === c.id)
       );
       setClientSuggestions(matches.slice(0, 8));
@@ -351,7 +353,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                         fontWeight: 600
                       }}
                     >
-                      {c.name}
+                      <span><ClientLabel id={c.id} name={c.name} /></span>
                       <button
                         type="button"
                         onClick={() => removeClient(c.id)}
@@ -377,7 +379,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                 onChange={e => handleClientInput(e.target.value)}
                 onBlur={() => setTimeout(() => setClientSuggestions([]), 150)}
                 className="form-input"
-                placeholder="Type to search client name…"
+                placeholder="Type to search client name or job ID…"
                 autoComplete="off"
               />
 
@@ -411,7 +413,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                     >
-                      {c.name}
+                      <ClientLabel id={c.id} name={c.name} />
                     </li>
                   ))}
                 </ul>
