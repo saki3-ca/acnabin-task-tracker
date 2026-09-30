@@ -7,6 +7,7 @@ import { isManagementDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { Designation, ManagerAccessItem, ManagerStudentItem, Role, User } from '../../types';
 import { Modal } from '../ui/Modal';
+import { StaffImport } from './StaffImport';
 
 export const AdminPanel: React.FC = () => {
   const { allUsers, allClients, refreshContextData } = useAuth();
@@ -190,6 +191,8 @@ export const AdminPanel: React.FC = () => {
           </span>
         )}
       </div>
+
+      <StaffImport />
 
       {/* 1. Manager Client Access Matrix */}
       <div className="table-card" style={{ padding: '20px' }}>

@@ -19,6 +19,8 @@ import { DESIGNATIONS } from '../../lib/constants';
 import { isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { ClientLabel, clientText } from '../ui/ClientLabel';
+import { staffService } from '../../services/staffService';
+import { academicYearFromStart, employmentYearFromJoining, isEmployeeId } from '../../lib/academicYear';
 import { manpowerService } from '../../services/manpowerService';
 import { ClientManpowerSummaryItem, ManpowerRecord } from '../../types';
 
@@ -117,14 +119,24 @@ export const ManpowerView: React.FC = () => {
     Promise.all([
       manpowerService.getManpower({ includeAll: effectiveIncludeAllHr }),
       manpowerService.getClientManpowerRemarks().catch(() => ({})),
-      manpowerService.getSalaries().catch(() => [])
+      manpowerService.getSalaries().catch(() => []),
+      staffService.getStaffDates().catch(() => [])
     ])
-      .then(([mpData, remarksData, salaryRows]) => {
+      .then(([mpData, remarksData, salaryRows, staffDates]) => {
         if (isMounted) {
           // Fill salary/conveyance from the protected salary table when the STD/EMP ID matches
           const salaryById = new Map(salaryRows.map(x => [x.empId, x]));
+          // Academic year (students) / employment year (EMP) is worked out from the saved dates
+          const datesById = new Map((staffDates || []).map(x => [x.empId, x]));
           setRecords((mpData || []).map(r => {
-            const row = withAllClients(r);
+            const base = withAllClients(r);
+            const d = datesById.get((r.empId || '').trim().toUpperCase());
+            const year = d
+              ? isEmployeeId(r.empId)
+                ? employmentYearFromJoining(d.joiningDate)
+                : academicYearFromStart(d.articleshipStart, d.articleshipEnd)
+              : '';
+            const row = year ? { ...base, academicYear: year } : base;
             const hit = salaryById.get((r.empId || '').trim().toUpperCase());
             if (!hit) return row;
             return { ...row, salary: hit.salary, conveyance: hit.conveyance, total: hit.salary + hit.conveyance };

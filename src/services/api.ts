@@ -28,7 +28,7 @@ import {
 const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary',
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
-  'sendTaskEmail']);
+  'sendTaskEmail', 'saveMyStaff', 'importStaff']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -1326,6 +1326,80 @@ export const api = {
           emergencyName: r.emergency_contact_name || '',
           emergencyPhone: r.emergency_contact_phone || ''
         } as T;
+      }
+
+      case 'getMyStaff': {
+        const session = readSession();
+        if (!session) return null as T;
+        const current = await this.getCurrentUser();
+        if (current && current.id !== session.userId) return null as T; // Switch User: not the Admin's record
+        const { data, error } = await supabase.rpc('app_get_my_staff', { p_session: session.token });
+        if (error) {
+          console.warn('[getMyStaff] failed (run supabase_staff_records.sql?):', error.message);
+          return null as T;
+        }
+        const r: any = data;
+        if (!r) return null as T;
+        const s = (v: any) => (v === null || v === undefined ? '' : String(v));
+        return {
+          empId: s(r.emp_id), name: s(r.name), department: s(r.department), designation: s(r.designation),
+          academicYear: s(r.academic_year), clientNames: s(r.client_names), articleshipPeriod: s(r.articleship_period),
+          articleshipStart: s(r.articleship_start), articleshipEnd: s(r.articleship_end), principalName: s(r.principal_name),
+          mobile: s(r.mobile), email: s(r.email), joiningDate: s(r.joining_date), bloodGroup: s(r.blood_group),
+          emergencyName: s(r.emergency_name), emergencyRelationship: s(r.emergency_relationship),
+          emergencyPhone: s(r.emergency_phone), presentAddress: s(r.present_address), laptopAvailable: s(r.laptop_available),
+          laptopOwnership: s(r.laptop_ownership), laptopId: s(r.laptop_id), remarks: s(r.remarks)
+        } as T;
+      }
+
+      case 'saveMyStaff': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_save_my_staff', { p_session: session.token, p_fields: payload.fields || {} });
+        if (error) {
+          console.error('app_save_my_staff failed:', error);
+          throw new Error('Could not save your details. Has supabase_staff_records.sql been run?');
+        }
+        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data === 'NOT_LINKED') throw new Error('Your account is not linked to the staff sheet yet. Please ask Admin to link it (re-import the sheet).');
+        if (data !== 'OK') throw new Error('Some details are invalid (check the dates).');
+        return { success: true } as T;
+      }
+
+      case 'getStaffDates': {
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_get_staff_dates', { p_session: session.token });
+        if (error) {
+          console.warn('[getStaffDates] failed (run supabase_staff_records.sql?):', error.message);
+          return [] as T;
+        }
+        const s = (v: any) => (v === null || v === undefined ? '' : String(v));
+        return (data || []).map((r: any) => ({
+          empId: s(r.emp_id).toUpperCase(), articleshipStart: s(r.articleship_start), articleshipEnd: s(r.articleship_end),
+          joiningDate: s(r.joining_date), academicYear: s(r.academic_year)
+        })) as T;
+      }
+
+      case 'importStaff': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_import_staff', {
+          p_session: session.token,
+          p_rows: payload.rows,
+          p_mode: payload.mode,
+          p_dry_run: Boolean(payload.dryRun)
+        });
+        if (error) {
+          console.error('app_import_staff failed:', error);
+          throw new Error('Import failed. Has supabase_staff_records.sql been run?');
+        }
+        const res: any = data;
+        if (res?.status === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (res?.status === 'FORBIDDEN') throw new Error('Only Admin can import the staff sheet.');
+        if (res?.status !== 'OK') throw new Error('The file has no valid rows (each row needs an STD-/EMP- ID).');
+        return res as T;
       }
 
       case 'saveMyInfo': {

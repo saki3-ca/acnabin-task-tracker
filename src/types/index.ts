@@ -111,6 +111,64 @@ export interface MyInfo {
   emergencyPhone: string;
 }
 
+/** The signed-in person's own staff record (department, articleship, address, emergency contact, laptop...) */
+export interface MyStaff {
+  empId: string;
+  name: string;
+  department: string;
+  designation: string;
+  academicYear: string;
+  clientNames: string;
+  articleshipPeriod: string;
+  articleshipStart: string;
+  articleshipEnd: string;
+  principalName: string;
+  mobile: string;
+  email: string;
+  joiningDate: string;
+  bloodGroup: string;
+  emergencyName: string;
+  emergencyRelationship: string;
+  emergencyPhone: string;
+  presentAddress: string;
+  laptopAvailable: string;
+  laptopOwnership: string;
+  laptopId: string;
+  remarks: string;
+}
+
+export interface StaffDates {
+  empId: string;
+  articleshipStart: string;
+  articleshipEnd: string;
+  joiningDate: string;
+  academicYear: string;
+}
+
+export interface StaffImportRowResult {
+  emp_id: string;
+  name?: string;
+  status: 'NEW' | 'UPDATED' | 'UNCHANGED' | 'ERROR';
+  account?: string | null;
+  linked?: boolean;
+  nameMismatch?: boolean;
+  changed?: string[];
+  error?: string;
+}
+
+export interface StaffImportResult {
+  status: 'OK' | 'INVALID_SESSION' | 'FORBIDDEN' | 'INVALID_INPUT';
+  dryRun?: boolean;
+  mode?: 'FILL' | 'OVERWRITE';
+  total?: number;
+  new?: number;
+  updated?: number;
+  unchanged?: number;
+  linked?: number;
+  errors?: number;
+  rows?: StaffImportRowResult[];
+}
+
 export interface UserQuery {
   id: number;
   userId: string;

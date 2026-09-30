@@ -23,6 +23,11 @@ import { api } from '../../services/api';
 import { clientService } from '../../services/clientService';
 import { useNotifications } from '../../context/NotificationContext';
 import { ClientLabel } from '../ui/ClientLabel';
+import { StaffDetailsCard } from './StaffDetailsCard';
+import { academicYearFromStart, employmentYearFromJoining, isEmployeeId, PRINCIPALS, canonicalPrincipal } from '../../lib/academicYear';
+import { titleCaseWords } from '../../lib/text';
+import { staffService } from '../../services/staffService';
+import { MyStaff } from '../../types';
 import { Modal } from '../ui/Modal';
 import { CompletedTasksModal } from '../tasks/CompletedTasksModal';
 
@@ -127,6 +132,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const [editBlood, setEditBlood] = useState('');
   const [editEmName, setEditEmName] = useState('');
   const [editEmPhone, setEditEmPhone] = useState('');
+  const [detailsKey, setDetailsKey] = useState(0);
+  const [staffSnap, setStaffSnap] = useState<MyStaff | null>(null);
+  const [editDept, setEditDept] = useState('');
+  const [editJoining, setEditJoining] = useState('');
+  const [editArtStart, setEditArtStart] = useState('');
+  const [editArtEnd, setEditArtEnd] = useState('');
+  const [editPrincipal, setEditPrincipal] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editEmRel, setEditEmRel] = useState('');
+  const [editLaptopAvail, setEditLaptopAvail] = useState('');
+  const [editLaptopOwner, setEditLaptopOwner] = useState('');
+  const [editLaptopId, setEditLaptopId] = useState('');
+  const [editRemarks, setEditRemarks] = useState('');
   const [infoSnap, setInfoSnap] = useState<MyInfo | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [editClients, setEditClients] = useState<{ id: string; name: string }[]>([]);
@@ -249,6 +267,26 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     setEditEmName('');
     setEditEmPhone('');
     setInfoSnap(null);
+    setStaffSnap(null);
+    [setEditDept, setEditJoining, setEditArtStart, setEditArtEnd, setEditPrincipal, setEditAddress, setEditEmRel, setEditLaptopAvail, setEditLaptopOwner, setEditLaptopId, setEditRemarks].forEach(f => f(''));
+    staffService
+      .getMyStaff()
+      .then(st => {
+        setStaffSnap(st);
+        if (!st) return;
+        setEditDept(st.department || '');
+        setEditJoining(st.joiningDate || '');
+        setEditArtStart(st.articleshipStart || '');
+        setEditArtEnd(st.articleshipEnd || '');
+        setEditPrincipal(canonicalPrincipal(st.principalName));
+        setEditAddress(st.presentAddress || '');
+        setEditEmRel(st.emergencyRelationship || '');
+        setEditLaptopAvail(st.laptopAvailable || '');
+        setEditLaptopOwner(st.laptopOwnership || '');
+        setEditLaptopId(st.laptopId || '');
+        setEditRemarks(st.remarks || '');
+      })
+      .catch(() => setStaffSnap(null));
     setInfoLoading(true);
     notificationService
       .getMyInfo()
@@ -382,6 +420,44 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       emPhoneNorm !== (snap?.emergencyPhone || '');
     const clientsChanged = editClients.map(c => c.id).sort().join(',') !== clientsSnap;
 
+    // Official employee profile fields (blank = leave as it is)
+    const staffFields: Record<string, string> = {
+      department: editDept.trim(),
+      joining_date: editJoining,
+      present_address: titleCaseWords(editAddress),
+      emergency_relationship: editEmRel.trim(),
+      laptop_available: editLaptopAvail,
+      laptop_ownership: editLaptopOwner.trim(),
+      laptop_id: editLaptopId.trim(),
+      remarks: editRemarks.trim()
+    };
+    if (!isEmployeeId(currentUser.empId)) {
+      staffFields.articleship_start = editArtStart;
+      staffFields.articleship_end = editArtEnd;
+      staffFields.principal_name = editPrincipal;
+      if (editArtStart && editArtEnd) {
+        const f = (iso: string) => {
+          const d = new Date(iso + 'T00:00:00');
+          return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        };
+        staffFields.articleship_period = `${f(editArtStart)} to ${f(editArtEnd)}`;
+      }
+    }
+    const st = staffSnap;
+    const staffChanged =
+      editDept.trim() !== (st?.department || '') ||
+      editJoining !== (st?.joiningDate || '') ||
+      staffFields.present_address !== (st?.presentAddress || '') ||
+      editEmRel.trim() !== (st?.emergencyRelationship || '') ||
+      editLaptopAvail !== (st?.laptopAvailable || '') ||
+      editLaptopOwner.trim() !== (st?.laptopOwnership || '') ||
+      editLaptopId.trim() !== (st?.laptopId || '') ||
+      editRemarks.trim() !== (st?.remarks || '') ||
+      (!isEmployeeId(currentUser.empId) &&
+        (editArtStart !== (st?.articleshipStart || '') ||
+          editArtEnd !== (st?.articleshipEnd || '') ||
+          editPrincipal !== canonicalPrincipal(st?.principalName)));
+
     setIsSaving(true);
     try {
       // 1. Update basic profile, photo and (if changed) assigned clients
@@ -407,6 +483,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
         notifications.filter(n => n.type === 'INFO_REQUEST' && !n.isRead).forEach(n => markAsRead(n.id));
       }
 
+      // 1c. Official employee profile (department, dates, principal, address, laptop ...)
+      if (staffChanged) {
+        await staffService.saveMyStaff(staffFields);
+      }
+
       // 2. Update password if requested
       if (editNewPassword) {
         await api.callBackend('changePassword', {
@@ -416,6 +497,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       }
 
       await refreshContextData();
+      setDetailsKey(k => k + 1);
       setModalFeedback({ type: 'success', text: 'Profile updated successfully!' });
 
       setTimeout(() => {
@@ -502,6 +584,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   };
 
   // Assigned clients sit inside the info box from Senior Assistant Manager up; below that they stay above it
+  const payFullLabel = isEmployeeId(currentUser.empId) ? 'Monthly Salary (৳)' : 'Monthly Allowance (৳)';
+  const payShortLabel = isEmployeeId(currentUser.empId) ? 'Salary (৳)' : 'Allowance (৳)';
   const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
   const hasYearField = isStudentLevelDesignation(currentUser.designation);
   const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%' };
@@ -887,6 +971,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
         </div>
       </div>
 
+      {/* Full details (department, articleship, pay, contact, emergency contact, laptop) */}
+      <StaffDetailsCard refreshKey={detailsKey} />
+
       {/* 2. Primary Section: Assigned Clients */}
       <div id="profile-assigned-clients-section" className="table-card">
         <div className="banner-strip banner-teal">
@@ -1248,7 +1335,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       </select>
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: '11.5px' }}>Monthly Salary / Allowance (৳)</label>
+                      <label style={{ fontSize: '11.5px' }}>{payFullLabel}</label>
                       <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
@@ -1269,7 +1356,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       </select>
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: '11.5px' }}>Monthly Salary / Allowance (৳)</label>
+                      <label style={{ fontSize: '11.5px' }}>{payFullLabel}</label>
                       <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
@@ -1289,7 +1376,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       </select>
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                      <label style={{ fontSize: '11.5px', whiteSpace: 'nowrap' }}>Salary (৳)</label>
+                      <label style={{ fontSize: '11.5px', whiteSpace: 'nowrap' }}>{payShortLabel}</label>
                       <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 2' }}>
@@ -1310,6 +1397,85 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 <div className="form-field" style={{ gridColumn: 'span 3' }}>
                   <label style={{ fontSize: '11.5px' }}>Emergency Contact Mobile</label>
                   <input type="tel" className="form-input" value={editEmPhone} onChange={e => setEditEmPhone(e.target.value)} placeholder="01XXXXXXXXX" style={infoInputStyle} />
+                </div>
+              </div>
+            </div>
+
+            {/* Official employee profile (full details) */}
+            <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
+              <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
+                Official Employee Profile
+              </div>
+              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+                Optional. Leave a field empty to keep it as it is.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', alignItems: 'start' }}>
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                  <label style={{ fontSize: '11.5px' }}>Department</label>
+                  <input type="text" className="form-input" value={editDept} onChange={e => setEditDept(e.target.value)} style={infoInputStyle} />
+                </div>
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                  <label style={{ fontSize: '11.5px' }}>Joining Date</label>
+                  <input type="date" className="form-input" value={editJoining} onChange={e => setEditJoining(e.target.value)} style={infoInputStyle} />
+                </div>
+                {isEmployeeId(currentUser.empId) ? (
+                  <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                    <label style={{ fontSize: '11.5px' }}>Employment Year</label>
+                    <input type="text" className="form-input" readOnly value={employmentYearFromJoining(editJoining) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />
+                  </div>
+                ) : (
+                  <>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Academic Year (from articleship start)</label>
+                      <input type="text" className="form-input" readOnly value={academicYearFromStart(editArtStart, editArtEnd) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Articleship Start</label>
+                      <input type="date" className="form-input" value={editArtStart} onChange={e => setEditArtStart(e.target.value)} style={infoInputStyle} />
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Articleship End</label>
+                      <input type="date" className="form-input" value={editArtEnd} onChange={e => setEditArtEnd(e.target.value)} style={infoInputStyle} />
+                    </div>
+                    <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ fontSize: '11.5px' }}>Principal</label>
+                      <select className="form-select" value={editPrincipal} onChange={e => setEditPrincipal(e.target.value)} style={infoInputStyle}>
+                        <option value="">Select…</option>
+                        {PRINCIPALS.map(p => (
+                          <option key={p} value={p}>{p}, FCA</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+                <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '11.5px' }}>Present Address</label>
+                  <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
+                </div>
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                  <label style={{ fontSize: '11.5px' }}>Emergency Contact Relationship</label>
+                  <input type="text" className="form-input" value={editEmRel} onChange={e => setEditEmRel(e.target.value)} style={infoInputStyle} />
+                </div>
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                  <label style={{ fontSize: '11.5px' }}>Laptop Available</label>
+                  <select className="form-select" value={editLaptopAvail} onChange={e => setEditLaptopAvail(e.target.value)} style={infoInputStyle}>
+                    <option value="">Select…</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    {editLaptopAvail && !['Yes', 'No'].includes(editLaptopAvail) && <option value={editLaptopAvail}>{editLaptopAvail}</option>}
+                  </select>
+                </div>
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                  <label style={{ fontSize: '11.5px' }}>Laptop Ownership</label>
+                  <input type="text" className="form-input" value={editLaptopOwner} onChange={e => setEditLaptopOwner(e.target.value)} placeholder="e.g. Own / Office" style={infoInputStyle} />
+                </div>
+                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                  <label style={{ fontSize: '11.5px' }}>Laptop ID</label>
+                  <input type="text" className="form-input" value={editLaptopId} onChange={e => setEditLaptopId(e.target.value)} style={infoInputStyle} />
+                </div>
+                <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '11.5px' }}>Remarks</label>
+                  <input type="text" className="form-input" value={editRemarks} onChange={e => setEditRemarks(e.target.value)} style={infoInputStyle} />
                 </div>
               </div>
             </div>
