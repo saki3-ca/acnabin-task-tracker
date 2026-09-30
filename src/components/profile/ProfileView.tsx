@@ -1226,8 +1226,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
 
               {/* 6-column grid so every row is evenly filled and every field is the same size */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', alignItems: 'start' }}>
-                {clientsInInfoBox && <div style={{ gridColumn: '1 / -1' }}>{clientPicker}</div>}
-
                 {hasYearField ? (
                   <>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
@@ -1239,6 +1237,27 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                         ))}
                       </select>
                     </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Blood Group</label>
+                      <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
+                        <option value="">Select…</option>
+                        {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Monthly Salary / Allowance (৳)</label>
+                      <input type="number" min="0" className="form-input" value={editSalary} onChange={e => setEditSalary(e.target.value)} placeholder="e.g. 15000" style={infoInputStyle} />
+                    </div>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                      <label style={{ fontSize: '11.5px' }}>Daily Conveyance (৳ per day)</label>
+                      <input type="number" min="0" className="form-input" value={editDaily} onChange={e => setEditDaily(e.target.value)} placeholder="e.g. 120" style={infoInputStyle} />
+                    </div>
+                  </>
+                ) : clientsInInfoBox ? (
+                  <>
+                    <div style={{ gridColumn: 'span 3' }}>{clientPicker}</div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
                       <label style={{ fontSize: '11.5px' }}>Blood Group</label>
                       <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
