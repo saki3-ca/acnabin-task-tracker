@@ -588,7 +588,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const payShortLabel = isEmployeeId(currentUser.empId) ? 'Salary (৳)' : 'Allowance (৳)';
   const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
   const hasYearField = isStudentLevelDesignation(currentUser.designation) && !editArtStart;
-  const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%', minWidth: 0 };
+  const infoInputStyle: React.CSSProperties = { height: '38px', padding: '0 10px', margin: 0, fontSize: '12.5px', lineHeight: '36px', boxSizing: 'border-box', width: '100%', minWidth: 0 };
   const conveyanceDays = editClients.some(c => /walton/i.test(c.name)) ? 24 : 22;
   const conveyanceHint =
     `Daily conveyance × ${conveyanceDays} days = ৳ ${((Number(editDaily) || 0) * conveyanceDays).toLocaleString('en-IN')} / month` +
@@ -1313,7 +1313,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
 
               {/* 6-column grid so every row is evenly filled and every field is the same size */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', alignItems: 'start' }}>
+              <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
                 {hasYearField ? (
                   <>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
@@ -1386,9 +1386,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   </>
                 )}
 
-                <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: 'var(--ink-muted)', marginTop: '-4px' }}>
-                  {conveyanceHint}
-                </div>
 
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
                   <label style={{ fontSize: '11.5px' }}>Emergency Name</label>
@@ -1402,6 +1399,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <label style={{ fontSize: '11.5px' }}>Emergency Mobile</label>
                   <input type="tel" className="form-input" value={editEmPhone} onChange={e => setEditEmPhone(e.target.value)} placeholder="01XXXXXXXXX" style={infoInputStyle} />
                 </div>
+                <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: 'var(--ink-muted)' }}>
+                  {conveyanceHint}
+                </div>
               </div>
             </div>
 
@@ -1413,7 +1413,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
                 Optional. Leave a field empty to keep it as it is.
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', alignItems: 'start' }}>
+              <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
                 <div className="form-field" style={{ gridColumn: 'span 3' }}>
                   <label style={{ fontSize: '11.5px' }}>Department</label>
                   <input type="text" className="form-input" value={editDept} onChange={e => setEditDept(e.target.value)} style={infoInputStyle} />

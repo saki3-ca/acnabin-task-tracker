@@ -1045,3 +1045,8 @@ button, input, select, textarea {
   background-color: #FAF8F5;
 }
 
+
+/* Edit Profile info boxes: every label one line, every control the same height */
+.info-grid .form-field { gap: 4px; }
+.info-grid .form-field label { line-height: 15px; min-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.info-grid .form-select { appearance: auto; }
