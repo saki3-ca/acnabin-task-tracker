@@ -202,7 +202,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
           <Panel title="CONTACT" icon={<Phone size={icon} />}>
             <Row label="Mobile">{soft(currentUser.mobile || staff?.mobile)}</Row>
             <Row label="Email">{soft(currentUser.email || staff?.email)}</Row>
-            <Row label="Present Address">{soft(staff?.presentAddress)}</Row>
+            {!isPartner && <Row label="Present Address">{soft(staff?.presentAddress)}</Row>}
             <Row label="Blood Group" last>{soft(blood)}</Row>
           </Panel>
 

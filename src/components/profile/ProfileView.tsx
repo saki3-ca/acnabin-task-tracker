@@ -1429,6 +1429,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <label style={{ fontSize: '11.5px' }}>Emergency Mobile</label>
                   <input type="tel" className="form-input" value={editEmPhone} onChange={e => setEditEmPhone(e.target.value)} placeholder="01XXXXXXXXX" style={infoInputStyle} />
                 </div>
+                <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '11.5px' }}>Present Address</label>
+                  <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
+                </div>
                 <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: 'var(--ink-muted)' }}>
                   {conveyanceHint}
                 </div>
@@ -1504,12 +1508,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <label style={{ fontSize: '11.5px' }}>Laptop ID</label>
                   <input type="text" className="form-input" value={editLaptopId} onChange={e => setEditLaptopId(e.target.value)} style={infoInputStyle} />
                 </div>
-                {!isPartner && (
-                  <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ fontSize: '11.5px' }}>Present Address</label>
-                    <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
-                  </div>
-                )}
                 <div className="form-field" style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: '11.5px' }}>Remarks</label>
                   <input type="text" className="form-input" value={editRemarks} onChange={e => setEditRemarks(e.target.value)} style={infoInputStyle} />
