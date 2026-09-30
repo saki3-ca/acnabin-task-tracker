@@ -17,6 +17,7 @@ import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
 import { isAssistantDirectorOrAbove } from '../../lib/permissions';
+import { adminService } from '../../services/adminService';
 import { manpowerService } from '../../services/manpowerService';
 import { ClientManpowerSummaryItem, ManpowerRecord } from '../../types';
 
@@ -46,7 +47,7 @@ type DetailSortField = 'empId' | 'name' | 'assignedClient' | 'designation' | 'ac
 type SummarySortField = 'clientName' | 'manpowerCount' | 'totalSalary' | 'totalConveyance' | 'totalCost';
 
 export const ManpowerView: React.FC = () => {
-  const { currentUser, refreshContextData } = useAuth();
+  const { currentUser, refreshContextData, allUsers, allClients } = useAuth();
   const [viewMode, setViewMode] = useState<'details' | 'summary'>('details');
 
   const [records, setRecords] = useState<ManpowerRecord[]>([]);
@@ -79,7 +80,9 @@ export const ManpowerView: React.FC = () => {
   const [editConveyance, setEditConveyance] = useState<number>(0);
   const [editDesignation, setEditDesignation] = useState<string>('');
   const [editAcademicYear, setEditAcademicYear] = useState<string>('');
-  const [editClientName, setEditClientName] = useState<string>('');
+  const [editClients, setEditClients] = useState<{ id: string; name: string }[]>([]);
+  const [editClientInput, setEditClientInput] = useState<string>('');
+  const [editClientSuggestions, setEditClientSuggestions] = useState<{ id: string; name: string }[]>([]);
   const [editRemarks, setEditRemarks] = useState<string>('');
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -434,8 +437,40 @@ export const ManpowerView: React.FC = () => {
       acad = rec.designation;
     }
     setEditAcademicYear(acad);
-    setEditClientName(rec.assignedClient === 'Unassigned' ? '' : rec.assignedClient);
+    // Current clients: the user's saved assignments, else match the displayed client names
+    const user = allUsers.find(u => (u.empId || '').toUpperCase() === rec.empId.toUpperCase());
+    let current = (user?.assignedClientIds || [])
+      .map(id => allClients.find(c => c.id === id))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c))
+      .map(c => ({ id: c.id, name: c.name }));
+    if (current.length === 0 && rec.assignedClient && rec.assignedClient !== 'Unassigned') {
+      const names = rec.assignedClient.split(',').map(n => n.trim().toLowerCase());
+      current = allClients.filter(c => names.includes(c.name.trim().toLowerCase())).map(c => ({ id: c.id, name: c.name }));
+    }
+    setEditClients(current);
+    setEditClientInput('');
+    setEditClientSuggestions([]);
     setEditRemarks((rec as any).remarks || '');
+  };
+
+  const handleEditClientInput = (val: string) => {
+    setEditClientInput(val);
+    if (val.trim()) {
+      setEditClientSuggestions(
+        allClients
+          .filter(c => c.name.toLowerCase().includes(val.toLowerCase()) && !editClients.find(sc => sc.id === c.id))
+          .slice(0, 8)
+          .map(c => ({ id: c.id, name: c.name }))
+      );
+    } else {
+      setEditClientSuggestions([]);
+    }
+  };
+
+  const addEditClient = (c: { id: string; name: string }) => {
+    setEditClients(prev => (prev.find(x => x.id === c.id) ? prev : [...prev, c]));
+    setEditClientInput('');
+    setEditClientSuggestions([]);
   };
 
   const handleSaveEdit = async () => {
@@ -447,7 +482,15 @@ export const ManpowerView: React.FC = () => {
       ? (editDesignation.trim() || 'Student')
       : (editingRecord.designation || 'Student');
 
+    const clientNamesText = editClients.map(c => c.name).join(', ');
+    const linkedUser = allUsers.find(u => (u.empId || '').toUpperCase() === editingRecord.empId.toUpperCase());
+
     try {
+      // Client assignment lives on the user (same as signup); this also updates client access.
+      if (linkedUser) {
+        await adminService.updateUser(linkedUser.id, { assignedClientIds: editClients.map(c => c.id) });
+      }
+
       await manpowerService.updateManpowerRecord({
         empId: editingRecord.empId,
         salary: Number(editSalary) || 0,
@@ -455,7 +498,8 @@ export const ManpowerView: React.FC = () => {
         total: calculatedTotal,
         designation: finalDesignation,
         academicYear: editAcademicYear.trim(),
-        clientName: editClientName.trim() || 'Unassigned',
+        // With a linked user the assignment was saved above; only pass a name for HR-only rows.
+        clientName: linkedUser ? '' : (editClients[0]?.name || ''),
         remarks: editRemarks.trim()
       });
 
@@ -470,7 +514,8 @@ export const ManpowerView: React.FC = () => {
               total: calculatedTotal,
               designation: finalDesignation === 'TBA' ? '' : finalDesignation,
               academicYear: editAcademicYear.trim() || '—',
-              assignedClient: editClientName.trim() || 'Unassigned'
+              assignedClient: clientNamesText || 'Unassigned',
+              clientId: editClients[0]?.id || null
             };
           }
           return r;
@@ -1584,16 +1629,78 @@ export const ManpowerView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-field">
+              <div className="form-field" style={{ position: 'relative' }}>
                 <label style={{ fontSize: '12px', fontWeight: 700 }}>Assigned Client</label>
+                {editClients.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                    {editClients.map(c => (
+                      <span
+                        key={c.id}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'var(--navy-light, #EBF0FE)',
+                          border: '1px solid var(--navy, #1B2A6B)',
+                          borderRadius: '20px',
+                          padding: '2px 10px',
+                          fontSize: '12px',
+                          color: 'var(--navy, #1B2A6B)',
+                          fontWeight: 600
+                        }}
+                      >
+                        {c.name}
+                        <button
+                          type="button"
+                          onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
+                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <input
                   type="text"
                   className="form-input"
-                  value={editClientName}
-                  onChange={e => setEditClientName(e.target.value)}
-                  placeholder="e.g. Walton Hi-Tech Industries PLC."
+                  value={editClientInput}
+                  onChange={e => handleEditClientInput(e.target.value)}
+                  onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
+                  placeholder="Type to search client name…"
+                  autoComplete="off"
                   style={{ height: '36px', fontSize: '13px' }}
                 />
+                {editClientSuggestions.length > 0 && (
+                  <ul
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 100,
+                      background: '#fff',
+                      border: '1px solid var(--line)',
+                      borderRadius: '6px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                      margin: 0,
+                      padding: '4px 0',
+                      listStyle: 'none',
+                      maxHeight: '160px',
+                      overflowY: 'auto'
+                    }}
+                  >
+                    {editClientSuggestions.map(c => (
+                      <li
+                        key={c.id}
+                        onMouseDown={() => addEditClient(c)}
+                        style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = '')}
+                      >
+                        {c.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
