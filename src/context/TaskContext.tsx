@@ -54,7 +54,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return {
-      total: tasks.length,
+      total: pending + inProgress, // active only: completed tasks are not counted
       pending,
       inProgress,
       completed,

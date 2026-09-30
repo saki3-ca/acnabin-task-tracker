@@ -47,7 +47,6 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
   const [selectedClients, setSelectedClients] = useState<{ id: string; name: string }[]>([]);
 
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const designationRef = useRef<HTMLDivElement>(null);
@@ -155,7 +154,6 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
     const finalAcademicYear = isStudent ? academicYear : (isTrainee ? '1st Year' : undefined);
 
     setError(null);
-    setNotice(null);
     setLoading(true);
     try {
       await register({
@@ -170,12 +168,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
         academicYear: finalAcademicYear
       });
     } catch (err: any) {
-      if (err?.pending) {
-        setNotice(err.message);
-        setPassword('');
-      } else {
-        setError(err.message || 'Registration failed.');
-      }
+      setError(err.message || 'Registration failed.');
     } finally {
       setLoading(false);
     }
@@ -196,7 +189,6 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
         </div>
 
         {error && <div className="auth-alert-error">{error}</div>}
-        {notice && <div className="auth-alert-success">{notice}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {/* 1. ID / Partner Initial (First to ask for instant HR auto-fill) */}

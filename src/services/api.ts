@@ -478,12 +478,10 @@ export const api = {
         }
         const hrmEmpId = formatHrmId(String(empId), reqDesignation);
 
-        // Designation is self-chosen, so the powerful ones need Admin approval and "Admin" is never allowed.
-        const chosenDesignation = String(reqDesignation || 'Student').trim().toLowerCase();
-        if (chosenDesignation === 'admin') {
+        // "Admin" is a system designation and can't be picked at signup.
+        if (String(reqDesignation || '').trim().toLowerCase() === 'admin') {
           throw new Error('That designation cannot be chosen at signup.');
         }
-        const needsApproval = ['assistant director', 'deputy director', 'director', 'partner'].includes(chosenDesignation);
 
         // Any existing account with this ID (case-insensitive) blocks signup.
         // limit(1) instead of maybeSingle(): maybeSingle() errors out, and would let
@@ -508,7 +506,7 @@ export const api = {
           role: 'USER',
           designation: reqDesignation || 'Student',
           signup_client_id: clientId || '',
-          status: needsApproval ? 'INACTIVE' : 'ACTIVE',
+          status: 'ACTIVE',
           created_date: new Date().toISOString(),
           mobile: mobile || ''
         };
@@ -537,14 +535,12 @@ export const api = {
           await supabase.from('users').delete().eq('id', newId);
           throw new Error('Could not save your password. Please try again or contact an administrator.');
         }
-        if (!needsApproval) {
-          try {
-            const { token } = await verifyPassword(newId, String(password));
-            saveSession(token ? { userId: newId, token } : null);
-          } catch (sessionErr) {
-            console.warn('Could not open a session after registration:', sessionErr);
-            saveSession(null);
-          }
+        try {
+          const { token } = await verifyPassword(newId, String(password));
+          saveSession(token ? { userId: newId, token } : null);
+        } catch (sessionErr) {
+          console.warn('Could not open a session after registration:', sessionErr);
+          saveSession(null);
         }
 
         // Keep the year the user entered on their own user row (works even with no HR manpower row)
@@ -572,28 +568,6 @@ export const api = {
           }
         } catch (mpUpdateErr) {
           console.warn('Could not sync manpower on register:', mpUpdateErr);
-        }
-
-        if (needsApproval) {
-          // Tell the Admin(s), and don't log the person in until approved.
-          try {
-            const { data: admins } = await supabase.from('users').select('id').eq('role', 'ADMIN').eq('status', 'ACTIVE');
-            const rows = (admins || []).map((a: any) => ({
-              user_id: a.id,
-              type: 'ANNOUNCEMENT',
-              title: 'Signup waiting for approval',
-              message: `${name} (${hrmEmpId}) signed up as ${reqDesignation}. Set the account to Active in the Admin panel to approve it.`,
-              data: { kind: 'SIGNUP_PENDING', userId: newId, sentAt: Date.now() }
-            }));
-            if (rows.length > 0) await supabase.from('notifications').insert(rows);
-          } catch (nErr) {
-            console.warn('Could not notify admin of the pending signup:', nErr);
-          }
-          const pendingErr: any = new Error(
-            'Your account has been created and is waiting for Admin approval. You can log in once it is approved.'
-          );
-          pendingErr.pending = true;
-          throw pendingErr;
         }
 
         const newUser = mapUserFromDb(created);

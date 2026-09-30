@@ -593,7 +593,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               title="Navigate to My Tasks panel"
             >
               <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
-                Total Tasks
+                Total Active Tasks
               </div>
               <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.total}
@@ -813,8 +813,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 assignedClientsList.map((client, idx) => {
                   const stats = clientTaskCounts[client.id] || { total: 0, active: 0 };
                   const activeCount = stats.active;
-                  const totalCount = stats.total;
-                  const badgeCount = canSeeAll ? activeCount : totalCount;
+                  const badgeCount = activeCount; // active (pending + in progress) only
 
                   return (
                     <tr key={client.id}>
