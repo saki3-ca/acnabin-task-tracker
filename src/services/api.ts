@@ -462,13 +462,17 @@ export const api = {
         }
         const hrmEmpId = formatHrmId(String(empId), reqDesignation);
 
-        const { data: existing } = await supabase
+        // Any existing account with this ID (case-insensitive) blocks signup.
+        // limit(1) instead of maybeSingle(): maybeSingle() errors out, and would let
+        // signup through, if duplicates already exist.
+        const { data: existingRows, error: existingErr } = await supabase
           .from('users')
           .select('id')
-          .ilike('emp_id', hrmEmpId)
-          .maybeSingle();
+          .ilike('emp_id', hrmEmpId.replace(/[\\%_]/g, m => `\\${m}`))
+          .limit(1);
+        if (existingErr) throw existingErr;
 
-        if (existing) {
+        if (existingRows && existingRows.length > 0) {
           throw new Error('A user with this Employee/Student ID already exists.');
         }
 
@@ -492,7 +496,13 @@ export const api = {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          // 23505 = unique violation: someone signed up with this ID at the same moment
+          if ((error as any).code === '23505') {
+            throw new Error('A user with this Employee/Student ID already exists.');
+          }
+          throw error;
+        }
 
         const { data: pwSet, error: pwErr } = await supabase.rpc('app_set_initial_password', {
           p_user_id: newId,
