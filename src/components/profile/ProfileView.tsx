@@ -501,10 +501,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     }
   };
 
+  // Assigned clients sit inside the info box from Senior Assistant Manager up; below that they stay above it
+  const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
+  const hasYearField = isStudentLevelDesignation(currentUser.designation);
+  const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%' };
+  const conveyanceDays = editClients.some(c => /walton/i.test(c.name)) ? 24 : 22;
+  const conveyanceHint =
+    `Daily conveyance × ${conveyanceDays} days = ৳ ${((Number(editDaily) || 0) * conveyanceDays).toLocaleString('en-IN')} / month` +
+    (infoSnap?.conveyance != null && editDaily.trim() === '' ? ` (saved: ৳ ${infoSnap.conveyance.toLocaleString('en-IN')})` : '');
+
   // Assigned-client picker (search by name or job ID, like signup)
   const clientPicker = (
             <div className="form-field" style={{ position: 'relative' }}>
-              <label>Assigned Client(s)</label>
+              <label style={clientsInInfoBox ? { fontSize: '11.5px' } : undefined}>Assigned Client(s)</label>
               {editClients.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
                   {editClients.map(c => (
@@ -541,6 +550,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
                 placeholder="Type to search client name or job ID…"
                 autoComplete="off"
+                style={clientsInInfoBox ? infoInputStyle : undefined}
               />
               {editClientSuggestions.length > 0 && (
                 <ul
@@ -576,15 +586,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               )}
             </div>
   );
-
-  // Assigned clients sit inside the info box from Senior Assistant Manager up; below that they stay above it
-  const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
-  const hasYearField = isStudentLevelDesignation(currentUser.designation);
-  const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%' };
-  const conveyanceDays = editClients.some(c => /walton/i.test(c.name)) ? 24 : 22;
-  const conveyanceHint =
-    `Daily conveyance × ${conveyanceDays} days = ৳ ${((Number(editDaily) || 0) * conveyanceDays).toLocaleString('en-IN')} / month` +
-    (infoSnap?.conveyance != null && editDaily.trim() === '' ? ` (saved: ৳ ${infoSnap.conveyance.toLocaleString('en-IN')})` : '');
 
   return (
     <div className="profile-page" style={{ display: 'contents' }}>
@@ -1212,7 +1213,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               />
             </div>
 
-            {/* Below Manager: the client field stays on its own, above the info box */}
+            {/* Below Senior Assistant Manager: the client field stays on its own, above the info box */}
             {!clientsInInfoBox && clientPicker}
 
             {/* Personal & work information (all optional) */}
