@@ -1391,7 +1391,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 </div>
 
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: '11.5px' }}>Emergency Contact Name</label>
+                  <label style={{ fontSize: '11.5px' }}>Emergency Name</label>
                   <input type="text" className="form-input" value={editEmName} onChange={e => setEditEmName(e.target.value)} style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
@@ -1399,7 +1399,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <input type="text" className="form-input" value={editEmRel} onChange={e => setEditEmRel(e.target.value)} placeholder="e.g. Father" style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: '11.5px' }}>Emergency Contact Mobile</label>
+                  <label style={{ fontSize: '11.5px' }}>Emergency Mobile</label>
                   <input type="tel" className="form-input" value={editEmPhone} onChange={e => setEditEmPhone(e.target.value)} placeholder="01XXXXXXXXX" style={infoInputStyle} />
                 </div>
               </div>
@@ -1430,7 +1430,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 ) : (
                   <>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                      <label style={{ fontSize: '11.5px' }}>Academic Year (from articleship start)</label>
+                      <label style={{ fontSize: '11.5px' }}>Academic Year (Articleship)</label>
                       <input type="text" className="form-input" readOnly value={academicYearFromStart(editArtStart, editArtEnd) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
