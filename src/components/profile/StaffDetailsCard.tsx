@@ -184,21 +184,6 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
             {!isEmp && !isPartner && <Row label="Principal" last>{soft(principalDisplay(staff?.principalName))}</Row>}
           </Panel>
 
-          {!isPartner && (
-          <Panel title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'} icon={<Wallet size={icon} />}
-            footer={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon-dark)', letterSpacing: '0.6px' }}>TOTAL</span>
-                <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
-              </div>
-            }
-          >
-            <Row label={payLabel}>{soft(info?.salary === null || info?.salary === undefined ? '' : fmtMoney(info.salary))}</Row>
-            <Row label="Conveyance" last>{soft(info?.conveyance === null || info?.conveyance === undefined ? '' : fmtMoney(info.conveyance))}</Row>
-          </Panel>
-
-          )}
-
           <Panel title="CONTACT" icon={<Phone size={icon} />}>
             <Row label="Mobile">{soft(currentUser.mobile || staff?.mobile)}</Row>
             <Row label="Email" last={isPartner}>{soft(currentUser.email || staff?.email)}</Row>
@@ -212,6 +197,21 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
             <Row label="Relationship">{soft(staff?.emergencyRelationship)}</Row>
             <Row label="Mobile" last>{soft(emPhone)}</Row>
           </Panel>
+          )}
+
+          {!isPartner && (
+          <Panel title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'} icon={<Wallet size={icon} />}
+            footer={
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon-dark)', letterSpacing: '0.6px' }}>TOTAL</span>
+                <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
+              </div>
+            }
+          >
+            <Row label={payLabel}>{soft(info?.salary === null || info?.salary === undefined ? '' : fmtMoney(info.salary))}</Row>
+            <Row label="Conveyance" last>{soft(info?.conveyance === null || info?.conveyance === undefined ? '' : fmtMoney(info.conveyance))}</Row>
+          </Panel>
+
           )}
 
           {!isPartner && (
