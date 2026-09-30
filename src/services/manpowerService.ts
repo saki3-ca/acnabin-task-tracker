@@ -10,6 +10,10 @@ export const manpowerService = {
     return api.callBackend('getManpowerSalaries', {});
   },
 
+  async setSalary(empId: string, salary: number, conveyance: number): Promise<void> {
+    await api.callBackend('setManpowerSalary', { empId, salary, conveyance });
+  },
+
   async getClientManpowerRemarks(): Promise<Record<string, string>> {
     return api.callBackend<Record<string, string>>('getClientManpowerRemarks', {});
   },

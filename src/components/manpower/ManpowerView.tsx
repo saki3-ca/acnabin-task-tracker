@@ -486,6 +486,9 @@ export const ManpowerView: React.FC = () => {
     const linkedUser = allUsers.find(u => (u.empId || '').toUpperCase() === editingRecord.empId.toUpperCase());
 
     try {
+      // Salary and conveyance live in the protected salary table.
+      await manpowerService.setSalary(editingRecord.empId, Number(editSalary) || 0, Number(editConveyance) || 0);
+
       // Client assignment lives on the user (same as signup); this also updates client access.
       if (linkedUser) {
         await adminService.updateUser(linkedUser.id, { assignedClientIds: editClients.map(c => c.id) });

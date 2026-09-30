@@ -24,7 +24,7 @@ import {
 
 // Actions that must never fall back to the local store: credential checks (it has
 // no passwords) and client-list changes (a silent local save would look like success).
-const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'chatSendQuestion', 'chatReply', 'chatGetThread', 'sendAnnouncement']);
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'chatSendQuestion', 'chatReply', 'chatGetThread', 'sendAnnouncement', 'setManpowerSalary']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -1048,6 +1048,25 @@ export const api = {
         const { error: insErr } = await supabase.from('notifications').insert(rows);
         if (insErr) throw insErr;
         return { count: rows.length } as T;
+      }
+
+      case 'setManpowerSalary': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_set_manpower_salary', {
+          p_session: session.token,
+          p_emp_id: payload.empId,
+          p_salary: payload.salary,
+          p_conveyance: payload.conveyance
+        });
+        if (error) {
+          console.error('app_set_manpower_salary failed:', error);
+          throw new Error('Could not save salary. Has supabase_manpower_salary_edit.sql been run?');
+        }
+        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data === 'FORBIDDEN') throw new Error('You are not allowed to change salary.');
+        if (data !== 'OK') throw new Error('Invalid salary or conveyance value.');
+        return { success: true } as T;
       }
 
       case 'sendAnnouncement': {
