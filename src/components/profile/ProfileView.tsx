@@ -232,6 +232,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
 
   if (!currentUser) return null;
 
+  // Partners keep a short profile: no allowance, emergency contact, clients or employment details
+  const isPartner = currentUser.designation === 'Partner';
+
   const initials = currentUser.name
     .split(' ')
     .map(n => n[0])
@@ -286,9 +289,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
         setEditLaptopId(st.laptopId || '');
         setEditRemarks(st.remarks || '');
         // Same fallback as the profile page: what the sheet has, unless the person saved their own
-        setEditBlood(v => v || st.bloodGroup || '');
-        setEditEmName(v => v || st.emergencyName || '');
-        setEditEmPhone(v => v || st.emergencyPhone || '');
+        if (!isPartner) {
+          setEditBlood(v => v || st.bloodGroup || '');
+          setEditEmName(v => v || st.emergencyName || '');
+          setEditEmPhone(v => v || st.emergencyPhone || '');
+        }
       })
       .catch(() => setStaffSnap(null));
     setInfoLoading(true);
@@ -1305,9 +1310,30 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             </div>
 
             {/* Below Senior Assistant Manager: the client field stays on its own, above the info box */}
-            {!clientsInInfoBox && clientPicker}
+            {!clientsInInfoBox && !isPartner && clientPicker}
+
+            {/* Partner: only the blood group is asked here */}
+            {isPartner && (
+              <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
+                <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '10px' }}>
+                  Personal Information
+                </div>
+                <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
+                  <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: '11.5px' }}>Blood Group</label>
+                    <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
+                      <option value="">Select…</option>
+                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Personal & work information (all optional) */}
+            {!isPartner && (
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
               <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
                 Personal &amp; Work Information
@@ -1408,16 +1434,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 </div>
               </div>
             </div>
+            )}
 
             {/* Official employee profile (full details) */}
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
               <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
-                Official Employee Profile
+                {isPartner ? 'Laptop Information' : 'Official Employee Profile'}
               </div>
               <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
                 Optional. Leave a field empty to keep it as it is.
               </div>
               <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
+                {!isPartner && (
+                  <>
                 <div className="form-field" style={{ gridColumn: 'span 3' }}>
                   <label style={{ fontSize: '11.5px' }}>Department</label>
                   <input type="text" className="form-input" value={editDept} onChange={e => setEditDept(e.target.value)} style={infoInputStyle} />
@@ -1456,6 +1485,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     </div>
                   </>
                 )}
+                  </>
+                )}
                 <div className="form-field" style={{ gridColumn: 'span 2' }}>
                   <label style={{ fontSize: '11.5px' }}>Laptop Available</label>
                   <select className="form-select" value={editLaptopAvail} onChange={e => setEditLaptopAvail(e.target.value)} style={infoInputStyle}>
@@ -1473,10 +1504,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <label style={{ fontSize: '11.5px' }}>Laptop ID</label>
                   <input type="text" className="form-input" value={editLaptopId} onChange={e => setEditLaptopId(e.target.value)} style={infoInputStyle} />
                 </div>
-                <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: '11.5px' }}>Present Address</label>
-                  <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
-                </div>
+                {!isPartner && (
+                  <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: '11.5px' }}>Present Address</label>
+                    <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
+                  </div>
+                )}
                 <div className="form-field" style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: '11.5px' }}>Remarks</label>
                   <input type="text" className="form-input" value={editRemarks} onChange={e => setEditRemarks(e.target.value)} style={infoInputStyle} />

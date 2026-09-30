@@ -138,6 +138,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
   if (!currentUser) return null;
 
   const isEmp = isEmployeeId(currentUser.empId);
+  const isPartner = currentUser.designation === 'Partner'; // Partners have no pay or emergency panels
 
   const yearValue = isEmp
     ? employmentYearFromJoining(staff?.joiningDate)
@@ -169,7 +170,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
       <div style={{ padding: '18px 20px 14px', background: 'var(--cream)' }}>
         {/* Key figures */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-          <Stat label={yearLabel} value={show(yearValue)} />
+          {!isPartner && <Stat label={yearLabel} value={show(yearValue)} />}
           <Stat label="Joining Date" value={fmtDate(staff?.joiningDate)} />
           <Stat label="Designation" value={show(currentUser.designation)} />
         </div>
@@ -178,11 +179,12 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
           <Panel title="EMPLOYMENT" icon={<Briefcase size={icon} />}>
             <Row label="ID">{soft(currentUser.empId)}</Row>
             <Row label="Designation">{soft(currentUser.designation)}</Row>
-            <Row label="Department" last={isEmp}>{soft(staff?.department)}</Row>
-            {!isEmp && <Row label="Articleship Period">{soft(staff?.articleshipPeriod)}</Row>}
-            {!isEmp && <Row label="Principal" last>{soft(principalDisplay(staff?.principalName))}</Row>}
+            <Row label="Department" last={isEmp || isPartner}>{soft(staff?.department)}</Row>
+            {!isEmp && !isPartner && <Row label="Articleship Period">{soft(staff?.articleshipPeriod)}</Row>}
+            {!isEmp && !isPartner && <Row label="Principal" last>{soft(principalDisplay(staff?.principalName))}</Row>}
           </Panel>
 
+          {!isPartner && (
           <Panel title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'} icon={<Wallet size={icon} />}
             footer={
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
@@ -195,6 +197,8 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
             <Row label="Conveyance" last>{soft(info?.conveyance === null || info?.conveyance === undefined ? '' : fmtMoney(info.conveyance))}</Row>
           </Panel>
 
+          )}
+
           <Panel title="CONTACT" icon={<Phone size={icon} />}>
             <Row label="Mobile">{soft(currentUser.mobile || staff?.mobile)}</Row>
             <Row label="Email">{soft(currentUser.email || staff?.email)}</Row>
@@ -202,11 +206,13 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
             <Row label="Blood Group" last>{soft(blood)}</Row>
           </Panel>
 
+          {!isPartner && (
           <Panel title="EMERGENCY CONTACT" icon={<HeartPulse size={icon} />}>
             <Row label="Name">{soft(emName)}</Row>
             <Row label="Relationship">{soft(staff?.emergencyRelationship)}</Row>
             <Row label="Mobile" last>{soft(emPhone)}</Row>
           </Panel>
+          )}
 
           <Panel title="LAPTOP" icon={<Laptop size={icon} />} wide>
             <div>
