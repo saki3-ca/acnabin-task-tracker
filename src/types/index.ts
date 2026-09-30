@@ -96,7 +96,15 @@ export type NotificationType =
   | 'DEADLINE_ALERT'
   | 'MANAGER_COMMENT'
   | 'TASK_REQUEST'
-  | 'INFO_REQUEST';
+  | 'INFO_REQUEST'
+  | 'ADMIN_QUERY';
+
+export interface ChatMessage {
+  id: number;
+  sender: 'ADMIN' | 'USER';
+  message: string;
+  createdAt: string;
+}
 
 export interface AppNotification {
   id: string;

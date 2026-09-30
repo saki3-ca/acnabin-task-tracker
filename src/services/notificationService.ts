@@ -1,4 +1,4 @@
-import { AppNotification } from '../types';
+import { AppNotification, ChatMessage } from '../types';
 import { api } from './api';
 
 export const notificationService = {
@@ -23,6 +23,18 @@ export const notificationService = {
     emergencyPhone: string;
   }): Promise<void> {
     await api.callBackend('submitProfileInfo', info);
+  },
+
+  async chatSendQuestion(userId: string, message: string): Promise<void> {
+    await api.callBackend('chatSendQuestion', { userId, message });
+  },
+
+  async chatReply(questionId: number, message: string): Promise<void> {
+    await api.callBackend('chatReply', { questionId, message });
+  },
+
+  async chatGetThread(userId?: string): Promise<ChatMessage[]> {
+    return api.callBackend('chatGetThread', { userId });
   },
 
   async markAllAsRead(userId: string): Promise<void> {

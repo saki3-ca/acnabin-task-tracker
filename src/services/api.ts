@@ -24,7 +24,7 @@ import {
 
 // Actions that must never fall back to the local store: credential checks (it has
 // no passwords) and client-list changes (a silent local save would look like success).
-const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo']);
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'chatSendQuestion', 'chatReply', 'chatGetThread']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -978,7 +978,7 @@ export const api = {
           .from('notifications')
           .select('*')
           .eq('user_id', userId)
-          .or(`created_at.gte.${sevenDaysAgo},and(type.eq.INFO_REQUEST,is_read.eq.false)`)
+          .or(`created_at.gte.${sevenDaysAgo},and(type.in.(INFO_REQUEST,ADMIN_QUERY),is_read.eq.false)`)
           .order('created_at', { ascending: false })
           .limit(200);
 
@@ -1020,7 +1020,7 @@ export const api = {
           .from('notifications')
           .update({ is_read: true })
           .eq('user_id', userId)
-          .neq('type', 'INFO_REQUEST');
+          .not('type', 'in', '(INFO_REQUEST,ADMIN_QUERY)');
         return { success: true } as T;
       }
 
@@ -1046,6 +1046,60 @@ export const api = {
         const { error: insErr } = await supabase.from('notifications').insert(rows);
         if (insErr) throw insErr;
         return { count: rows.length } as T;
+      }
+
+      case 'chatSendQuestion': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_chat_send_question', {
+          p_session: session.token,
+          p_user_id: payload.userId,
+          p_message: payload.message
+        });
+        if (error) {
+          console.error('app_chat_send_question failed:', error);
+          throw new Error('Could not send. Has supabase_admin_chat.sql been run?');
+        }
+        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can send questions.');
+        if (data !== 'OK') throw new Error('Please choose a user and type a question.');
+        return { success: true } as T;
+      }
+
+      case 'chatReply': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_chat_reply', {
+          p_session: session.token,
+          p_question_id: payload.questionId,
+          p_message: payload.message
+        });
+        if (error) {
+          console.error('app_chat_reply failed:', error);
+          throw new Error('Could not send your reply. Please tell the administrator.');
+        }
+        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data !== 'OK') throw new Error('Please type your answer first.');
+        return { success: true } as T;
+      }
+
+      case 'chatGetThread': {
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_chat_get', {
+          p_session: session.token,
+          p_user_id: payload.userId || ''
+        });
+        if (error) {
+          console.warn('[chatGetThread] failed:', error.message);
+          return [] as T;
+        }
+        return (data || []).map((r: any) => ({
+          id: Number(r.id),
+          sender: r.sender,
+          message: r.message,
+          createdAt: r.created_at
+        })) as T;
       }
 
       case 'submitProfileInfo': {

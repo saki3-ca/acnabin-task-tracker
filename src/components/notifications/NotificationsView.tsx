@@ -7,12 +7,15 @@ import {
   FileText,
   ClipboardList,
   MessageSquare,
+  MessagesSquare,
   Send,
   UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { notificationService } from '../../services/notificationService';
+import { AdminChatPanel } from './AdminChatPanel';
+import { ChatReplyModal } from './ChatReplyModal';
 import { ProfileInfoModal } from './ProfileInfoModal';
 import { AppNotification } from '../../types';
 
@@ -22,6 +25,7 @@ export const NotificationsView: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, refreshNotifications, isLoading } = useNotifications();
   const { currentUser } = useAuth();
   const [infoFor, setInfoFor] = useState<string | null>(null);
+  const [replyFor, setReplyFor] = useState<{ notifId: string; questionId: number } | null>(null);
   const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState<string | null>(null);
 
@@ -46,7 +50,7 @@ export const NotificationsView: React.FC = () => {
   const recentNotifications = notifications.filter(n => {
     try {
       // An unfilled info request stays in NEW until completed, however old
-      if (n.type === 'INFO_REQUEST' && !n.isRead) return true;
+      if ((n.type === 'INFO_REQUEST' || n.type === 'ADMIN_QUERY') && !n.isRead) return true;
       return new Date(n.createdAt).getTime() >= sevenDaysAgo;
     } catch {
       return true;
@@ -174,6 +178,25 @@ export const NotificationsView: React.FC = () => {
             <ClipboardList size={12} /> Info Request
           </span>
         );
+      case 'ADMIN_QUERY':
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 700,
+              background: '#F5F3FF',
+              color: '#5B21B6',
+              border: '1px solid #DDD6FE'
+            }}
+          >
+            <MessagesSquare size={12} /> Admin Question
+          </span>
+        );
       case 'TASK_REQUEST':
         return (
           <span
@@ -231,6 +254,19 @@ export const NotificationsView: React.FC = () => {
           </button>
           {sendMsg && <span style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>{sendMsg}</span>}
         </div>
+      )}
+
+      {currentUser?.role === 'ADMIN' && <AdminChatPanel />}
+
+      {replyFor && (
+        <ChatReplyModal
+          questionId={replyFor.questionId}
+          onClose={() => setReplyFor(null)}
+          onDone={() => {
+            markAsRead(replyFor.notifId);
+            setReplyFor(null);
+          }}
+        />
       )}
 
       {infoFor && (
@@ -343,7 +379,17 @@ export const NotificationsView: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {notif.type === 'INFO_REQUEST' ? (
+                      {notif.type === 'ADMIN_QUERY' ? (
+                        <button
+                          type="button"
+                          onClick={() => setReplyFor({ notifId: notif.id, questionId: Number(notif.data?.questionId) })}
+                          className="btn btn-primary btn-sm"
+                          title="Answer to complete this notification"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
+                        >
+                          <MessagesSquare size={14} /> Reply
+                        </button>
+                      ) : notif.type === 'INFO_REQUEST' ? (
                         <button
                           type="button"
                           onClick={() => setInfoFor(notif.id)}
@@ -437,7 +483,7 @@ export const NotificationsView: React.FC = () => {
                           fontSize: '11.5px'
                         }}
                       >
-                        <CheckCheck size={14} color="#166534" /> {notif.type === 'INFO_REQUEST' ? 'Completed' : 'Read'}
+                        <CheckCheck size={14} color="#166534" /> {notif.type === 'INFO_REQUEST' ? 'Completed' : notif.type === 'ADMIN_QUERY' ? 'Answered' : 'Read'}
                       </span>
                     </td>
                   </tr>
