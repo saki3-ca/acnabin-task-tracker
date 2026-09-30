@@ -29,7 +29,10 @@ var TABLES = [
   'manager_client_access',
   'manager_student_access',
   'manpower',
-  'client_manpower_remarks'
+  'client_manpower_remarks',
+  'manpower_salary',
+  'user_personal_info',
+  'user_queries'
 ];
 var PAGE_SIZE = 1000;
 var FOLDER_NAME = 'ACNABIN Task Tracker Backups';
