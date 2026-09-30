@@ -16,6 +16,11 @@ export const staffService = {
     return api.callBackend('getStaffDates', {});
   },
 
+  /** Every staff record (Admin and Assistant Director and above; empty for everyone else). Used for the Excel download. */
+  async getStaffAll(): Promise<MyStaff[]> {
+    return api.callBackend('getStaffAll', {});
+  },
+
   async importStaff(rows: StaffRow[], mode: 'FILL' | 'OVERWRITE', dryRun: boolean): Promise<StaffImportResult> {
     return api.callBackend('importStaff', { rows, mode, dryRun });
   }

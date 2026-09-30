@@ -1401,6 +1401,26 @@ export const api = {
         })) as T;
       }
 
+      case 'getStaffAll': {
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_get_staff_all', { p_session: session.token });
+        if (error) {
+          console.warn('[getStaffAll] failed (run supabase_staff_export.sql?):', error.message);
+          return [] as T;
+        }
+        const s = (v: any) => (v === null || v === undefined ? '' : String(v));
+        return ((data as any[]) || []).map((r: any) => ({
+          empId: s(r.emp_id).toUpperCase(), name: s(r.name), department: s(r.department), designation: s(r.designation),
+          academicYear: s(r.academic_year), clientNames: s(r.client_names), articleshipPeriod: s(r.articleship_period),
+          articleshipStart: s(r.articleship_start), articleshipEnd: s(r.articleship_end), principalName: s(r.principal_name),
+          mobile: s(r.mobile), email: s(r.email), joiningDate: s(r.joining_date), bloodGroup: s(r.blood_group),
+          emergencyName: s(r.emergency_name), emergencyRelationship: s(r.emergency_relationship),
+          emergencyPhone: s(r.emergency_phone), presentAddress: s(r.present_address), laptopAvailable: s(r.laptop_available),
+          laptopOwnership: s(r.laptop_ownership), laptopId: s(r.laptop_id), remarks: s(r.remarks)
+        })) as T;
+      }
+
       case 'importStaff': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again, then try again.');

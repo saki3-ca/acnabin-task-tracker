@@ -13,7 +13,7 @@ import {
   Users,
   X
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { downloadManpowerWorkbook } from '../../lib/manpowerExcel';
 import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
 import { isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib/permissions';
@@ -396,76 +396,52 @@ export const ManpowerView: React.FC = () => {
           .join(', ')
       : r.assignedClient;
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const today = new Date().toISOString().split('T')[0];
     const fileName = `ACNABIN_Manpower_Summary_and_Details_${today}.xlsx`;
 
-    // 1. Sheet 1: Client-wise Summary Data
-    const summaryData = sortedSummaryList.map((item, idx) => ({
-      'SL': idx + 1,
-      'Client Name': clientText(item.clientName, jobOf(item.jobClientId)),
-      'Manpower': item.manpowerCount,
-      'Total Salary': item.totalSalary,
-      'Total Conveyance': item.totalConveyance,
-      'Total Cost': item.totalCost,
-      'Remarks': remarksMap[item.clientId] || ''
+    const summary = sortedSummaryList.map(item => ({
+      clientName: clientText(item.clientName, jobOf(item.jobClientId)),
+      manpower: item.manpowerCount,
+      salary: item.totalSalary,
+      conveyance: item.totalConveyance,
+      total: item.totalCost,
+      remarks: remarksMap[item.clientId] || ''
     }));
 
-    summaryData.push({
-      'SL': '' as any,
-      'Client Name': 'GRAND TOTAL',
-      'Manpower': grandTotalManpower,
-      'Total Salary': grandTotalSalary,
-      'Total Conveyance': grandTotalConveyance,
-      'Total Cost': grandTotalCost,
-      'Remarks': 'Aggregated firm total'
-    });
-
-    // 2. Sheet 2: Staff Details Data
-    const detailsData = sortedDetails.map((item, idx) => ({
-      'SL': idx + 1,
-      'EMP/STD ID': item.empId,
-      'Name': item.name,
-      'Assigned Client': assignedClientText(item),
-      'Designation': /year/i.test(item.designation || '') ? 'Student' : (item.designation || ''),
-      'Academic Year': item.academicYear && item.academicYear !== '—' ? item.academicYear : '',
-      'Monthly Salary': item.salary,
-      'Conveyance': item.conveyance,
-      'Total Cost': item.total
+    // Mobile numbers lose their leading 0 in some records: put it back
+    const phone = (v?: string) => {
+      const d = (v || '').replace(/\D/g, '');
+      return d.length === 10 && d.startsWith('1') ? `0${d}` : (v || '').trim();
+    };
+    const details = sortedDetails.map(item => ({
+      empId: item.empId,
+      name: item.name,
+      designation: /year/i.test(item.designation || '') ? 'Student' : (item.designation || ''),
+      clients: assignedClientText(item) === '—' ? '' : assignedClientText(item),
+      academicYear: item.academicYear || '',
+      salary: item.salary,
+      conveyance: item.conveyance,
+      total: item.total,
+      mobile: phone(item.contactNumber),
+      email: item.email || '',
+      remarks: item.remarks || ''
     }));
 
-    const workbook = XLSX.utils.book_new();
-
-    const summaryWorksheet = XLSX.utils.json_to_sheet(summaryData);
-    const detailsWorksheet = XLSX.utils.json_to_sheet(detailsData);
-
-    summaryWorksheet['!cols'] = [
-      { wch: 6 },
-      { wch: 38 },
-      { wch: 12 },
-      { wch: 16 },
-      { wch: 18 },
-      { wch: 16 },
-      { wch: 30 }
-    ];
-
-    detailsWorksheet['!cols'] = [
-      { wch: 6 },
-      { wch: 16 },
-      { wch: 28 },
-      { wch: 35 },
-      { wch: 22 },
-      { wch: 16 },
-      { wch: 16 },
-      { wch: 16 },
-      { wch: 16 }
-    ];
-
-    // Append both sheets in one Excel file
-    XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Summary');
-    XLSX.utils.book_append_sheet(workbook, detailsWorksheet, 'Details');
-
-    XLSX.writeFile(workbook, fileName);
+    try {
+      // Full staff details: only Admin and Assistant Director and above get any (empty for others)
+      const staff = await staffService.getStaffAll().catch(() => []);
+      await downloadManpowerWorkbook(
+        summary,
+        { manpower: grandTotalManpower, salary: grandTotalSalary, conveyance: grandTotalConveyance, total: grandTotalCost },
+        details,
+        staff,
+        fileName
+      );
+    } catch (err) {
+      console.error('Excel export failed:', err);
+      window.alert('Could not create the Excel file. Please try again.');
+    }
   };
 
   const handleExportDetailsExcel = handleExportExcel;
