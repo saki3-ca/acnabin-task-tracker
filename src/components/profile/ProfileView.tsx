@@ -279,7 +279,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
         setEditArtStart(st.articleshipStart || '');
         setEditArtEnd(st.articleshipEnd || '');
         setEditPrincipal(canonicalPrincipal(st.principalName));
-        setEditAddress(st.presentAddress || '');
+        setEditAddress(titleCaseWords(st.presentAddress || ''));
         setEditEmRel(st.emergencyRelationship || '');
         setEditLaptopAvail(st.laptopAvailable || '');
         setEditLaptopOwner(st.laptopOwnership || '');
@@ -447,7 +447,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     const staffChanged =
       editDept.trim() !== (st?.department || '') ||
       editJoining !== (st?.joiningDate || '') ||
-      staffFields.present_address !== (st?.presentAddress || '') ||
+      staffFields.present_address !== titleCaseWords(st?.presentAddress || '') ||
       editEmRel.trim() !== (st?.emergencyRelationship || '') ||
       editLaptopAvail !== (st?.laptopAvailable || '') ||
       editLaptopOwner.trim() !== (st?.laptopOwnership || '') ||
@@ -587,8 +587,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const payFullLabel = isEmployeeId(currentUser.empId) ? 'Monthly Salary (৳)' : 'Monthly Allowance (৳)';
   const payShortLabel = isEmployeeId(currentUser.empId) ? 'Salary (৳)' : 'Allowance (৳)';
   const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
-  const hasYearField = isStudentLevelDesignation(currentUser.designation);
-  const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%' };
+  const hasYearField = isStudentLevelDesignation(currentUser.designation) && !editArtStart;
+  const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%', minWidth: 0 };
   const conveyanceDays = editClients.some(c => /walton/i.test(c.name)) ? 24 : 22;
   const conveyanceHint =
     `Daily conveyance × ${conveyanceDays} days = ৳ ${((Number(editDaily) || 0) * conveyanceDays).toLocaleString('en-IN')} / month` +
@@ -1390,11 +1390,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   {conveyanceHint}
                 </div>
 
-                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
                   <label style={{ fontSize: '11.5px' }}>Emergency Contact Name</label>
                   <input type="text" className="form-input" value={editEmName} onChange={e => setEditEmName(e.target.value)} style={infoInputStyle} />
                 </div>
-                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
+                  <label style={{ fontSize: '11.5px' }}>Relationship</label>
+                  <input type="text" className="form-input" value={editEmRel} onChange={e => setEditEmRel(e.target.value)} placeholder="e.g. Father" style={infoInputStyle} />
+                </div>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
                   <label style={{ fontSize: '11.5px' }}>Emergency Contact Mobile</label>
                   <input type="tel" className="form-input" value={editEmPhone} onChange={e => setEditEmPhone(e.target.value)} placeholder="01XXXXXXXXX" style={infoInputStyle} />
                 </div>
@@ -1437,7 +1441,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       <label style={{ fontSize: '11.5px' }}>Articleship End</label>
                       <input type="date" className="form-input" value={editArtEnd} onChange={e => setEditArtEnd(e.target.value)} style={infoInputStyle} />
                     </div>
-                    <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+                    <div className="form-field" style={{ gridColumn: 'span 3' }}>
                       <label style={{ fontSize: '11.5px' }}>Principal</label>
                       <select className="form-select" value={editPrincipal} onChange={e => setEditPrincipal(e.target.value)} style={infoInputStyle}>
                         <option value="">Select…</option>
@@ -1448,15 +1452,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     </div>
                   </>
                 )}
-                <div className="form-field" style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: '11.5px' }}>Present Address</label>
-                  <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
-                </div>
-                <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                  <label style={{ fontSize: '11.5px' }}>Emergency Contact Relationship</label>
-                  <input type="text" className="form-input" value={editEmRel} onChange={e => setEditEmRel(e.target.value)} style={infoInputStyle} />
-                </div>
-                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
                   <label style={{ fontSize: '11.5px' }}>Laptop Available</label>
                   <select className="form-select" value={editLaptopAvail} onChange={e => setEditLaptopAvail(e.target.value)} style={infoInputStyle}>
                     <option value="">Select…</option>
@@ -1465,13 +1461,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     {editLaptopAvail && !['Yes', 'No'].includes(editLaptopAvail) && <option value={editLaptopAvail}>{editLaptopAvail}</option>}
                   </select>
                 </div>
-                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
                   <label style={{ fontSize: '11.5px' }}>Laptop Ownership</label>
                   <input type="text" className="form-input" value={editLaptopOwner} onChange={e => setEditLaptopOwner(e.target.value)} placeholder="e.g. Own / Office" style={infoInputStyle} />
                 </div>
-                <div className="form-field" style={{ gridColumn: 'span 3' }}>
+                <div className="form-field" style={{ gridColumn: 'span 2' }}>
                   <label style={{ fontSize: '11.5px' }}>Laptop ID</label>
                   <input type="text" className="form-input" value={editLaptopId} onChange={e => setEditLaptopId(e.target.value)} style={infoInputStyle} />
+                </div>
+                <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '11.5px' }}>Present Address</label>
+                  <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
                 </div>
                 <div className="form-field" style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: '11.5px' }}>Remarks</label>
