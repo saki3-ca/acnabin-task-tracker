@@ -46,7 +46,7 @@ BEGIN
   INSERT INTO public.notifications (user_id, type, title, message, data, is_read)
   SELECT a.id, 'USER_QUERY',
          'New query from ' || v_user.name || ' (' || v_user.emp_id || ')',
-         trim(p_message),
+         'Open the Query inbox to read it.',
          jsonb_build_object('queryId', v_id),
          false
   FROM public.users a
@@ -115,8 +115,7 @@ BEGIN
   INSERT INTO public.notifications (user_id, type, title, message, data, is_read)
   VALUES (
     v_q.user_id, 'QUERY_RESOLVED', 'Your query was solved',
-    'Your query "' || left(v_q.message, 80) || CASE WHEN length(v_q.message) > 80 THEN '…' ELSE '' END || '" has been solved.'
-      || COALESCE(' Admin note: ' || v_note, ''),
+    'Your query has been solved.' || COALESCE(' Admin note: ' || v_note, ''),
     jsonb_build_object('queryId', p_query_id),
     false
   );

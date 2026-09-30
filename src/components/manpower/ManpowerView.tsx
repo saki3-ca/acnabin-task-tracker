@@ -108,7 +108,7 @@ export const ManpowerView: React.FC = () => {
   const canEditManpower = isAdmin || isADOrAbove;
   const canEditRemarks = isAdmin || isADOrAbove;
 
-  // Only Admin can include all HR records; non-admins are strictly active students
+  // Only Admin can include all HR records; non-admins see active accounts only
   const effectiveIncludeAllHr = isAdmin ? includeAllHr : false;
 
   useEffect(() => {
@@ -784,7 +784,7 @@ export const ManpowerView: React.FC = () => {
                   boxShadow: includeAllHr ? '0 2px 6px rgba(128, 0, 0, 0.2)' : 'none',
                   transition: 'all 0.15s ease'
                 }}
-                title={includeAllHr ? 'Switch to Active Students Only' : 'Include All 64 HR Records'}
+                title={includeAllHr ? 'Switch to Active Only' : 'Include All 64 HR Records'}
               >
                 <span
                   style={{
@@ -896,7 +896,7 @@ export const ManpowerView: React.FC = () => {
               {!effectiveIncludeAllHr && (
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
               )}
-              Showing {sortedDetails.length} {effectiveIncludeAllHr ? `of ${records.length} staff records` : 'active students'}
+              Showing {sortedDetails.length} {effectiveIncludeAllHr ? `of ${records.length} staff records` : 'active members'}
             </div>
           </div>
 
@@ -923,7 +923,7 @@ export const ManpowerView: React.FC = () => {
                     }}
                   >
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399' }} />
-                    Active Student Accounts
+                    Active Accounts
                   </span>
                 ) : (
                   <span
@@ -1216,7 +1216,7 @@ export const ManpowerView: React.FC = () => {
                   }}
                 >
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399' }} />
-                  Active Student Accounts
+                  Active Accounts
                 </span>
               ) : (
                 <span
@@ -1280,10 +1280,10 @@ export const ManpowerView: React.FC = () => {
                   <th
                     onClick={() => handleSummarySort('manpowerCount')}
                     style={{ width: '10%', textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}
-                    title={`Click to sort by ${effectiveIncludeAllHr ? 'Manpower' : 'Students'} count`}
+                    title={'Click to sort by Manpower count'}
                   >
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                      <span>{effectiveIncludeAllHr ? 'Manpower' : 'Students'}</span>
+                      <span>Manpower</span>
                       {summarySortField === 'manpowerCount' ? (
                         summarySortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
                       ) : (

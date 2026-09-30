@@ -23,8 +23,11 @@ import {
 } from './mockData';
 
 // Actions that must never fall back to the local store: credential checks (it has
-// no passwords) and client-list changes (a silent local save would look like success).
-const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary']);
+// no passwords) and every write. A silent local save would look like success while
+// nothing reached the database.
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary',
+  'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
+  'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -359,6 +362,14 @@ export const api = {
     }
   },
 
+  /** After Admin "Switch User" the saved session still belongs to the Admin: don't save data under the wrong account. */
+  async assertSessionIsCurrentUser(session: { userId: string }) {
+    const current = await this.getCurrentUser();
+    if (current && current.id !== session.userId) {
+      throw new Error('You are viewing as another user (Switch User). Log in as that user directly to do this.');
+    }
+  },
+
   async callBackend<T>(action: string, payload: any = {}): Promise<T> {
     try {
       return await (this.dispatchSupabase(action, payload) as Promise<T>);
@@ -385,9 +396,11 @@ export const api = {
         const paddedDigits = digits.length > 0 ? digits.padStart(6, '0') : '';
 
         // Flexible query matching: STD-001643, EMP-000230, raw numbers, exact input, or email
+        // Escape LIKE wildcards so "%" or "_" typed in the ID box can't match other accounts
+        const escapedInput = normalized.replace(/[\\%_]/g, m => `\\${m}`);
         const filters: string[] = [
-          `emp_id.ilike.${normalized}`,
-          `email.ilike.${normalized}`
+          `emp_id.ilike.${escapedInput}`,
+          `email.ilike.${escapedInput}`
         ];
         // Let the administrator log in with the ID "admin" whatever their emp_id is.
         if (normalized === 'ADMIN') {
@@ -411,7 +424,10 @@ export const api = {
         const exactIds = [normalized, paddedDigits && `STD-${paddedDigits}`, paddedDigits && `EMP-${paddedDigits}`].filter(Boolean);
         let target = (users || []).find((u: any) =>
           exactIds.includes((u.emp_id || '').toUpperCase()) || (u.email || '').toUpperCase() === normalized
-        ) || (users && users.length > 0 ? users[0] : null);
+        ) || (users && users.length === 1 ? users[0] : null);
+        if (!target && users && users.length > 1) {
+          throw new Error('More than one account matches. Please enter your full ID (e.g. STD-001643 or EMP-000230).');
+        }
 
         // 2. Check 2-letter partner initials if partner/admin
         if (!target && normalized.length === 2) {
@@ -1003,7 +1019,7 @@ export const api = {
           const tId = notif.data?.taskId || '';
           const slot = notif.data?.slot || '';
           const reqId = notif.data?.requestId || '';
-          const key = `${notif.type}_${tId}_${slot}_${reqId}_${notif.title}_${notif.message.slice(0, 30)}`;
+          const key = `${notif.type}_${tId}_${slot}_${reqId}_${notif.data?.queryId || ''}_${notif.data?.sentAt || ''}_${notif.title}_${notif.message.slice(0, 30)}`;
 
           if (!seenKeys.has(key)) {
             seenKeys.add(key);
@@ -1109,6 +1125,7 @@ export const api = {
       case 'submitQuery': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_submit_query', {
           p_session: session.token,
           p_message: payload.message
@@ -1162,6 +1179,7 @@ export const api = {
       case 'submitProfileInfo': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_submit_profile_info', {
           p_session: session.token,
           p_academic_year: payload.academicYear,
@@ -1273,13 +1291,27 @@ export const api = {
 
         if (fetchErr || !req) throw fetchErr || new Error('Request not found');
 
+        const responder = await this.getCurrentUser();
+        if (responder && responder.id !== req.superior_id && responder.role !== 'ADMIN') {
+          throw new Error('Only the person this request was sent to can respond to it.');
+        }
+        if (req.status && req.status !== 'PENDING') {
+          throw new Error('This request was already answered.');
+        }
+
         const now = new Date().toISOString();
-        const { error: updateErr } = await supabase
+        // .eq('status','PENDING') makes a double click / second tab a no-op instead of a duplicate task
+        const { data: updatedRows, error: updateErr } = await supabase
           .from('task_requests')
           .update({ status, updated_at: now })
-          .eq('id', requestId);
+          .eq('id', requestId)
+          .eq('status', 'PENDING')
+          .select('id');
 
         if (updateErr) throw updateErr;
+        if (!updatedRows || updatedRows.length === 0) {
+          throw new Error('This request was already answered.');
+        }
 
         if (status === 'ACCEPTED') {
           const newTaskId = generateTaskId();
@@ -1829,6 +1861,13 @@ export const api = {
             if (/year/i.test(finalDesig)) {
               if (!acad || acad === '—') acad = finalDesig;
               finalDesig = 'Student';
+            }
+
+            if (
+              finalDesig.toLowerCase().trim() === 'partner' ||
+              (matchedUser && ((matchedUser.role || '').toUpperCase() === 'ADMIN' || (matchedUser.designation || '').toLowerCase() === 'admin'))
+            ) {
+              continue;
             }
 
             result.push({
