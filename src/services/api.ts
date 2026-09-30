@@ -1430,6 +1430,22 @@ export const api = {
         return Array.from(ids) as T;
       }
 
+      case 'getManpowerSalaries': {
+        // Protected: the function checks the login session and role server-side.
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_get_manpower_salaries', { p_session: session.token });
+        if (error) {
+          console.warn('[getManpowerSalaries] failed (run supabase_manpower_salary.sql?):', error.message);
+          return [] as T;
+        }
+        return (data || []).map((r: any) => ({
+          empId: String(r.emp_id || '').toUpperCase(),
+          salary: Number(r.salary) || 0,
+          conveyance: Number(r.conveyance) || 0
+        })) as T;
+      }
+
       case 'getManpower': {
         const includeAll = Boolean(payload?.includeAll);
         let { data: manpowerRows, error: mpErr } = await supabase
@@ -2209,6 +2225,9 @@ export const api = {
       case 'getManagerClientIds': {
         return (fallbackStore.managerClients[payload.managerUserId] || []) as T;
       }
+
+      case 'getManpowerSalaries':
+        return [] as T;
 
       case 'getManpower': {
         const includeAll = Boolean(payload?.includeAll);

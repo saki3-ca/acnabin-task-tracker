@@ -18,7 +18,6 @@ import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
 import { isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { manpowerService } from '../../services/manpowerService';
-import { SALARY_BY_ID } from '../../lib/manpowerSalary';
 import { ClientManpowerSummaryItem, ManpowerRecord } from '../../types';
 
 function formatBDT(amount: number): string {
@@ -98,13 +97,15 @@ export const ManpowerView: React.FC = () => {
     setLoading(true);
     Promise.all([
       manpowerService.getManpower({ includeAll: effectiveIncludeAllHr }),
-      manpowerService.getClientManpowerRemarks().catch(() => ({}))
+      manpowerService.getClientManpowerRemarks().catch(() => ({})),
+      manpowerService.getSalaries().catch(() => [])
     ])
-      .then(([mpData, remarksData]) => {
+      .then(([mpData, remarksData, salaryRows]) => {
         if (isMounted) {
-          // Fill salary/conveyance from CSV when the STD/EMP ID matches and no value is stored yet
+          // Fill salary/conveyance from the protected salary table when the STD/EMP ID matches
+          const salaryById = new Map(salaryRows.map(x => [x.empId, x]));
           setRecords((mpData || []).map(r => {
-            const hit = SALARY_BY_ID.get((r.empId || '').trim().toUpperCase());
+            const hit = salaryById.get((r.empId || '').trim().toUpperCase());
             if (!hit || r.salary || r.conveyance) return r;
             return { ...r, salary: hit.salary, conveyance: hit.conveyance, total: hit.salary + hit.conveyance };
           }));

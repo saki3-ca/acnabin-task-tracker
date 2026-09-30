@@ -6,6 +6,10 @@ export const manpowerService = {
     return api.callBackend<ManpowerRecord[]>('getManpower', { includeAll: options?.includeAll || false });
   },
 
+  async getSalaries(): Promise<{ empId: string; salary: number; conveyance: number }[]> {
+    return api.callBackend('getManpowerSalaries', {});
+  },
+
   async getClientManpowerRemarks(): Promise<Record<string, string>> {
     return api.callBackend<Record<string, string>>('getClientManpowerRemarks', {});
   },

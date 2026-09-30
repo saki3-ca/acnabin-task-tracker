@@ -30,3 +30,4 @@ sheets_dump.json
 *.xlsx
 *.csv
 backups/
+manpower_salary_seed.sql
