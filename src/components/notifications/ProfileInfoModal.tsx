@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { normalizeBDMobile } from '../../lib/permissions';
+import { isAssistantDirectorOrAbove, normalizeBDMobile } from '../../lib/permissions';
 import { notificationService } from '../../services/notificationService';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -17,6 +17,8 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
 
   // Only students (and trainees, who are given a year at signup) have an academic year
   const hasAcademicYear = ['student', 'trainee'].includes((currentUser?.designation || '').toLowerCase().trim());
+  // Assistant Director and above may submit without filling anything in
+  const infoOptional = isAssistantDirectorOrAbove(currentUser?.designation);
   const [academicYear, setAcademicYear] = useState('');
   const [salary, setSalary] = useState('');
   const [daily, setDaily] = useState('');
@@ -43,6 +45,12 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
 
   const handleSubmit = async () => {
     setError(null);
+    const allBlank =
+      !academicYear && salary.trim() === '' && daily.trim() === '' && !bloodGroup && !emName.trim() && !emPhone.trim();
+    if (infoOptional && allBlank) {
+      onDone(); // nothing to update: just complete the request
+      return;
+    }
     if (hasAcademicYear && !academicYear) return setError('Please select your academic year.');
     if (salary.trim() === '' || Number(salary) < 0) return setError('Please enter your monthly salary/allowance (0 if none).');
     if (daily.trim() === '' || Number(daily) < 0) return setError('Please enter your daily conveyance (0 if none).');
@@ -110,6 +118,11 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
         </div>
 
         <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {infoOptional && (
+            <div style={{ fontSize: '12.5px', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
+              Optional for your role. You can submit without filling anything in. If you do fill something in, please complete every field.
+            </div>
+          )}
           {hasAcademicYear && (
           <div className="form-field">
             <label style={{ fontSize: '12px', fontWeight: 700 }}>Academic Year</label>

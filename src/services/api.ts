@@ -1675,7 +1675,9 @@ export const api = {
           // Active STD- accounts / Students / Trainees only.
           const activeStudents = activeUsers.filter((u: any) => {
             const desig = (u.designation || '').toLowerCase().trim();
-            return desig !== 'partner';
+            const role = (u.role || '').toUpperCase().trim();
+            // Everyone is listed except Partners and the system Admin account
+            return desig !== 'partner' && desig !== 'admin' && role !== 'ADMIN';
           });
 
           for (const u of activeStudents) {
@@ -2424,7 +2426,8 @@ export const api = {
           // Active STD- accounts / Students / Trainees only.
           const activeStudents = activeUsers.filter(u => {
             const desig = (u.designation || '').toLowerCase().trim();
-            return desig !== 'partner';
+            const role = (u.role || '').toUpperCase().trim();
+            return desig !== 'partner' && desig !== 'admin' && role !== 'ADMIN';
           });
 
           const result: ManpowerRecord[] = [];
