@@ -621,7 +621,7 @@ export const api = {
         const { data, error } = await supabase
           .from('tasks')
           .select('*')
-          .or(`assigned_to_id.eq.${targetUserId},created_by_id.eq.${targetUserId}`)
+          .eq('assigned_to_id', targetUserId) // only tasks assigned to me; ones I assign to others live in Team Tasks
           .order('created_date', { ascending: false });
 
         if (error) throw error;
@@ -2158,7 +2158,7 @@ export const api = {
       case 'getMyTasks': {
         const targetId = payload?.userId || fallbackStore.currentUser?.id;
         if (!targetId) return [] as T;
-        return fallbackStore.tasks.filter(t => t.assignedToId === targetId || t.createdById === targetId) as T;
+        return fallbackStore.tasks.filter(t => t.assignedToId === targetId) as T;
       }
 
       case 'getTeamTasks': {
