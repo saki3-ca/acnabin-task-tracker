@@ -133,7 +133,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
           <Field label="Availability">{show(staff?.laptopAvailable)}</Field>
           <Field label="Ownership">{show(staff?.laptopOwnership)}</Field>
           <Field label="Identification No.">{show(staff?.laptopId)}</Field>
-          <Field label="Remarks" wide>{show(staff?.remarks)}</Field>
+          <Field label="Remarks">{show(staff?.remarks)}</Field>
         </Group>
 
         <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', padding: '0 0 12px' }}>
