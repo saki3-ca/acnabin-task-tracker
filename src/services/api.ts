@@ -64,6 +64,8 @@ function saveSession(session: StoredSession | null) {
 const stepError = (step: string, err: any) =>
   new Error(`${err?.message || 'Unknown error'} (while ${step}${err?.code ? `, code ${err.code}` : ''})`);
 
+const deadlineCheckedAt: Record<string, number> = {};
+
 const isMissingFunction = (err: any) =>
   err?.code === 'PGRST202' || /could not find the function/i.test(err?.message || '');
 
@@ -1037,8 +1039,11 @@ export const api = {
         const { userId } = payload;
         if (!userId) return [] as T;
 
-        // Auto-check for scheduled deadline alerts (12:00 AM & 12:00 PM) & overdue alerts
-        try {
+        // Auto-check for scheduled deadline alerts (12:00 AM & 12:00 PM) & overdue alerts.
+        // Polling is frequent now, so this (query-heavy) check runs at most once every 5 minutes per user.
+        const lastCheck = deadlineCheckedAt[userId] || 0;
+        if (Date.now() - lastCheck > 5 * 60 * 1000) try {
+          deadlineCheckedAt[userId] = Date.now();
           const { data: userTasks } = await supabase
             .from('tasks')
             .select('id, particular, deadline, status, client_name')

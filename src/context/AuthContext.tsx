@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useLivePolling } from '../lib/useLivePolling';
 import { adminService } from '../services/adminService';
 import { authService } from '../services/authService';
 import { clientService } from '../services/clientService';
@@ -18,6 +19,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const sameData = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
@@ -36,8 +39,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         adminService.getAllUsers().catch(() => []),
         clientService.getAllClients().catch(() => clientService.getCachedAllClients() || [])
       ]);
-      setAllUsers(users);
-      setAllClients(clients);
+      // Keep the same objects when nothing changed, so screens don't reload on every background refresh
+      setAllUsers(prev => (sameData(prev, users) ? prev : users));
+      setAllClients(prev => (sameData(prev, clients) ? prev : clients));
 
       // Resolve active user from localStorage session
       setCurrentUser(prev => {
@@ -57,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (activeUser) {
+          if (prev && sameData(prev, activeUser)) return prev;
           try { localStorage.setItem('acnabin_current_user', JSON.stringify(activeUser)); } catch {}
           // Pre-warm client cache for active user
           adminService.prefetchManagerClientIds(activeUser.id).catch(() => {});
@@ -70,6 +75,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
+
+  // Keep the user and client lists (dropdowns, names) fresh while the app stays open
+  useLivePolling(() => refreshContextData(), 60000, Boolean(currentUser));
 
   useEffect(() => {
     // If current user is already cached in localStorage, start prefetching client IDs immediately

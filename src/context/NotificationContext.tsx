@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useLivePolling } from '../lib/useLivePolling';
 import { useAuth } from './AuthContext';
 import { notificationService } from '../services/notificationService';
 import { taskRequestService } from '../services/taskRequestService';
@@ -57,18 +58,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setIsLoading(false);
       });
 
-      // Poll periodically every 30 seconds for background alerts
-      const interval = setInterval(() => {
-        refreshNotifications();
-        refreshRequests();
-      }, 30000);
 
-      return () => clearInterval(interval);
     } else {
       setNotifications([]);
       setTaskRequests([]);
     }
   }, [currentUser, refreshNotifications, refreshRequests]);
+
+  // Keep notifications and requests up to date without a manual refresh
+  useLivePolling(
+    () => Promise.all([refreshNotifications(), refreshRequests()]),
+    10000,
+    Boolean(currentUser)
+  );
 
   const markAsRead = async (id: string) => {
     try {

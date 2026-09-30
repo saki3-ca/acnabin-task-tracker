@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { isOverdue } from '../lib/dateUtils';
+import { useLivePolling } from '../lib/useLivePolling';
 import { taskService } from '../services/taskService';
 import { DashboardStats, Task, TaskFilter } from '../types';
 import { useAuth } from './AuthContext';
@@ -65,9 +66,9 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const myStats = useMemo(() => calculateStats(myTasks), [myTasks]);
   const teamStats = useMemo(() => calculateStats(teamTasks), [teamTasks]);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (silent = false) => {
     if (!currentUser?.id) return;
-    setIsLoading(true);
+    if (!silent) setIsLoading(true); // background refreshes don't flash the loading state
     try {
       const [myResult, teamResult] = await Promise.allSettled([
         taskService.getMyTasks(currentUser.id),
@@ -87,11 +88,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Failed to fetch team tasks:', teamResult.reason);
       }
     } catch (err: any) {
-      showToast(err.message || 'Error fetching tasks');
+      if (!silent) showToast(err.message || 'Error fetching tasks');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
+
+  // Keep tasks up to date without a manual refresh
+  useLivePolling(() => fetchTasks(true), 10000, Boolean(currentUser?.id));
 
   useEffect(() => {
     if (currentUser?.id) {
