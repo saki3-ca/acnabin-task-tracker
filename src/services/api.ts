@@ -449,6 +449,17 @@ export const api = {
     }
   },
 
+  /** Admin using Switch User: read the switched-to person's details (the server checks the caller is an Admin). */
+  async adminViewPerson(session: { token: string }, empId: string): Promise<any | null> {
+    if (!empId) return null;
+    const { data, error } = await supabase.rpc('app_admin_view_person', { p_session: session.token, p_emp_id: empId });
+    if (error) {
+      console.warn('[adminViewPerson] failed (run supabase_admin_view_person.sql?):', error.message);
+      return null;
+    }
+    return data || null;
+  },
+
   async callBackend<T>(action: string, payload: any = {}): Promise<T> {
     try {
       return await (this.dispatchSupabase(action, payload) as Promise<T>);
@@ -1309,13 +1320,17 @@ export const api = {
         if (!session) return null as T;
         // After Switch User the session belongs to the Admin: don't show the Admin's data
         const current = await this.getCurrentUser();
-        if (current && current.id !== session.userId) return null as T;
-        const { data, error } = await supabase.rpc('app_get_my_info', { p_session: session.token });
-        if (error) {
-          console.warn('[getMyInfo] failed (run supabase_my_info.sql?):', error.message);
-          return null as T;
+        let r: any;
+        if (current && current.id !== session.userId) {
+          r = (await this.adminViewPerson(session, current.empId))?.info; // Admin viewing as someone else
+        } else {
+          const { data, error } = await supabase.rpc('app_get_my_info', { p_session: session.token });
+          if (error) {
+            console.warn('[getMyInfo] failed (run supabase_my_info.sql?):', error.message);
+            return null as T;
+          }
+          r = Array.isArray(data) ? data[0] : data;
         }
-        const r = Array.isArray(data) ? data[0] : data;
         if (!r) return null as T;
         return {
           academicYear: r.academic_year || '',
@@ -1332,13 +1347,17 @@ export const api = {
         const session = readSession();
         if (!session) return null as T;
         const current = await this.getCurrentUser();
-        if (current && current.id !== session.userId) return null as T; // Switch User: not the Admin's record
-        const { data, error } = await supabase.rpc('app_get_my_staff', { p_session: session.token });
-        if (error) {
-          console.warn('[getMyStaff] failed (run supabase_staff_records.sql?):', error.message);
-          return null as T;
+        let r: any;
+        if (current && current.id !== session.userId) {
+          r = (await this.adminViewPerson(session, current.empId))?.staff; // Admin viewing as someone else
+        } else {
+          const { data, error } = await supabase.rpc('app_get_my_staff', { p_session: session.token });
+          if (error) {
+            console.warn('[getMyStaff] failed (run supabase_staff_records.sql?):', error.message);
+            return null as T;
+          }
+          r = data;
         }
-        const r: any = data;
         if (!r) return null as T;
         const s = (v: any) => (v === null || v === undefined ? '' : String(v));
         return {
