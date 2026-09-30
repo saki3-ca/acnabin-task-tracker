@@ -55,7 +55,8 @@ BEGIN
 END;
 $$;
 
--- A user answers a question. Returns 'OK' | 'INVALID_SESSION' | 'INVALID_INPUT'
+-- A user answers a question (Admin may answer on a user's behalf, e.g. when using Switch User).
+-- Returns 'OK' | 'INVALID_SESSION' | 'INVALID_INPUT' | 'NOT_FOUND'
 CREATE OR REPLACE FUNCTION public.app_chat_reply(p_session TEXT, p_question_id BIGINT, p_message TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -64,6 +65,7 @@ SET search_path = public, extensions
 AS $$
 DECLARE
   v_user public.users%ROWTYPE;
+  v_q public.admin_chat_messages%ROWTYPE;
 BEGIN
   SELECT u.* INTO v_user
   FROM public.user_sessions s
@@ -73,20 +75,18 @@ BEGIN
     AND u.status = 'ACTIVE';
   IF NOT FOUND THEN RETURN 'INVALID_SESSION'; END IF;
 
-  IF COALESCE(trim(p_message), '') = ''
-     OR NOT EXISTS (
-       SELECT 1 FROM public.admin_chat_messages
-       WHERE id = p_question_id AND user_id = v_user.id AND sender = 'ADMIN'
-     ) THEN
-    RETURN 'INVALID_INPUT';
-  END IF;
+  IF COALESCE(trim(p_message), '') = '' THEN RETURN 'INVALID_INPUT'; END IF;
+
+  SELECT * INTO v_q FROM public.admin_chat_messages WHERE id = p_question_id AND sender = 'ADMIN';
+  IF NOT FOUND THEN RETURN 'NOT_FOUND'; END IF;
+  IF v_q.user_id <> v_user.id AND v_user.role <> 'ADMIN' THEN RETURN 'NOT_FOUND'; END IF;
 
   INSERT INTO public.admin_chat_messages (user_id, sender, message)
-  VALUES (v_user.id, 'USER', trim(p_message));
+  VALUES (v_q.user_id, 'USER', trim(p_message));
 
   UPDATE public.notifications
   SET is_read = true
-  WHERE user_id = v_user.id
+  WHERE user_id = v_q.user_id
     AND type = 'ADMIN_QUERY'
     AND (data->>'questionId') = p_question_id::text;
 

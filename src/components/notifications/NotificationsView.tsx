@@ -25,7 +25,7 @@ export const NotificationsView: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, refreshNotifications, isLoading } = useNotifications();
   const { currentUser } = useAuth();
   const [infoFor, setInfoFor] = useState<string | null>(null);
-  const [replyFor, setReplyFor] = useState<{ notifId: string; questionId: number } | null>(null);
+  const [replyFor, setReplyFor] = useState<{ notifId: string; questionId: number; userId: string; question: string } | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -237,10 +237,11 @@ export const NotificationsView: React.FC = () => {
       {replyFor && (
         <ChatReplyModal
           questionId={replyFor.questionId}
+          userId={replyFor.userId}
+          question={replyFor.question}
           onClose={() => setReplyFor(null)}
           onDone={() => {
             markAsRead(replyFor.notifId);
-            setReplyFor(null);
           }}
         />
       )}
@@ -385,7 +386,7 @@ export const NotificationsView: React.FC = () => {
                       {notif.type === 'ADMIN_QUERY' ? (
                         <button
                           type="button"
-                          onClick={() => setReplyFor({ notifId: notif.id, questionId: Number(notif.data?.questionId) })}
+                          onClick={() => setReplyFor({ notifId: notif.id, questionId: Number(notif.data?.questionId), userId: notif.userId, question: notif.message })}
                           className="btn btn-primary btn-sm"
                           title="Answer to complete this notification"
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}

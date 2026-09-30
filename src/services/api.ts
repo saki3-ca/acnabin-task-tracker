@@ -1125,6 +1125,7 @@ export const api = {
           throw new Error('Could not send your reply. Please tell the administrator.');
         }
         if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data === 'NOT_FOUND') throw new Error('This question is no longer available.');
         if (data !== 'OK') throw new Error('Please type your answer first.');
         return { success: true } as T;
       }
