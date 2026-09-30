@@ -1420,21 +1420,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             </div>
             )}
 
-            {/* Partner: only the joining date */}
-            {isPartner && (
-              <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
-                <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '10px' }}>
-                  Employment
-                </div>
-                <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
-                  <div className="form-field" style={{ gridColumn: 'span 3' }}>
-                    <label style={{ fontSize: '11.5px' }}>Joining Date</label>
-                    <input type="date" className="form-input" value={editJoining} onChange={e => setEditJoining(e.target.value)} style={infoInputStyle} />
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Official employee profile (full details); Partners have none */}
             {!isPartner && (
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>

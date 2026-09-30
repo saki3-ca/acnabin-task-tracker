@@ -161,7 +161,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
   return (
     <div className="table-card">
       <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 20px' }}>
-        <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>OFFICIAL EMPLOYEE PROFILE · FULL DETAILS</span>
+        <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>{isPartner ? "OFFICIAL PARTNER'S PROFILE" : 'OFFICIAL EMPLOYEE PROFILE · FULL DETAILS'}</span>
         <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.6px', background: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '4px' }}>
           {show(currentUser.empId)}
         </span>
@@ -169,11 +169,13 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
 
       <div style={{ padding: '18px 20px 14px', background: 'var(--cream)' }}>
         {/* Key figures */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-          {!isPartner && <Stat label={yearLabel} value={show(yearValue)} />}
-          <Stat label="Joining Date" value={fmtDate(staff?.joiningDate)} />
-          <Stat label="Designation" value={show(currentUser.designation)} />
-        </div>
+        {!isPartner && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+            <Stat label={yearLabel} value={show(yearValue)} />
+            <Stat label="Joining Date" value={fmtDate(staff?.joiningDate)} />
+            <Stat label="Designation" value={show(currentUser.designation)} />
+          </div>
+        )}
 
         <div className="fd-grid">
           <Panel title="EMPLOYMENT" icon={<Briefcase size={icon} />}>
