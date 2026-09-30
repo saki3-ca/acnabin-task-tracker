@@ -246,11 +246,19 @@ export const ManpowerView: React.FC = () => {
         cName = 'Unassigned';
       }
 
+      // Someone assigned to several clients is counted once, under their first client
+      // (so there are no combined rows and the grand totals stay right).
+      const firstId = r.clientIds && r.clientIds.length > 1 ? r.clientIds[0] : null;
+      if (firstId) {
+        const first = allClients.find(c => c.id === firstId);
+        cName = first ? first.name : cName.split(',')[0].trim();
+      }
+
       // A single-client row is grouped by client id, so two clients with the same
       // name but different job IDs stay separate.
-      const singleId = r.clientIds && r.clientIds.length === 1 ? r.clientIds[0] : null;
+      const singleId = r.clientIds && r.clientIds.length >= 1 ? r.clientIds[0] : null;
       const key = singleId ? `${cName.toLowerCase()}|${singleId}` : cName.toLowerCase();
-      const cId = r.clientId || (cName === 'Unassigned' ? 'UNASSIGNED' : cName);
+      const cId = firstId || r.clientId || (cName === 'Unassigned' ? 'UNASSIGNED' : cName);
 
       if (!groupMap.has(key)) {
         groupMap.set(key, {
@@ -284,7 +292,7 @@ export const ManpowerView: React.FC = () => {
     });
 
     return items;
-  }, [records, remarksMap]);
+  }, [records, remarksMap, allClients]);
 
   // Sorted Summary List: sort by summarySortField, and "Unassigned" always last
   const sortedSummaryList = useMemo(() => {
