@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, HeartPulse, Laptop, Phone, Wallet } from 'lucide-react';
+import { Briefcase, HeartPulse, Laptop, User as UserIcon, Wallet } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
   academicYearFromStart,
@@ -158,70 +158,81 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
     return empty ? <span style={{ color: 'var(--line-strong)', fontWeight: 500 }}>{DASH}</span> : v;
   };
 
+  // Partners: everything (ID, designation, email, mobile) is already in the identity bar above
+  if (isPartner) return null;
+
+  const personal = (
+    <Panel title="PERSONAL DETAILS" icon={<UserIcon size={icon} />}>
+      <Row label="Present Address">{soft(staff?.presentAddress)}</Row>
+      <Row label="Blood Group" last>{soft(blood)}</Row>
+    </Panel>
+  );
+  const emergency = (
+    <Panel title="EMERGENCY CONTACT" icon={<HeartPulse size={icon} />}>
+      <Row label="Name">{soft(emName)}</Row>
+      <Row label="Relationship">{soft(staff?.emergencyRelationship)}</Row>
+      <Row label="Mobile" last>{soft(emPhone)}</Row>
+    </Panel>
+  );
+  const pay = (
+    <Panel
+      title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'}
+      icon={<Wallet size={icon} />}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon-dark)', letterSpacing: '0.6px' }}>TOTAL</span>
+          <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
+        </div>
+      }
+    >
+      <Row label={payLabel}>{soft(info?.salary === null || info?.salary === undefined ? '' : fmtMoney(info.salary))}</Row>
+      <Row label="Conveyance" last>{soft(info?.conveyance === null || info?.conveyance === undefined ? '' : fmtMoney(info.conveyance))}</Row>
+    </Panel>
+  );
+
   return (
     <div style={{ borderTop: '1px solid var(--line)' }}>
       <div style={{ padding: '18px 20px 14px', background: 'var(--cream)' }}>
         {/* Key figures */}
-        {!isPartner && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
-            <Stat label={yearLabel} value={show(yearValue)} />
-            <Stat label="Joining Date" value={fmtDate(staff?.joiningDate)} />
-            <Stat label="Designation" value={show(currentUser.designation)} />
-          </div>
-        )}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+          <Stat label={yearLabel} value={show(yearValue)} />
+          <Stat label="Joining Date" value={fmtDate(staff?.joiningDate)} />
+          <Stat label="Department" value={show(staff?.department)} />
+        </div>
 
-        <div className="fd-grid">
-          <Panel title="EMPLOYMENT" icon={<Briefcase size={icon} />}>
-            <Row label="ID">{soft(currentUser.empId)}</Row>
-            <Row label="Designation" last={isPartner}>{soft(currentUser.designation)}</Row>
-            {!isPartner && <Row label="Department" last={isEmp}>{soft(staff?.department)}</Row>}
-            {!isEmp && !isPartner && <Row label="Articleship Period">{soft(staff?.articleshipPeriod)}</Row>}
-            {!isEmp && !isPartner && <Row label="Principal" last>{soft(principalDisplay(staff?.principalName))}</Row>}
-          </Panel>
-
-          <Panel title="CONTACT" icon={<Phone size={icon} />}>
-            <Row label="Mobile">{soft(currentUser.mobile || staff?.mobile)}</Row>
-            <Row label="Email" last={isPartner}>{soft(currentUser.email || staff?.email)}</Row>
-            {!isPartner && <Row label="Present Address">{soft(staff?.presentAddress)}</Row>}
-            {!isPartner && <Row label="Blood Group" last>{soft(blood)}</Row>}
-          </Panel>
-
-          {!isPartner && (
-          <Panel title="EMERGENCY CONTACT" icon={<HeartPulse size={icon} />}>
-            <Row label="Name">{soft(emName)}</Row>
-            <Row label="Relationship">{soft(staff?.emergencyRelationship)}</Row>
-            <Row label="Mobile" last>{soft(emPhone)}</Row>
-          </Panel>
-          )}
-
-          {!isPartner && (
-          <Panel title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'} icon={<Wallet size={icon} />}
-            footer={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--maroon-light)', borderTop: `1px solid ${HAIRLINE}` }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon-dark)', letterSpacing: '0.6px' }}>TOTAL</span>
-                <span style={{ fontSize: '17px', fontWeight: 700, color: 'var(--maroon)' }}>{fmtMoney(total)}</span>
-              </div>
-            }
-          >
-            <Row label={payLabel}>{soft(info?.salary === null || info?.salary === undefined ? '' : fmtMoney(info.salary))}</Row>
-            <Row label="Conveyance" last>{soft(info?.conveyance === null || info?.conveyance === undefined ? '' : fmtMoney(info.conveyance))}</Row>
-          </Panel>
-
-          )}
-
-          {!isPartner && (
-          <Panel title="LAPTOP" icon={<Laptop size={icon} />} wide>
-            <div>
+        {isEmp ? (
+          <div className="fd-grid">
+            {personal}
+            {emergency}
+            {pay}
+            <Panel title="LAPTOP" icon={<Laptop size={icon} />}>
               <Row label="Availability">{soft(staff?.laptopAvailable)}</Row>
-              <Row label="Ownership" last>{soft(staff?.laptopOwnership)}</Row>
-            </div>
-            <div>
+              <Row label="Ownership">{soft(staff?.laptopOwnership)}</Row>
               <Row label="Identification No.">{soft(staff?.laptopId)}</Row>
               <Row label="Remarks" last>{soft(staff?.remarks)}</Row>
-            </div>
-          </Panel>
-          )}
-        </div>
+            </Panel>
+          </div>
+        ) : (
+          <div className="fd-grid">
+            <Panel title="EMPLOYMENT" icon={<Briefcase size={icon} />}>
+              <Row label="Articleship Period">{soft(staff?.articleshipPeriod)}</Row>
+              <Row label="Principal" last>{soft(principalDisplay(staff?.principalName))}</Row>
+            </Panel>
+            {personal}
+            {emergency}
+            {pay}
+            <Panel title="LAPTOP" icon={<Laptop size={icon} />} wide>
+              <div>
+                <Row label="Availability">{soft(staff?.laptopAvailable)}</Row>
+                <Row label="Ownership" last>{soft(staff?.laptopOwnership)}</Row>
+              </div>
+              <div>
+                <Row label="Identification No.">{soft(staff?.laptopId)}</Row>
+                <Row label="Remarks" last>{soft(staff?.remarks)}</Row>
+              </div>
+            </Panel>
+          </div>
+        )}
 
         <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', padding: '12px 2px 0' }}>
           Anything not on file shows as “—”. Use <strong>Edit Profile</strong> to change your details.
