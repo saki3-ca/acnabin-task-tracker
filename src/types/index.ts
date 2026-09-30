@@ -97,13 +97,15 @@ export type NotificationType =
   | 'MANAGER_COMMENT'
   | 'TASK_REQUEST'
   | 'INFO_REQUEST'
-  | 'ADMIN_QUERY'
   | 'ANNOUNCEMENT'
-  | 'USER_REPLY';
+  | 'USER_QUERY'
+  | 'QUERY_RESOLVED';
 
-export interface ChatMessage {
+export interface UserQuery {
   id: number;
-  sender: 'ADMIN' | 'USER';
+  userId: string;
+  userName: string;
+  empId: string;
   message: string;
   createdAt: string;
 }

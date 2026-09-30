@@ -19,6 +19,8 @@ import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove, normalizeBDM
 import { adminService } from '../../services/adminService';
 import { api } from '../../services/api';
 import { clientService } from '../../services/clientService';
+import { useNotifications } from '../../context/NotificationContext';
+import { ProfileInfoModal } from '../notifications/ProfileInfoModal';
 import { Modal } from '../ui/Modal';
 import { CompletedTasksModal } from '../tasks/CompletedTasksModal';
 
@@ -192,6 +194,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     });
     return counts;
   }, [myTasks, teamTasks, canSeeAll]);
+
+  const { notifications, markAsRead } = useNotifications();
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoSaved, setInfoSaved] = useState(false);
 
   if (!currentUser) return null;
 
@@ -676,6 +682,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           </div>
         </div>
       </div>
+
+      {/* My Information (academic year, salary, conveyance, blood group, emergency contact) */}
+      <div className="table-card">
+        <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 20px' }}>
+          <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>MY INFORMATION</span>
+        </div>
+        <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '12.5px', color: 'var(--ink-soft)', maxWidth: '640px' }}>
+            Keep your academic year, salary/allowance, daily conveyance, blood group and emergency contact up to date.
+            {infoSaved && <strong style={{ color: '#166534' }}> Saved. Thank you!</strong>}
+          </div>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => setInfoOpen(true)}>
+            Update my information
+          </button>
+        </div>
+      </div>
+
+      {infoOpen && (
+        <ProfileInfoModal
+          onClose={() => setInfoOpen(false)}
+          onDone={() => {
+            // Filling this in also completes any pending "update info" request
+            notifications.filter(n => n.type === 'INFO_REQUEST' && !n.isRead).forEach(n => markAsRead(n.id));
+            setInfoSaved(true);
+            setInfoOpen(false);
+          }}
+        />
+      )}
 
       {/* 2. Primary Section: Assigned Clients */}
       <div id="profile-assigned-clients-section" className="table-card">

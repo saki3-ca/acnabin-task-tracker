@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   Bell,
@@ -15,9 +15,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { notificationService } from '../../services/notificationService';
 import { SendNotificationModal } from './SendNotificationModal';
-import { ChatReplyModal } from './ChatReplyModal';
+import { QueryInboxModal } from './QueryInboxModal';
+import { SendQueryModal } from './SendQueryModal';
 import { ProfileInfoModal } from './ProfileInfoModal';
-import { AppNotification } from '../../types';
+import { AppNotification, UserQuery } from '../../types';
 
 import { StatPills } from '../dashboard/StatPills';
 
@@ -25,9 +26,25 @@ export const NotificationsView: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, refreshNotifications, isLoading } = useNotifications();
   const { currentUser } = useAuth();
   const [infoFor, setInfoFor] = useState<string | null>(null);
-  const [replyFor, setReplyFor] = useState<{ notifId: string; questionId: number; userId: string; question: string } | null>(null);
   const [sendOpen, setSendOpen] = useState(false);
-  const [chatWith, setChatWith] = useState<string | undefined>(undefined);
+  const [queryOpen, setQueryOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [openQueries, setOpenQueries] = useState<UserQuery[]>([]);
+  const isAdmin = currentUser?.role === 'ADMIN';
+
+  const loadQueries = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      setOpenQueries(await notificationService.listQueries());
+    } catch {
+      setOpenQueries([]);
+    }
+  }, [isAdmin]);
+
+  // Keep the Query count fresh (also reloads when a new notification arrives)
+  useEffect(() => {
+    loadQueries();
+  }, [loadQueries, notifications.length]);
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
@@ -35,7 +52,7 @@ export const NotificationsView: React.FC = () => {
   const recentNotifications = notifications.filter(n => {
     try {
       // An unfilled info request stays in NEW until completed, however old
-      if ((n.type === 'INFO_REQUEST' || n.type === 'ADMIN_QUERY') && !n.isRead) return true;
+      if ((n.type === 'INFO_REQUEST' || n.type === 'USER_QUERY') && !n.isRead) return true;
       return new Date(n.createdAt).getTime() >= sevenDaysAgo;
     } catch {
       return true;
@@ -163,7 +180,7 @@ export const NotificationsView: React.FC = () => {
             <ClipboardList size={12} /> Info Request
           </span>
         );
-      case 'ADMIN_QUERY':
+      case 'USER_QUERY':
         return (
           <span
             style={{
@@ -179,10 +196,10 @@ export const NotificationsView: React.FC = () => {
               border: '1px solid #DDD6FE'
             }}
           >
-            <MessagesSquare size={12} /> Admin Question
+            <MessagesSquare size={12} /> User Query
           </span>
         );
-      case 'USER_REPLY':
+      case 'QUERY_RESOLVED':
         return (
           <span
             style={{
@@ -198,7 +215,7 @@ export const NotificationsView: React.FC = () => {
               border: '1px solid #A7F3D0'
             }}
           >
-            <MessagesSquare size={12} /> User Reply
+            <MessagesSquare size={12} /> Query Solved
           </span>
         );
       case 'TASK_REQUEST':
@@ -247,26 +264,23 @@ export const NotificationsView: React.FC = () => {
 
       {sendOpen && (
         <SendNotificationModal
-          presetUserId={chatWith}
-          onClose={() => {
-            setSendOpen(false);
-            setChatWith(undefined);
-          }}
+          onClose={() => setSendOpen(false)}
           onSent={() => {
             refreshNotifications();
           }}
         />
       )}
 
-      {replyFor && (
-        <ChatReplyModal
-          questionId={replyFor.questionId}
-          userId={replyFor.userId}
-          question={replyFor.question}
-          onClose={() => setReplyFor(null)}
-          onDone={() => {
-            markAsRead(replyFor.notifId);
+      {queryOpen && <SendQueryModal onClose={() => setQueryOpen(false)} />}
+
+      {inboxOpen && (
+        <QueryInboxModal
+          queries={openQueries}
+          onChanged={() => {
+            loadQueries();
+            refreshNotifications();
           }}
+          onClose={() => setInboxOpen(false)}
         />
       )}
 
@@ -311,24 +325,80 @@ export const NotificationsView: React.FC = () => {
               gap: '8px'
             }}
           >
-            {currentUser?.role === 'ADMIN' && (
+            {isAdmin ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    loadQueries();
+                    setInboxOpen(true);
+                  }}
+                  className="btn btn-sm"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  fontSize: '11.5px',
+                  cursor: 'pointer'
+                  }}
+                >
+                  <MessagesSquare size={14} /> Query
+                  {openQueries.length > 0 && (
+                    <span
+                      style={{
+                        background: '#ffffff',
+                        color: 'var(--maroon)',
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        padding: '1px 7px',
+                        borderRadius: '10px'
+                      }}
+                    >
+                      {openQueries.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSendOpen(true)}
+                  className="btn btn-sm"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  fontSize: '11.5px',
+                  cursor: 'pointer'
+                  }}
+                >
+                  <Send size={14} /> Send Notification
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
-                onClick={() => setSendOpen(true)}
+                onClick={() => setQueryOpen(true)}
                 className="btn btn-sm"
                 style={{
                   background: 'rgba(255, 255, 255, 0.2)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.4)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 10px',
-                fontSize: '11.5px',
-                cursor: 'pointer'
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  fontSize: '11.5px',
+                  cursor: 'pointer'
                 }}
               >
-                <Send size={14} /> Send Notification
+                <Send size={14} /> Send Query
               </button>
             )}
             {unreadList.length > 0 && (
@@ -407,40 +477,18 @@ export const NotificationsView: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      {notif.type === 'USER_REPLY' ? (
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setChatWith(notif.data?.fromUserId);
-                              setSendOpen(true);
-                              markAsRead(notif.id);
-                            }}
-                            className="btn btn-primary btn-sm"
-                            title="Open the chat with this user"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
-                          >
-                            <MessagesSquare size={14} /> Open chat
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => markAsRead(notif.id)}
-                            className="btn btn-teal btn-sm"
-                            title="Mark as read"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
-                          >
-                            <CheckCheck size={14} /> Read
-                          </button>
-                        </div>
-                      ) : notif.type === 'ADMIN_QUERY' ? (
+                      {notif.type === 'USER_QUERY' ? (
                         <button
                           type="button"
-                          onClick={() => setReplyFor({ notifId: notif.id, questionId: Number(notif.data?.questionId), userId: notif.userId, question: notif.message })}
+                          onClick={() => {
+                            loadQueries();
+                            setInboxOpen(true);
+                          }}
                           className="btn btn-primary btn-sm"
-                          title="Answer to complete this notification"
+                          title="Open the query list to resolve it"
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 10px', fontSize: '11.5px', fontWeight: 600 }}
                         >
-                          <MessagesSquare size={14} /> Reply
+                          <MessagesSquare size={14} /> Open queries
                         </button>
                       ) : notif.type === 'INFO_REQUEST' ? (
                         <button
@@ -536,7 +584,7 @@ export const NotificationsView: React.FC = () => {
                           fontSize: '11.5px'
                         }}
                       >
-                        <CheckCheck size={14} color="#166534" /> {notif.type === 'INFO_REQUEST' ? 'Completed' : notif.type === 'ADMIN_QUERY' ? 'Answered' : 'Read'}
+                        <CheckCheck size={14} color="#166534" /> {notif.type === 'INFO_REQUEST' ? 'Completed' : notif.type === 'USER_QUERY' ? 'Handled' : 'Read'}
                       </span>
                     </td>
                   </tr>

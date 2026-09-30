@@ -1,4 +1,4 @@
-import { AppNotification, ChatMessage } from '../types';
+import { AppNotification, UserQuery } from '../types';
 import { api } from './api';
 
 export const notificationService = {
@@ -14,8 +14,8 @@ export const notificationService = {
     return api.callBackend('sendInfoRequest', { userId });
   },
 
-  async sendAnnouncement(message: string): Promise<{ count: number }> {
-    return api.callBackend('sendAnnouncement', { message });
+  async sendAnnouncement(message: string, userId?: string): Promise<{ count: number }> {
+    return api.callBackend('sendAnnouncement', { message, userId });
   },
 
   async submitProfileInfo(info: {
@@ -29,16 +29,16 @@ export const notificationService = {
     await api.callBackend('submitProfileInfo', info);
   },
 
-  async chatSendQuestion(userId: string, message: string): Promise<void> {
-    await api.callBackend('chatSendQuestion', { userId, message });
+  async submitQuery(message: string): Promise<void> {
+    await api.callBackend('submitQuery', { message });
   },
 
-  async chatReply(questionId: number, message: string, userId?: string): Promise<void> {
-    await api.callBackend('chatReply', { questionId, message, userId });
+  async listQueries(): Promise<UserQuery[]> {
+    return api.callBackend('listQueries', {});
   },
 
-  async chatGetThread(userId?: string): Promise<ChatMessage[]> {
-    return api.callBackend('chatGetThread', { userId });
+  async resolveQuery(queryId: number, note: string): Promise<void> {
+    await api.callBackend('resolveQuery', { queryId, note });
   },
 
   async markAllAsRead(userId: string): Promise<void> {

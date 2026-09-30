@@ -24,7 +24,7 @@ import {
 
 // Actions that must never fall back to the local store: credential checks (it has
 // no passwords) and client-list changes (a silent local save would look like success).
-const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'chatSendQuestion', 'chatReply', 'chatGetThread', 'sendAnnouncement', 'setManpowerSalary']);
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // Login session key issued by app_login_session (see supabase_password_change.sql).
@@ -978,7 +978,7 @@ export const api = {
           .from('notifications')
           .select('*')
           .eq('user_id', userId)
-          .or(`created_at.gte.${sevenDaysAgo},and(type.in.(INFO_REQUEST,ADMIN_QUERY),is_read.eq.false)`)
+          .or(`created_at.gte.${sevenDaysAgo},and(type.in.(INFO_REQUEST,USER_QUERY),is_read.eq.false)`)
           .order('created_at', { ascending: false })
           .limit(200);
 
@@ -1020,7 +1020,7 @@ export const api = {
           .from('notifications')
           .update({ is_read: true })
           .eq('user_id', userId)
-          .not('type', 'in', '(INFO_REQUEST,ADMIN_QUERY)');
+          .neq('type', 'INFO_REQUEST');
         return { success: true } as T;
       }
 
@@ -1079,8 +1079,10 @@ export const api = {
         if (tErr) throw tErr;
         const rows = (targets || [])
           .filter((u: any) =>
-            (u.role || '').toUpperCase() !== 'ADMIN' &&
-            (u.designation || '').toLowerCase().trim() !== 'partner')
+            payload?.userId
+              ? u.id === payload.userId
+              : (u.role || '').toUpperCase() !== 'ADMIN' &&
+                (u.designation || '').toLowerCase().trim() !== 'partner')
           .map((u: any) => ({
             user_id: u.id,
             type: 'ANNOUNCEMENT',
@@ -1094,77 +1096,57 @@ export const api = {
         return { count: rows.length } as T;
       }
 
-      case 'chatSendQuestion': {
+      case 'submitQuery': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again, then try again.');
-        const { data, error } = await supabase.rpc('app_chat_send_question', {
+        const { data, error } = await supabase.rpc('app_submit_query', {
           p_session: session.token,
-          p_user_id: payload.userId,
           p_message: payload.message
         });
         if (error) {
-          console.error('app_chat_send_question failed:', error);
-          throw new Error('Could not send. Has supabase_admin_chat.sql been run?');
+          console.error('app_submit_query failed:', error);
+          throw new Error('Could not send your query. Has supabase_user_queries.sql been run?');
         }
         if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
-        if (data === 'FORBIDDEN') throw new Error('Only Admin can send questions.');
-        if (data !== 'OK') throw new Error('Please choose a user and type a question.');
+        if (data !== 'OK') throw new Error('Please type your query first.');
         return { success: true } as T;
       }
 
-      case 'chatReply': {
-        const session = readSession();
-        if (!session) throw new Error('Please log out and log in again, then try again.');
-        const { data, error } = await supabase.rpc('app_chat_reply', {
-          p_session: session.token,
-          p_question_id: payload.questionId,
-          p_message: payload.message
-        });
-        if (error) {
-          console.error('app_chat_reply failed:', error);
-          throw new Error('Could not send your reply. Please tell the administrator.');
-        }
-        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
-        if (data === 'NOT_FOUND') throw new Error('This question is no longer available.');
-        if (data !== 'OK') throw new Error('Please type your answer first.');
-
-        // Tell the Admin(s) an answer has arrived
-        try {
-          const { data: me } = await supabase.from('users').select('id, name, emp_id').eq('id', session.userId).maybeSingle();
-          const { data: admins } = await supabase.from('users').select('id').eq('role', 'ADMIN').eq('status', 'ACTIVE');
-          const asUserId = payload.userId || me?.id;
-          const asUser = asUserId === me?.id ? me : (await supabase.from('users').select('id, name, emp_id').eq('id', asUserId).maybeSingle()).data;
-          const rows = (admins || []).map((a: any) => ({
-            user_id: a.id,
-            type: 'USER_REPLY',
-            title: `Reply from ${asUser?.name || 'a user'}${asUser?.emp_id ? ` (${asUser.emp_id})` : ''}`,
-            message: String(payload.message || '').trim(),
-            data: { kind: 'USER_REPLY', fromUserId: asUserId, questionId: payload.questionId, sentAt: Date.now() }
-          }));
-          if (rows.length > 0) await supabase.from('notifications').insert(rows);
-        } catch (nErr) {
-          console.warn('Could not notify admin of the reply:', nErr);
-        }
-        return { success: true } as T;
-      }
-
-      case 'chatGetThread': {
+      case 'listQueries': {
         const session = readSession();
         if (!session) return [] as T;
-        const { data, error } = await supabase.rpc('app_chat_get', {
-          p_session: session.token,
-          p_user_id: payload.userId || ''
-        });
+        const { data, error } = await supabase.rpc('app_list_queries', { p_session: session.token });
         if (error) {
-          console.warn('[chatGetThread] failed:', error.message);
+          console.warn('[listQueries] failed (run supabase_user_queries.sql?):', error.message);
           return [] as T;
         }
         return (data || []).map((r: any) => ({
           id: Number(r.id),
-          sender: r.sender,
+          userId: r.user_id,
+          userName: r.user_name,
+          empId: r.emp_id,
           message: r.message,
           createdAt: r.created_at
         })) as T;
+      }
+
+      case 'resolveQuery': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_resolve_query', {
+          p_session: session.token,
+          p_query_id: payload.queryId,
+          p_note: payload.note || ''
+        });
+        if (error) {
+          console.error('app_resolve_query failed:', error);
+          throw new Error('Could not resolve. Has supabase_user_queries.sql been run?');
+        }
+        if (data === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can resolve queries.');
+        if (data === 'NOT_FOUND') throw new Error('This query was already resolved.');
+        if (data !== 'OK') throw new Error('Could not resolve.');
+        return { success: true } as T;
       }
 
       case 'submitProfileInfo': {
