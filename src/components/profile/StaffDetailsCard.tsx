@@ -119,8 +119,8 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
         <Group title="CONTACT">
           <Field label="Mobile">{show(currentUser.mobile || staff?.mobile)}</Field>
           <Field label="Email">{show(currentUser.email || staff?.email)}</Field>
+          <Field label="Present Address">{show(staff?.presentAddress)}</Field>
           <Field label="Blood Group">{show(blood)}</Field>
-          <Field label="Present Address" wide>{show(staff?.presentAddress)}</Field>
         </Group>
 
         <Group title="EMERGENCY CONTACT">
