@@ -18,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
 import { isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { manpowerService } from '../../services/manpowerService';
+import { SALARY_BY_ID } from '../../lib/manpowerSalary';
 import { ClientManpowerSummaryItem, ManpowerRecord } from '../../types';
 
 function formatBDT(amount: number): string {
@@ -101,7 +102,12 @@ export const ManpowerView: React.FC = () => {
     ])
       .then(([mpData, remarksData]) => {
         if (isMounted) {
-          setRecords(mpData || []);
+          // Fill salary/conveyance from CSV when the STD/EMP ID matches and no value is stored yet
+          setRecords((mpData || []).map(r => {
+            const hit = SALARY_BY_ID.get((r.empId || '').trim().toUpperCase());
+            if (!hit || r.salary || r.conveyance) return r;
+            return { ...r, salary: hit.salary, conveyance: hit.conveyance, total: hit.salary + hit.conveyance };
+          }));
           setRemarksMap(remarksData || {});
           setLoading(false);
         }
