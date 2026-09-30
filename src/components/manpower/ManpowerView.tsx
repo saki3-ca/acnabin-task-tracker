@@ -44,6 +44,19 @@ function renderAcademicYear(year?: string) {
   return <span>{year}</span>;
 }
 
+const ALL_CLIENTS = 'All Clients';
+
+// Assistant Director and above with no client selected work across all clients
+function withAllClients(r: ManpowerRecord): ManpowerRecord {
+  const noClient =
+    (!r.clientIds || r.clientIds.length === 0) &&
+    (!r.assignedClient || ['unassigned', '—', '-', 'none'].includes(r.assignedClient.trim().toLowerCase()));
+  if (isAssistantDirectorOrAbove(r.designation) && noClient) {
+    return { ...r, assignedClient: ALL_CLIENTS, clientId: null };
+  }
+  return r;
+}
+
 type DetailSortField = 'empId' | 'name' | 'assignedClient' | 'designation' | 'academicYear' | 'salary' | 'conveyance' | 'total';
 type SummarySortField = 'clientName' | 'manpowerCount' | 'totalSalary' | 'totalConveyance' | 'totalCost';
 
@@ -111,9 +124,10 @@ export const ManpowerView: React.FC = () => {
           // Fill salary/conveyance from the protected salary table when the STD/EMP ID matches
           const salaryById = new Map(salaryRows.map(x => [x.empId, x]));
           setRecords((mpData || []).map(r => {
+            const row = withAllClients(r);
             const hit = salaryById.get((r.empId || '').trim().toUpperCase());
-            if (!hit) return r;
-            return { ...r, salary: hit.salary, conveyance: hit.conveyance, total: hit.salary + hit.conveyance };
+            if (!hit) return row;
+            return { ...row, salary: hit.salary, conveyance: hit.conveyance, total: hit.salary + hit.conveyance };
           }));
           setRemarksMap(remarksData || {});
           setLoading(false);
@@ -136,7 +150,7 @@ export const ManpowerView: React.FC = () => {
   const uniqueClients = useMemo(() => {
     const set = new Set<string>();
     records.forEach(r => {
-      if (r.assignedClient && r.assignedClient !== '—' && r.assignedClient.toLowerCase() !== 'unassigned') {
+      if (r.assignedClient && r.assignedClient !== '—' && r.assignedClient.toLowerCase() !== 'unassigned' && r.assignedClient !== ALL_CLIENTS) {
         r.assignedClient.split(',').forEach(c => {
           const trimmed = c.trim();
           if (trimmed) set.add(trimmed);
@@ -262,7 +276,8 @@ export const ManpowerView: React.FC = () => {
 
   // Sorted Summary List: sort by summarySortField, and "Unassigned" always last
   const sortedSummaryList = useMemo(() => {
-    const regular = summaryList.filter(item => item.clientName !== 'Unassigned');
+    const regular = summaryList.filter(item => item.clientName !== 'Unassigned' && item.clientName !== ALL_CLIENTS);
+    const allClientsRows = summaryList.filter(item => item.clientName === ALL_CLIENTS);
     const unassigned = summaryList.filter(item => item.clientName === 'Unassigned');
 
     regular.sort((a, b) => {
@@ -280,7 +295,7 @@ export const ManpowerView: React.FC = () => {
         : bStr.localeCompare(aStr);
     });
 
-    return [...regular, ...unassigned];
+    return [...regular, ...allClientsRows, ...unassigned];
   }, [summaryList, summarySortField, summarySortDirection]);
 
   // Grand Totals for Summary
@@ -345,7 +360,7 @@ export const ManpowerView: React.FC = () => {
   };
 
   const handleClientRowClick = (clientName: string) => {
-    if (clientName === 'Unassigned') {
+    if (clientName === 'Unassigned' || clientName === ALL_CLIENTS) {
       setSelectedClient('');
     } else {
       setSelectedClient(clientName);
@@ -527,7 +542,7 @@ export const ManpowerView: React.FC = () => {
       setRecords(prev =>
         prev.map(r => {
           if (r.empId === editingRecord.empId) {
-            return {
+            return withAllClients({
               ...r,
               salary: Number(editSalary) || 0,
               conveyance: Number(editConveyance) || 0,
@@ -535,8 +550,9 @@ export const ManpowerView: React.FC = () => {
               designation: finalDesignation === 'TBA' ? '' : finalDesignation,
               academicYear: editAcademicYear.trim() || '—',
               assignedClient: clientNamesText || 'Unassigned',
-              clientId: editClients[0]?.id || null
-            };
+              clientId: editClients[0]?.id || null,
+              clientIds: editClients.map(c => c.id)
+            });
           }
           return r;
         })
@@ -1413,7 +1429,7 @@ export const ManpowerView: React.FC = () => {
                             onClick={e => e.stopPropagation()}
                             style={{ padding: '6px 12px' }}
                           >
-                            {isUnassigned ? (
+                            {isUnassigned || item.clientName === ALL_CLIENTS ? (
                               <span style={{ color: 'var(--ink-muted)', fontStyle: 'italic', fontSize: '12px' }}>
                                 Not applicable
                               </span>
