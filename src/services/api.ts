@@ -1343,17 +1343,26 @@ export const api = {
 
         const { data: existing, error: existingErr } = await supabase.from('clients').select('name, job_number');
         if (existingErr) throw existingErr;
-        if ((existing || []).some((c: any) => (c.name || '').trim().toLowerCase() === name.toLowerCase())) {
-          throw new Error(`A client named "${name}" already exists.`);
+        // The same name is allowed when the job number is different; job numbers stay unique.
+        if (!jobNumber && (existing || []).some((c: any) => (c.name || '').trim().toLowerCase() === name.toLowerCase())) {
+          throw new Error(`A client named "${name}" already exists. To add another client with the same name, enter a different job number.`);
         }
         if (jobNumber && (existing || []).some((c: any) => (c.job_number || '').trim().toLowerCase() === jobNumber.toLowerCase())) {
           throw new Error(`Job number ${jobNumber} is already used by another client.`);
         }
 
+        let autoJobNumber = '';
+        if (!jobNumber) {
+          const used = new Set((existing || []).map((c: any) => (c.job_number || '').trim().toLowerCase()));
+          do {
+            autoJobNumber = `C-${Math.floor(26000 + Math.random() * 900)}`;
+          } while (used.has(autoJobNumber.toLowerCase()));
+        }
+
         const newClientRow = {
           id: `c-${Date.now()}`,
           name,
-          job_number: jobNumber || `C-${Math.floor(26000 + Math.random() * 900)}`,
+          job_number: jobNumber || autoJobNumber,
           status: 'ACTIVE',
           created_date: new Date().toISOString(),
           last_updated: new Date().toISOString()
@@ -1376,8 +1385,18 @@ export const api = {
             .select('name, job_number')
             .neq('id', clientId);
           if (othersErr) throw othersErr;
-          if (name !== undefined && (others || []).some((c: any) => (c.name || '').trim().toLowerCase() === name.toLowerCase())) {
-            throw new Error(`A client named "${name}" already exists.`);
+          // The same name is allowed when the job number is different.
+          if (name !== undefined) {
+            const { data: current } = await supabase.from('clients').select('job_number').eq('id', clientId).maybeSingle();
+            const effectiveJob = (jobNumber !== undefined ? jobNumber : (current?.job_number || '')).trim().toLowerCase();
+            const clash = (others || []).some(
+              (c: any) =>
+                (c.name || '').trim().toLowerCase() === name.toLowerCase() &&
+                (!effectiveJob || (c.job_number || '').trim().toLowerCase() === effectiveJob)
+            );
+            if (clash) {
+              throw new Error(`A client named "${name}" already exists. To use the same name, give this client a different job number.`);
+            }
           }
           if (jobNumber && (others || []).some((c: any) => (c.job_number || '').trim().toLowerCase() === jobNumber.toLowerCase())) {
             throw new Error(`Job number ${jobNumber} is already used by another client.`);
