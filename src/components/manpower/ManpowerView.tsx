@@ -88,6 +88,8 @@ export const ManpowerView: React.FC = () => {
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const isAdmin = currentUser?.role === 'ADMIN';
+  // Only students (and trainees) have an academic year
+  const showEditAcademicYear = ['student', 'trainee'].includes((editDesignation || '').toLowerCase().trim());
   const isADOrAbove = isAssistantDirectorOrAbove(currentUser?.designation);
   const canEditManpower = isAdmin || isADOrAbove;
   const canEditRemarks = isAdmin || isADOrAbove;
@@ -1576,7 +1578,7 @@ export const ManpowerView: React.FC = () => {
 
             {/* Modal Body Form */}
             <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: showEditAcademicYear ? '1fr 1fr' : '1fr', gap: '12px' }}>
                 <div className="form-field">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>Designation</label>
@@ -1612,6 +1614,7 @@ export const ManpowerView: React.FC = () => {
                   </select>
                 </div>
 
+                {showEditAcademicYear && (
                 <div className="form-field">
                   <label style={{ fontSize: '12px', fontWeight: 700 }}>Academic Year</label>
                   <select
@@ -1630,6 +1633,7 @@ export const ManpowerView: React.FC = () => {
                     )}
                   </select>
                 </div>
+                )}
               </div>
 
               <div className="form-field" style={{ position: 'relative' }}>

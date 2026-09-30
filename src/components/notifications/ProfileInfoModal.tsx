@@ -15,6 +15,8 @@ interface Props {
 export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
   const { currentUser, allClients } = useAuth();
 
+  // Only students (and trainees, who are given a year at signup) have an academic year
+  const hasAcademicYear = ['student', 'trainee'].includes((currentUser?.designation || '').toLowerCase().trim());
   const [academicYear, setAcademicYear] = useState('');
   const [salary, setSalary] = useState('');
   const [daily, setDaily] = useState('');
@@ -41,7 +43,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
 
   const handleSubmit = async () => {
     setError(null);
-    if (!academicYear) return setError('Please select your academic year.');
+    if (hasAcademicYear && !academicYear) return setError('Please select your academic year.');
     if (salary.trim() === '' || Number(salary) < 0) return setError('Please enter your monthly salary/allowance (0 if none).');
     if (daily.trim() === '' || Number(daily) < 0) return setError('Please enter your daily conveyance (0 if none).');
     if (!bloodGroup) return setError('Please select your blood group.');
@@ -52,7 +54,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
     setSaving(true);
     try {
       await notificationService.submitProfileInfo({
-        academicYear,
+        academicYear: hasAcademicYear ? academicYear : '',
         salary: Number(salary),
         dailyConveyance: Number(daily),
         bloodGroup,
@@ -108,6 +110,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
         </div>
 
         <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {hasAcademicYear && (
           <div className="form-field">
             <label style={{ fontSize: '12px', fontWeight: 700 }}>Academic Year</label>
             <select
@@ -122,6 +125,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
               ))}
             </select>
           </div>
+          )}
 
           <div className="form-field">
             <label style={{ fontSize: '12px', fontWeight: 700 }}>Monthly Salary / Allowance (৳)</label>
