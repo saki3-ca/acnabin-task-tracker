@@ -175,11 +175,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   }, [myTasks]);
 
   // Task distribution across assigned clients:
-  // For AD and above (canSeeAll = true), aggregate all users' tasks from teamTasks.
-  // For other users, count their own assigned tasks.
+  // Everyone above Student sees the client's total tasks (all team members).
+  // Students (and trainees) see only their own tasks.
+  const isStudentLevel = ['student', 'trainee'].includes((currentUser?.designation || '').toLowerCase().trim());
   const clientTaskCounts = useMemo(() => {
     const counts: Record<string, { total: number; active: number }> = {};
-    const taskList = canSeeAll ? teamTasks : myTasks;
+    const taskList = isStudentLevel ? myTasks : teamTasks;
 
     taskList.forEach(t => {
       if (t.clientId) {
@@ -193,7 +194,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       }
     });
     return counts;
-  }, [myTasks, teamTasks, canSeeAll]);
+  }, [myTasks, teamTasks, isStudentLevel]);
 
   const { notifications, markAsRead } = useNotifications();
   const [infoOpen, setInfoOpen] = useState(false);
