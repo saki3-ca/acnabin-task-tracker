@@ -214,6 +214,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
           </Panel>
           )}
 
+          {!isPartner && (
           <Panel title="LAPTOP" icon={<Laptop size={icon} />} wide>
             <div>
               <Row label="Availability">{soft(staff?.laptopAvailable)}</Row>
@@ -224,6 +225,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
               <Row label="Remarks" last>{soft(staff?.remarks)}</Row>
             </div>
           </Panel>
+          )}
         </div>
 
         <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', padding: '12px 2px 0' }}>

@@ -1420,10 +1420,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             </div>
             )}
 
-            {/* Official employee profile (full details) */}
+            {/* Official employee profile (full details); Partners have none */}
+            {!isPartner && (
             <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
               <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
-                {isPartner ? 'Laptop Information' : 'Official Employee Profile'}
+                Official Employee Profile
               </div>
               <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
                 Optional. Leave a field empty to keep it as it is.
@@ -1494,6 +1495,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 </div>
               </div>
             </div>
+            )}
 
             {/* Read-Only Hierarchy Info */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
