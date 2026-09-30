@@ -3,7 +3,7 @@
 // Emails people about task assignments and task requests (see handler.ts for the rules).
 //
 // Secrets (already set for request-password-reset; Supabase Dashboard -> Edge Functions -> Secrets):
-//   GMAIL_USER, GMAIL_APP_PASSWORD, APP_URL
+//   GMAIL_USER, GMAIL_APP_PASSWORD   (APP_URL is optional: defaults to https://acntask.vercel.app)
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by Supabase.
 // Also run supabase_email_log.sql once (it stops the same email being sent twice).
 
@@ -30,7 +30,8 @@ function createProductionHandler() {
   });
 
   const deps: Deps = {
-    appUrl: requireEnv('APP_URL'),
+    // APP_URL secret if set, otherwise the live site
+    appUrl: Deno.env.get('APP_URL') || 'https://acntask.vercel.app',
     async userFromSessionHash(hash) {
       const { data: s, error } = await supabase
         .from('user_sessions').select('user_id').eq('token_hash', hash).gt('expires_at', new Date().toISOString()).maybeSingle();
