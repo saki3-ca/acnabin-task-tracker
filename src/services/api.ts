@@ -60,6 +60,10 @@ function saveSession(session: StoredSession | null) {
   } catch { }
 }
 
+/** An error that says which step failed, so a problem can be pinpointed from the message alone. */
+const stepError = (step: string, err: any) =>
+  new Error(`${err?.message || 'Unknown error'} (while ${step}${err?.code ? `, code ${err.code}` : ''})`);
+
 const isMissingFunction = (err: any) =>
   err?.code === 'PGRST202' || /could not find the function/i.test(err?.message || '');
 
@@ -544,7 +548,7 @@ export const api = {
           .select('id')
           .ilike('emp_id', hrmEmpId.replace(/[\\%_]/g, m => `\\${m}`))
           .limit(1);
-        if (existingErr) throw existingErr;
+        if (existingErr) throw stepError('checking the ID', existingErr);
 
         if (existingRows && existingRows.length > 0) {
           throw new Error('A user with this Employee/Student ID already exists.');
@@ -572,10 +576,10 @@ export const api = {
           if (regResult === 'DUPLICATE') throw new Error('A user with this Employee/Student ID already exists.');
           if (regResult !== 'OK') throw new Error('Please check your details and try again.');
           const { data: row, error: rowErr } = await supabase.from('users').select('*').eq('id', newId).single();
-          if (rowErr) throw rowErr;
+          if (rowErr) throw stepError('loading the new account', rowErr);
           created = row;
         } else if (!isMissingFunction(regErr)) {
-          throw regErr;
+          throw stepError('creating the account', regErr);
         } else {
           // Function not installed yet: the older direct signup (used until the SQL has been run)
           const userRow = {
@@ -602,7 +606,11 @@ export const api = {
             if ((error as any).code === '23505') {
               throw new Error('A user with this Employee/Student ID already exists.');
             }
-            throw error;
+            // 42501 = permission denied: the database is locked down but this page is an older version
+            if ((error as any).code === '42501') {
+              throw new Error('Signup needs the latest version of the site. Please refresh the page (Ctrl+Shift+R) and try again.');
+            }
+            throw stepError('creating the account (older signup path)', error);
           }
           created = legacyCreated;
 
