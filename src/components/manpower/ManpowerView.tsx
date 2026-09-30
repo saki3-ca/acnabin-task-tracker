@@ -528,7 +528,7 @@ export const ManpowerView: React.FC = () => {
         {/* Pill 1: Total Manpower */}
         <div className="stat-pill">
           <span className="stat-pill-label">
-            {effectiveIncludeAllHr ? 'TOTAL MANPOWER' : 'ACTIVE STUDENTS'}
+            {effectiveIncludeAllHr ? 'TOTAL MANPOWER' : 'ACTIVE MANPOWER'}
           </span>
           <span className="stat-pill-value">
             {String(viewMode === 'summary' ? grandTotalManpower : records.length).padStart(2, '0')}

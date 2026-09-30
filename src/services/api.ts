@@ -512,6 +512,16 @@ export const api = {
           saveSession(null);
         }
 
+        // Keep the year the user entered on their own user row (works even with no HR manpower row)
+        const signupAcademicYear = academicYear || (reqDesignation === 'Trainee' ? '1st Year' : '');
+        if (signupAcademicYear) {
+          try {
+            await supabase.from('users').update({ academic_year: signupAcademicYear }).eq('id', newId);
+          } catch (acadErr) {
+            console.warn('Could not save academic year on user (run the users.academic_year migration):', acadErr);
+          }
+        }
+
         // If matching HR manpower row exists, sync academic year and client name
         try {
           const mpUpdates: any = {};
@@ -1469,12 +1479,8 @@ export const api = {
           // DEFAULT: Only show active registered students from the app!
           // Active STD- accounts / Students / Trainees only.
           const activeStudents = activeUsers.filter((u: any) => {
-            const empId = (u.emp_id || '').toUpperCase().trim();
             const desig = (u.designation || '').toLowerCase().trim();
-            const role = (u.role || '').toUpperCase().trim();
-            if (role === 'ADMIN' || desig === 'admin') return false;
-            if (desig === 'partner' || desig === 'director' || desig === 'manager' || desig.includes('director') || desig.includes('manager')) return false;
-            return empId.startsWith('STD') || desig === 'student' || desig === 'trainee';
+            return desig !== 'partner';
           });
 
           for (const u of activeStudents) {
@@ -1526,7 +1532,7 @@ export const api = {
             let tot = mp ? (Number(mp.total) || 0) : 0;
             if (tot === 0 && (sal > 0 || conv > 0)) tot = sal + conv;
 
-            let acad = mp ? (mp.academic_year || '') : '';
+            let acad = u.academic_year || (mp ? (mp.academic_year || '') : '');
             if (!acad && (u.designation === 'Trainee' || (mp && mp.designation === 'Trainee'))) {
               acad = '1st Year';
             }
@@ -1612,7 +1618,7 @@ export const api = {
             let tot = Number(mp.total) || 0;
             if (tot === 0 && (sal > 0 || conv > 0)) tot = sal + conv;
 
-            let acad = mp.academic_year || '';
+            let acad = (matchedUser && matchedUser.academic_year) || mp.academic_year || '';
             if (!acad && (designation === 'Trainee' || mp.designation === 'Trainee')) {
               acad = '1st Year';
             }
@@ -1955,6 +1961,7 @@ export const api = {
           mobile: payload.mobile || '',
           createdDate: new Date().toISOString()
         };
+        (newUser as any).academicYear = academicYear || (reqDesignation === 'Trainee' ? '1st Year' : '');
         fallbackStore.users.push(newUser);
         fallbackStore.currentUser = newUser;
 
@@ -2212,12 +2219,8 @@ export const api = {
           // DEFAULT: only show active registered students from the app!
           // Active STD- accounts / Students / Trainees only.
           const activeStudents = activeUsers.filter(u => {
-            const empId = (u.empId || '').toUpperCase().trim();
             const desig = (u.designation || '').toLowerCase().trim();
-            const role = (u.role || '').toUpperCase().trim();
-            if (role === 'ADMIN' || desig === 'admin') return false;
-            if (desig === 'partner' || desig === 'director' || desig === 'manager' || desig.includes('director') || desig.includes('manager')) return false;
-            return empId.startsWith('STD') || desig === 'student' || desig === 'trainee';
+            return desig !== 'partner';
           });
 
           const result: ManpowerRecord[] = [];
@@ -2273,7 +2276,7 @@ export const api = {
             let tot = mp ? (Number(mp.total) || 0) : 0;
             if (tot === 0 && (sal > 0 || conv > 0)) tot = sal + conv;
 
-            let acad = mp ? (mp.academicYear || '') : '';
+            let acad = (u as any).academicYear || (mp ? (mp.academicYear || '') : '');
             if (!acad && (u.designation === 'Trainee' || (mp && mp.designation === 'Trainee'))) {
               acad = '1st Year';
             }
@@ -2353,7 +2356,7 @@ export const api = {
             assignedClient = 'Unassigned';
           }
 
-          let acad = m.academicYear || '';
+          let acad = (matchedUser && (matchedUser as any).academicYear) || m.academicYear || '';
           if (!acad && (designation === 'Trainee' || m.designation === 'Trainee')) {
             acad = '1st Year';
           }

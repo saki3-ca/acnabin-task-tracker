@@ -67,6 +67,11 @@ CREATE TABLE IF NOT EXISTS public.manager_student_access (
 
 -- Ensure mobile column exists on users table
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS mobile TEXT;
+-- Academic year entered by the user at signup (shown in Manpower; falls back to manpower.academic_year)
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS academic_year TEXT;
+-- Columns the Manpower edit sync writes to
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS signup_client_name TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 6. MANPOWER TABLE
 -- Note: schema only, no sensitive salary/contact data in this file.
