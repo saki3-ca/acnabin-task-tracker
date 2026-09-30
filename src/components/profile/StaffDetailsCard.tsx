@@ -10,7 +10,6 @@ import { isStudentLevelDesignation } from '../../lib/permissions';
 import { notificationService } from '../../services/notificationService';
 import { staffService } from '../../services/staffService';
 import { MyInfo, MyStaff } from '../../types';
-import { ClientLabel } from '../ui/ClientLabel';
 
 const DASH = '—';
 const show = (v?: string | number | null) => (v === null || v === undefined || String(v).trim() === '' ? DASH : String(v));
@@ -46,7 +45,7 @@ interface Props {
 }
 
 export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
-  const { currentUser, allClients } = useAuth();
+  const { currentUser } = useAuth();
   const [staff, setStaff] = useState<MyStaff | null>(null);
   const [info, setInfo] = useState<MyInfo | null>(null);
 
@@ -68,10 +67,6 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
     ? employmentYearFromJoining(staff?.joiningDate)
     : academicYearFromStart(staff?.articleshipStart, staff?.articleshipEnd) || info?.academicYear || staff?.academicYear || '';
   const yearLabel = isEmp ? 'Employment Year' : 'Academic Year';
-
-  const clients = (currentUser.assignedClientIds || [])
-    .map(id => allClients.find(c => c.id === id))
-    .filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   const payLabel = isEmp ? 'Monthly Salary' : 'Monthly Allowance';
   const total = info && (info.salary !== null || info.conveyance !== null) ? (info.salary || 0) + (info.conveyance || 0) : null;
@@ -95,17 +90,6 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
           <Field label="Joining Date">{fmtDate(staff?.joiningDate)}</Field>
           {!isEmp && <Field label="Articleship Period">{show(staff?.articleshipPeriod)}</Field>}
           {!isEmp && <Field label="Principal">{show(principalDisplay(staff?.principalName))}</Field>}
-          <Field label="Assigned Client(s)" wide>
-            {clients.length > 0 ? (
-              clients.map(c => (
-                <div key={c.id}>
-                  <ClientLabel id={c.id} name={c.name} />
-                </div>
-              ))
-            ) : (
-              show(staff?.clientNames)
-            )}
-          </Field>
         </Group>
 
         <Group title={isEmp ? 'SALARY & CONVEYANCE' : 'ALLOWANCE & CONVEYANCE'}>
