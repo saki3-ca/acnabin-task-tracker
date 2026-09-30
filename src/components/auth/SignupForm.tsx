@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BRAND, DESIGNATIONS } from '../../lib/constants';
-import { formatHrmId, isAssistantDirectorOrAbove, normalizeBDMobile } from '../../lib/permissions';
+import { formatHrmId, isAssistantDirectorOrAbove, isStudentLevelDesignation, normalizeBDMobile } from '../../lib/permissions';
 import { Designation } from '../../types';
 import { manpowerService } from '../../services/manpowerService';
 
@@ -149,7 +149,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
     const clientNames = selectedClients.map(c => c.name).join(', ');
 
     const formattedEmpId = formatHrmId(empId, designation);
-    const isStudent = designation.toLowerCase() === 'student';
+    const isStudent = isStudentLevelDesignation(designation) && designation.toLowerCase() !== 'trainee';
     const isTrainee = designation.toLowerCase() === 'trainee';
     const finalAcademicYear = isStudent ? academicYear : (isTrainee ? '1st Year' : undefined);
 
@@ -312,7 +312,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
           </div>
 
           {/* Academic Year (only for Student) */}
-          {designation.toLowerCase() === 'student' && (
+          {isStudentLevelDesignation(designation) && designation.toLowerCase() !== 'trainee' && (
             <div className="form-field">
               <label>Academic Year</label>
               <select

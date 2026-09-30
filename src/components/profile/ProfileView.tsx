@@ -16,7 +16,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
 import { MyInfo } from '../../types';
-import { canViewAllClients, DESIGNATION_RANKS, getUserAssignedClientIds, getUserRank, isSAMOrAbove, normalizeBDMobile } from '../../lib/permissions';
+import { canViewAllClients, DESIGNATION_RANKS, getUserAssignedClientIds, getUserRank, isSAMOrAbove, isStudentLevelDesignation, normalizeBDMobile } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { notificationService } from '../../services/notificationService';
 import { api } from '../../services/api';
@@ -191,7 +191,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   // Task distribution across assigned clients:
   // Everyone above Student sees the client's total tasks (all team members).
   // Students (and trainees) see only their own tasks.
-  const isStudentLevel = ['student', 'trainee'].includes((currentUser?.designation || '').toLowerCase().trim());
+  const isStudentLevel = isStudentLevelDesignation(currentUser?.designation);
   const clientTaskCounts = useMemo(() => {
     const counts: Record<string, { total: number; active: number }> = {};
     const taskList = isStudentLevel ? myTasks : teamTasks;
@@ -577,9 +577,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             </div>
   );
 
-  // Assigned clients sit inside the info box for Manager and above; below Manager they stay above it
-  const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Manager'];
-  const hasYearField = ['student', 'trainee'].includes((currentUser.designation || '').toLowerCase().trim());
+  // Assigned clients sit inside the info box from Senior Assistant Manager up; below that they stay above it
+  const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
+  const hasYearField = isStudentLevelDesignation(currentUser.designation);
   const infoInputStyle: React.CSSProperties = { height: '36px', fontSize: '12.5px', boxSizing: 'border-box', width: '100%' };
   const conveyanceDays = editClients.some(c => /walton/i.test(c.name)) ? 24 : 22;
   const conveyanceHint =

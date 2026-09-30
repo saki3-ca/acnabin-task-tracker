@@ -95,6 +95,14 @@ export function normalizeBDMobile(raw: string): string | null {
   return null;
 }
 
+/**
+ * Student level = Student, Trainee, In Charge and Supervisor (STD IDs, below Senior Assistant Manager).
+ * Only they have an academic year.
+ */
+export function isStudentLevelDesignation(designation?: Designation | string): boolean {
+  return ['student', 'trainee', 'in charge', 'incharge', 'supervisor'].includes((designation || '').toLowerCase().trim());
+}
+
 export function isAssistantDirectorOrAbove(designation?: Designation | string): boolean {
   if (!designation) return false;
   return [

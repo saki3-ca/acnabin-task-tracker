@@ -16,7 +16,7 @@ import {
 import * as XLSX from 'xlsx';
 import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
-import { isAssistantDirectorOrAbove } from '../../lib/permissions';
+import { isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { ClientLabel, clientText } from '../ui/ClientLabel';
 import { manpowerService } from '../../services/manpowerService';
@@ -102,8 +102,8 @@ export const ManpowerView: React.FC = () => {
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   const isAdmin = currentUser?.role === 'ADMIN';
-  // Only students (and trainees) have an academic year
-  const showEditAcademicYear = ['student', 'trainee'].includes((editDesignation || '').toLowerCase().trim());
+  // Only student-level roles (Student, Trainee, In Charge, Supervisor) have an academic year
+  const showEditAcademicYear = isStudentLevelDesignation(editDesignation);
   const isADOrAbove = isAssistantDirectorOrAbove(currentUser?.designation);
   const canEditManpower = isAdmin || isADOrAbove;
   const canEditRemarks = isAdmin || isADOrAbove;

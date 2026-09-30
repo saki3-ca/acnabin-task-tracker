@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { isAssistantDirectorOrAbove, normalizeBDMobile } from '../../lib/permissions';
+import { isAssistantDirectorOrAbove, isStudentLevelDesignation, normalizeBDMobile } from '../../lib/permissions';
 import { notificationService } from '../../services/notificationService';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -15,8 +15,8 @@ interface Props {
 export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
   const { currentUser, allClients } = useAuth();
 
-  // Only students (and trainees, who are given a year at signup) have an academic year
-  const hasAcademicYear = ['student', 'trainee'].includes((currentUser?.designation || '').toLowerCase().trim());
+  // Only student-level roles (Student, Trainee, In Charge, Supervisor) have an academic year
+  const hasAcademicYear = isStudentLevelDesignation(currentUser?.designation);
   // Assistant Director and above may submit without filling anything in
   const infoOptional = isAssistantDirectorOrAbove(currentUser?.designation);
   const [academicYear, setAcademicYear] = useState('');
