@@ -9,8 +9,8 @@ type Kind = 'MESSAGE' | 'INFO';
 const segStyle = (active: boolean): React.CSSProperties => ({
   flex: 1,
   padding: '8px 10px',
-  fontSize: '12.5px',
-  fontWeight: 700,
+  fontSize: 'var(--text-sm)',
+  fontWeight: 600,
   borderRadius: '6px',
   cursor: 'pointer',
   border: '1px solid ' + (active ? 'var(--maroon, #800000)' : 'var(--line)'),
@@ -73,7 +73,7 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
         onClick={e => e.stopPropagation()}
       >
         <div className="banner-strip banner-maroon" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
-          <span style={{ fontSize: '14px', fontWeight: 700 }}>SEND NOTIFICATION</span>
+          <span style={{ fontSize: 'var(--text-base)', fontWeight: 600 }}>SEND NOTIFICATION</span>
           <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex' }}>
             <X size={18} />
           </button>
@@ -81,7 +81,7 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
 
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>Send to</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: '6px' }}>Send to</div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" style={segStyle(audience === 'ALL')} onClick={() => setAudience('ALL')}>All users</button>
               <button type="button" style={segStyle(audience === 'ONE')} onClick={() => setAudience('ONE')}>Individual</button>
@@ -89,7 +89,7 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
           </div>
 
           {audience === 'ONE' && (
-            <select className="form-select" value={userId} onChange={e => setUserId(e.target.value)} style={{ height: '36px', fontSize: '13px' }}>
+            <select className="form-select" value={userId} onChange={e => setUserId(e.target.value)} style={{ height: '36px', fontSize: 'var(--text-base)' }}>
               <option value="">Select a user…</option>
               {choices.map(u => (
                 <option key={u.id} value={u.id}>{u.name} ({u.empId})</option>
@@ -98,12 +98,12 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
           )}
 
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>Type</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: '6px' }}>Type</div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" style={segStyle(kind === 'MESSAGE')} onClick={() => setKind('MESSAGE')}>Custom message</button>
               <button type="button" style={segStyle(kind === 'INFO')} onClick={() => setKind('INFO')}>Update info request</button>
             </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginTop: '6px' }}>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginTop: '6px' }}>
               {kind === 'MESSAGE'
                 ? 'A plain notification, e.g. "Attend team meeting". Users just read it.'
                 : 'Asks for academic year, salary/allowance, daily conveyance, blood group and emergency contact. Stays unread until they submit.'}
@@ -117,14 +117,14 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
               onChange={e => setText(e.target.value)}
               placeholder="Type your message, e.g. Submit your timesheet by 5 PM."
               rows={3}
-              style={{ fontSize: '13px', resize: 'vertical' }}
+              style={{ fontSize: 'var(--text-base)', resize: 'vertical' }}
             />
           )}
 
           {note && (
             <div
               className={note.ok ? undefined : 'auth-alert-error'}
-              style={{ margin: 0, fontSize: '12.5px', color: note.ok ? '#166534' : undefined, fontWeight: note.ok ? 600 : undefined }}
+              style={{ margin: 0, fontSize: 'var(--text-sm)', color: note.ok ? '#166534' : undefined, fontWeight: note.ok ? 600 : undefined }}
             >
               {note.text}
             </div>

@@ -34,7 +34,7 @@ export const SendQueryModal: React.FC<Props> = ({ onClose }) => {
     >
       <div style={{ background: '#fff', borderRadius: '10px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
         <div className="banner-strip banner-maroon" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
-          <span style={{ fontSize: '14px', fontWeight: 700 }}>SEND A QUERY TO ADMIN</span>
+          <span style={{ fontSize: 'var(--text-base)', fontWeight: 600 }}>SEND A QUERY TO ADMIN</span>
           <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex' }}>
             <X size={18} />
           </button>
@@ -42,7 +42,7 @@ export const SendQueryModal: React.FC<Props> = ({ onClose }) => {
 
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {sent ? (
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#166534' }}>
+            <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: '#166534' }}>
               Your query was sent. You will get a notification when Admin solves it.
             </div>
           ) : (
@@ -53,7 +53,7 @@ export const SendQueryModal: React.FC<Props> = ({ onClose }) => {
               placeholder="Type your question or request…"
               rows={4}
               autoFocus
-              style={{ fontSize: '13px', resize: 'vertical' }}
+              style={{ fontSize: 'var(--text-base)', resize: 'vertical' }}
             />
           )}
           {error && <div className="auth-alert-error" style={{ margin: 0 }}>{error}</div>}

@@ -121,10 +121,10 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
               <CheckCircle2 size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#166534' }}>
+              <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: '#166534' }}>
                 {tasks.length} Completed {tasks.length === 1 ? 'Task' : 'Tasks'}
               </div>
-              <div style={{ fontSize: '11.5px', color: '#15803D' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: '#15803D' }}>
                 Archived completed assignments and engagements
               </div>
             </div>
@@ -154,7 +154,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                   paddingLeft: '30px',
                   paddingTop: '6px',
                   paddingBottom: '6px',
-                  fontSize: '12px',
+                  fontSize: 'var(--text-sm)',
                   height: '34px',
                   background: '#FFFFFF'
                 }}
@@ -189,7 +189,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                   className="form-select"
                   style={{
                     padding: '6px 10px',
-                    fontSize: '12px',
+                    fontSize: 'var(--text-sm)',
                     height: '34px',
                     width: 'auto',
                     minWidth: '150px',
@@ -238,10 +238,10 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                 <tr>
                   <td colSpan={showTeamColumns ? 8 : 7} className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
                     <CheckCircle2 size={32} style={{ color: '#166534', opacity: 0.4, marginBottom: '8px' }} />
-                    <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)' }}>
                       {tasks.length === 0 ? 'No completed tasks found' : 'No completed tasks match your search'}
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '4px' }}>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginTop: '4px' }}>
                       {tasks.length === 0
                         ? 'When tasks are marked as "Completed", they will be safely archived here.'
                         : 'Try clearing your search query or client filter.'}
@@ -260,7 +260,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
 
                       {/* Team Member (if showTeamColumns) */}
                       {showTeamColumns && (
-                        <td style={{ fontSize: '12px', fontWeight: 600, color: 'var(--navy)', textAlign: 'center' }}>
+                        <td style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--navy)', textAlign: 'center' }}>
                           <span
                             style={{
                               display: 'inline-block',
@@ -282,18 +282,18 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
 
                       {/* Particulars */}
                       <td>
-                        <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '13px', lineHeight: '1.35' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 'var(--text-base)', lineHeight: '1.35' }}>
                           {task.particular}
                         </div>
                         {task.assignedDate && (
-                          <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginTop: '3px' }}>
+                          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-muted)', marginTop: '3px' }}>
                             Assigned: {fmtDate(task.assignedDate)}
                           </div>
                         )}
                       </td>
 
                       {/* Client */}
-                      <td style={{ fontSize: '12.5px', color: 'var(--navy)', fontWeight: 500 }}>
+                      <td style={{ fontSize: 'var(--text-sm)', color: 'var(--navy)', fontWeight: 500 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                           <Building size={13} color="var(--ink-soft)" />
                           <span><ClientLabel id={task.clientId} name={task.clientName || 'General'} /></span>
@@ -301,7 +301,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                       </td>
 
                       {/* Deadline */}
-                      <td style={{ whiteSpace: 'nowrap', textAlign: 'center', fontSize: '12px', color: 'var(--ink-soft)' }}>
+                      <td style={{ whiteSpace: 'nowrap', textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                         {fmtDate(task.deadline)}
                       </td>
 
@@ -316,8 +316,8 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                               cursor: 'pointer',
                               border: 'none',
                               outline: 'none',
-                              fontSize: '11px',
-                              fontWeight: 700
+                              fontSize: 'var(--text-xs)',
+                              fontWeight: 600
                             }}
                             title="Change status to reopen task"
                           >
@@ -331,7 +331,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                       </td>
 
                       {/* Remarks */}
-                      <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
+                      <td style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                         {task.remarks ? (
                           <div style={{ wordBreak: 'break-word', lineHeight: '1.35' }}>{task.remarks}</div>
                         ) : (

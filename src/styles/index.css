@@ -22,6 +22,21 @@
   --line-strong: #BFB4A5;
   --white: #FFFFFF;
 
+  /* Palette used by the profile card (Butter / Green / Plum Wine / Linen Cloud) */
+  --butter: #FFEFB3;
+  --forest: #013E37;
+  --plum: #5E4074;
+  --linen: #F7F9EC;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --text-xs: 11px;   /* column headers, badges */
+  --text-sm: 12px;   /* meta, timestamps, helper text */
+  --text-base: 14px; /* body, table cells, inputs, buttons */
+  --text-lg: 18px;   /* section titles */
+  --text-xl: 24px;   /* page titles */
+
   /* Status Colors */
   --status-pending-bg: #FEF3C7;
   --status-pending-text: #92400E;
@@ -56,11 +71,29 @@ html {
 
 html, body {
   background-color: var(--cream);
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
   color: var(--ink);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h3, h4 {
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
 }
 
 a {
@@ -77,6 +110,7 @@ a:hover {
 
 button, input, select, textarea {
   font-family: inherit;
+  font-size: inherit;
   color: inherit;
 }
 
@@ -137,25 +171,25 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Playfair Display', serif;
-  font-weight: 700;
-  font-size: 16px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--text-base);
   box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
 
 .brand-title {
-  font-weight: 800;
-  font-size: 18px;
+  font-weight: 600;
+  font-size: var(--text-lg);
   letter-spacing: 0.5px;
   color: var(--ink);
   line-height: 1.1;
 }
 
 .brand-subtitle {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-style: italic;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
   margin-top: 2px;
 }
@@ -167,8 +201,8 @@ button, input, select, textarea {
 }
 
 .masthead-title {
-  font-family: 'Playfair Display', serif;
-  font-weight: 900;
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: clamp(24px, 4vw, 46px);
   color: var(--maroon);
   letter-spacing: -0.5px;
@@ -177,9 +211,9 @@ button, input, select, textarea {
 }
 
 .masthead-subtitle {
-  font-family: 'Cambria', Georgia, 'Times New Roman', serif;
+  font-family: var(--font-sans);
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: var(--text-base);
   font-weight: 500;
   letter-spacing: 0.3px;
 }
@@ -194,13 +228,13 @@ button, input, select, textarea {
 }
 
 .user-name {
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: var(--text-base);
   color: var(--ink);
 }
 
 .user-client {
-  font-size: 11.5px;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
 }
 
@@ -208,8 +242,8 @@ button, input, select, textarea {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: 600;
   letter-spacing: 0.5px;
   padding: 3px 9px;
   border-radius: var(--radius-full);
@@ -274,8 +308,8 @@ button, input, select, textarea {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 500;
+  font-size: var(--text-base);
   padding: 9px 16px;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
@@ -289,7 +323,7 @@ button, input, select, textarea {
 @media (max-width: 480px) {
   .btn {
     padding: 7px 10px;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 }
 
@@ -337,7 +371,7 @@ button, input, select, textarea {
 
 .btn-sm {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .btn-link {
@@ -345,7 +379,7 @@ button, input, select, textarea {
   border: none;
   color: var(--maroon);
   padding: 4px 6px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 .btn-link:hover {
@@ -389,7 +423,7 @@ button, input, select, textarea {
   align-items: center;
   justify-content: center;
   padding: 10px 18px;
-  font-size: 13.5px;
+  font-size: var(--text-base);
   font-weight: 600;
   background: none;
   border: none;
@@ -426,7 +460,7 @@ button, input, select, textarea {
   }
   .tab-btn {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: var(--text-sm);
     flex: 1 1 auto;
     text-align: center;
     justify-content: center;
@@ -479,8 +513,8 @@ button, input, select, textarea {
 }
 
 .stat-pill-label {
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: 600;
   letter-spacing: 0.8px;
   color: var(--ink-soft);
   text-transform: uppercase;
@@ -489,8 +523,8 @@ button, input, select, textarea {
 }
 
 .stat-pill-value {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: var(--text-xl);
+  font-weight: 600;
   color: var(--ink);
   margin-top: 3px;
   text-align: center;
@@ -506,9 +540,9 @@ button, input, select, textarea {
   min-height: 46px;
   padding: 8px 20px;
   color: #fff;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13.5px;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 600;
   letter-spacing: 0.8px;
   text-transform: uppercase;
   display: flex;
@@ -525,7 +559,7 @@ button, input, select, textarea {
 .banner-strip-count {
   position: absolute;
   right: 16px;
-  font-size: 11.5px;
+  font-size: var(--text-sm);
   font-weight: 600;
   opacity: 0.9;
   letter-spacing: normal;
@@ -533,7 +567,7 @@ button, input, select, textarea {
 
 @media (max-width: 600px) {
   .banner-strip {
-    font-size: 11.5px;
+    font-size: var(--text-sm);
     letter-spacing: 0.4px;
     padding: 8px 12px;
   }
@@ -580,7 +614,7 @@ button, input, select, textarea {
   width: 100%;
   min-width: 780px;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   text-align: left;
 }
 
@@ -606,10 +640,10 @@ button, input, select, textarea {
 .data-table th {
   padding: 10px 12px;
   color: #334155;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.6px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   background: #F8FAFC;
   border-top: 1px solid rgba(0, 0, 0, 0.04);
@@ -681,7 +715,7 @@ button, input, select, textarea {
   gap: 4px;
   padding: 3px 8px;
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: capitalize;
   white-space: nowrap;
@@ -702,7 +736,7 @@ button, input, select, textarea {
 .status-pill.overdue {
   background: var(--status-overdue-bg);
   color: var(--status-overdue-text);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .priority-pill {
@@ -710,8 +744,8 @@ button, input, select, textarea {
   align-items: center;
   padding: 2px 7px;
   border-radius: 4px;
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: 600;
   text-transform: uppercase;
 }
 .priority-pill.high {
@@ -748,8 +782,8 @@ button, input, select, textarea {
 }
 
 .filter-label {
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--ink-soft);
   text-transform: uppercase;
 }
@@ -760,7 +794,7 @@ button, input, select, textarea {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--ink);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   width: 100%;
@@ -816,16 +850,16 @@ button, input, select, textarea {
 }
 
 .modal-header h2 {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: 600;
   color: var(--ink);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
 }
 
 .modal-close-btn {
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: var(--text-lg);
   color: var(--ink-soft);
   cursor: pointer;
   padding: 4px;
@@ -854,11 +888,11 @@ button, input, select, textarea {
 }
 
 .form-field label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--ink-soft);
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.04em;
 }
 
 .modal-footer {
@@ -877,7 +911,7 @@ button, input, select, textarea {
   border-left: 3px solid var(--maroon);
   padding: 10px 14px;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   color: var(--ink);
   line-height: 1.4;
 }
@@ -909,16 +943,16 @@ button, input, select, textarea {
 }
 
 .client-card-name {
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 600;
+  font-size: var(--text-base);
   color: var(--ink);
   margin-bottom: 6px;
 }
 
 .client-card-job {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--ink-soft);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 /* Auth Screens */
@@ -948,14 +982,14 @@ button, input, select, textarea {
 }
 
 .auth-card-title {
-  font-family: 'Playfair Display', serif;
-  font-weight: 800;
-  font-size: 26px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--text-xl);
   color: var(--maroon);
 }
 
 .auth-card-subtitle {
-  font-size: 13px;
+  font-size: var(--text-base);
   color: var(--ink-soft);
   margin-top: 4px;
 }
@@ -966,7 +1000,7 @@ button, input, select, textarea {
   color: #991B1B;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 
 .auth-alert-success {
@@ -975,7 +1009,7 @@ button, input, select, textarea {
   color: #166534;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 
 /* Toast Notifications */
@@ -994,7 +1028,7 @@ button, input, select, textarea {
   color: #fff;
   padding: 12px 20px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: var(--text-base);
   font-weight: 500;
   box-shadow: var(--shadow-lg);
   display: flex;
@@ -1013,7 +1047,7 @@ button, input, select, textarea {
   text-align: center;
   padding: 36px 20px;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: var(--text-base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1024,7 +1058,7 @@ button, input, select, textarea {
   text-align: center;
   padding: 40px 20px;
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: var(--text-base);
 }
 
 /* Sticky client column for mobile / responsive horizontal scroll */
@@ -1054,3 +1088,5 @@ button, input, select, textarea {
 /* Full Details card: two panels per row, one on narrow screens */
 .fd-grid { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: stretch; }
 @media (min-width: 760px) { .fd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.fd-row:hover { background: var(--linen); }

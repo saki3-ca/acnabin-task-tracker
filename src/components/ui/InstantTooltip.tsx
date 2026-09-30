@@ -77,7 +77,7 @@ export const InstantTooltip: React.FC<InstantTooltipProps> = ({
               color: '#F8FAFC',
               padding: '8px 12px',
               borderRadius: '6px',
-              fontSize: '12px',
+              fontSize: 'var(--text-sm)',
               fontWeight: 500,
               lineHeight: '1.45',
               maxWidth: '380px',

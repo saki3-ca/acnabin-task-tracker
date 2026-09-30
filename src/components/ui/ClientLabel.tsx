@@ -29,8 +29,8 @@ export const ClientLabel: React.FC<{ id?: string | null; name: string }> = ({ id
         <span
           style={{
             marginLeft: '6px',
-            fontFamily: 'monospace',
-            fontSize: '0.85em',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-sm)',
             fontWeight: 600,
             color: 'var(--ink-muted, #64748B)',
             whiteSpace: 'nowrap'

@@ -99,7 +99,7 @@ const MainApp: React.FC = () => {
   if (authLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: '15px', color: 'var(--ink-soft)' }}>Loading ACNABIN Portal…</div>
+        <div style={{ fontSize: 'var(--text-base)', color: 'var(--ink-soft)' }}>Loading ACNABIN Portal…</div>
       </div>
     );
   }

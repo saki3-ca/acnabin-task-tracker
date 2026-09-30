@@ -592,7 +592,7 @@ export const ManpowerView: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            fontSize: '13px',
+            fontSize: 'var(--text-base)',
             fontWeight: 600
           }}
         >
@@ -680,8 +680,8 @@ export const ManpowerView: React.FC = () => {
               style={{
                 flex: 1,
                 padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
                 borderRadius: '6px',
                 border: viewMode === 'details' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
                 cursor: 'pointer',
@@ -711,8 +711,8 @@ export const ManpowerView: React.FC = () => {
               style={{
                 flex: 1,
                 padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
                 borderRadius: '6px',
                 border: viewMode === 'summary' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
                 cursor: 'pointer',
@@ -751,8 +751,8 @@ export const ManpowerView: React.FC = () => {
             >
               <span
                 style={{
-                  fontSize: '9.5px',
-                  fontWeight: 700,
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 600,
                   color: 'var(--ink-muted)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em'
@@ -771,8 +771,8 @@ export const ManpowerView: React.FC = () => {
                   border: '1px solid ' + (includeAllHr ? 'rgba(128, 0, 0, 0.4)' : '#CBD5E1'),
                   borderRadius: '12px',
                   padding: '2px 8px',
-                  fontSize: '10px',
-                  fontWeight: 700,
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 600,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -836,7 +836,7 @@ export const ManpowerView: React.FC = () => {
                 <input
                   type="text"
                   className="form-input"
-                  style={{ paddingLeft: '32px', height: '36px', fontSize: '12.5px', width: '100%' }}
+                  style={{ paddingLeft: '32px', height: '36px', fontSize: 'var(--text-sm)', width: '100%' }}
                   placeholder="Search by name or EMP/STD ID…"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -846,7 +846,7 @@ export const ManpowerView: React.FC = () => {
               <div style={{ minWidth: '180px', flex: '1 1 180px' }}>
                 <select
                   className="form-select"
-                  style={{ height: '36px', fontSize: '12.5px', width: '100%' }}
+                  style={{ height: '36px', fontSize: 'var(--text-sm)', width: '100%' }}
                   value={selectedClient}
                   onChange={e => setSelectedClient(e.target.value)}
                 >
@@ -862,7 +862,7 @@ export const ManpowerView: React.FC = () => {
               <div style={{ minWidth: '160px', flex: '1 1 160px' }}>
                 <select
                   className="form-select"
-                  style={{ height: '36px', fontSize: '12.5px', width: '100%' }}
+                  style={{ height: '36px', fontSize: 'var(--text-sm)', width: '100%' }}
                   value={selectedDesignation}
                   onChange={e => setSelectedDesignation(e.target.value)}
                 >
@@ -880,7 +880,7 @@ export const ManpowerView: React.FC = () => {
                   type="button"
                   onClick={clearFilters}
                   className="btn btn-secondary btn-sm"
-                  style={{ height: '36px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+                  style={{ height: '36px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-sm)' }}
                   title="Reset all filters"
                 >
                   <RotateCcw size={13} /> Reset
@@ -888,7 +888,7 @@ export const ManpowerView: React.FC = () => {
               )}
             </div>
 
-            <div style={{ fontSize: '12px', color: 'var(--ink-soft)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-soft)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               {!effectiveIncludeAllHr && (
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
               )}
@@ -905,7 +905,7 @@ export const ManpowerView: React.FC = () => {
                 {!effectiveIncludeAllHr ? (
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontSize: 'var(--text-xs)',
                       fontWeight: 600,
                       background: 'rgba(255, 255, 255, 0.18)',
                       color: '#ffffff',
@@ -924,8 +924,8 @@ export const ManpowerView: React.FC = () => {
                 ) : (
                   <span
                     style={{
-                      fontSize: '10px',
-                      fontWeight: 700,
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 600,
                       background: 'rgba(255, 255, 255, 0.2)',
                       padding: '2px 8px',
                       borderRadius: '10px',
@@ -945,8 +945,8 @@ export const ManpowerView: React.FC = () => {
                   border: 'none',
                   padding: '3px 10px',
                   borderRadius: '4px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 600,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1095,10 +1095,10 @@ export const ManpowerView: React.FC = () => {
                     <tr>
                       <td colSpan={canEditManpower ? 10 : 9} className="empty-state" style={{ padding: '48px 16px', textAlign: 'center' }}>
                         <Filter size={32} style={{ color: 'var(--ink-muted)', opacity: 0.5, marginBottom: '8px' }} />
-                        <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
+                        <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)' }}>
                           No manpower records found
                         </div>
-                        <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '4px' }}>
+                        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--ink-muted)', marginTop: '4px' }}>
                           Try clearing or modifying the current search and filter settings.
                         </div>
                       </td>
@@ -1109,13 +1109,13 @@ export const ManpowerView: React.FC = () => {
                         <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
                           {idx + 1}
                         </td>
-                        <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: 'var(--navy)' }}>
+                        <td style={{ textAlign: 'center', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--navy)' }}>
                           {item.empId}
                         </td>
                         <td style={{ fontWeight: 600, color: 'var(--ink)' }}>
                           {item.name}
                         </td>
-                        <td style={{ color: 'var(--ink)', fontSize: '12.5px' }}>
+                        <td style={{ color: 'var(--ink)', fontSize: 'var(--text-sm)' }}>
                           {item.clientIds && item.clientIds.length > 0
                             ? item.clientIds.map(id => (
                                 <div key={id}>
@@ -1129,7 +1129,7 @@ export const ManpowerView: React.FC = () => {
                             <span
                               className="role-badge user"
                               style={{
-                                fontSize: '11px',
+                                fontSize: 'var(--text-xs)',
                                 padding: '2px 8px',
                                 background: item.empId.startsWith('EMP') ? '#EFF6FF' : '#F1F5F9',
                                 color: item.empId.startsWith('EMP') ? '#1E40AF' : 'var(--ink)'
@@ -1139,20 +1139,20 @@ export const ManpowerView: React.FC = () => {
                             </span>
                           ) : null}
                         </td>
-                        <td style={{ textAlign: 'center', fontSize: '12px', color: 'var(--ink-soft)' }}>
+                        <td style={{ textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--ink-soft)' }}>
                           {renderAcademicYear(item.academicYear)}
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace', paddingRight: '14px' }}>
+                        <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)', paddingRight: '14px' }}>
                           {formatBDT(item.salary)}
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace', paddingRight: '14px' }}>
+                        <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)', paddingRight: '14px' }}>
                           {formatBDT(item.conveyance)}
                         </td>
                         <td
                           style={{
                             textAlign: 'right',
-                            fontWeight: 700,
-                            fontFamily: 'monospace',
+                            fontWeight: 600,
+                            fontFamily: 'var(--font-mono)',
                             color: 'var(--maroon)',
                             paddingRight: '14px'
                           }}
@@ -1166,7 +1166,7 @@ export const ManpowerView: React.FC = () => {
                               onClick={() => handleOpenEdit(item)}
                               className="btn btn-secondary btn-sm"
                               style={{
-                                fontSize: '11px',
+                                fontSize: 'var(--text-xs)',
                                 padding: '3px 8px',
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1198,7 +1198,7 @@ export const ManpowerView: React.FC = () => {
               {!effectiveIncludeAllHr ? (
                 <span
                   style={{
-                    fontSize: '11px',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 600,
                     background: 'rgba(255, 255, 255, 0.18)',
                     color: '#ffffff',
@@ -1217,8 +1217,8 @@ export const ManpowerView: React.FC = () => {
               ) : (
                 <span
                   style={{
-                    fontSize: '10px',
-                    fontWeight: 700,
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
                     background: 'rgba(255, 255, 255, 0.2)',
                     padding: '2px 8px',
                     borderRadius: '10px',
@@ -1238,8 +1238,8 @@ export const ManpowerView: React.FC = () => {
                 border: 'none',
                 padding: '3px 10px',
                 borderRadius: '4px',
-                fontSize: '11.5px',
-                fontWeight: 700,
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1350,7 +1350,7 @@ export const ManpowerView: React.FC = () => {
                   <tr>
                     <td colSpan={7} className="empty-state" style={{ padding: '48px 16px', textAlign: 'center' }}>
                       <Building size={32} style={{ color: 'var(--ink-muted)', opacity: 0.5, marginBottom: '8px' }} />
-                      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--ink)' }}>
                         No client summary data available
                       </div>
                     </td>
@@ -1373,7 +1373,7 @@ export const ManpowerView: React.FC = () => {
                             {idx + 1}
                           </td>
 
-                          <td style={{ fontWeight: 700, color: isUnassigned ? '#B45309' : 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <td style={{ fontWeight: 600, color: isUnassigned ? '#B45309' : 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <Building size={14} color={isUnassigned ? '#B45309' : 'var(--navy)'} />
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1390,8 +1390,8 @@ export const ManpowerView: React.FC = () => {
                                 gap: '4px',
                                 padding: '2px 8px',
                                 borderRadius: '12px',
-                                fontSize: '11px',
-                                fontWeight: 700,
+                                fontSize: 'var(--text-xs)',
+                                fontWeight: 600,
                                 background: '#EFF6FF',
                                 color: '#1E40AF'
                               }}
@@ -1400,19 +1400,19 @@ export const ManpowerView: React.FC = () => {
                             </span>
                           </td>
 
-                          <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace', paddingRight: '14px' }}>
+                          <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)', paddingRight: '14px' }}>
                             {formatBDT(item.totalSalary)}
                           </td>
 
-                          <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'monospace', paddingRight: '14px' }}>
+                          <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)', paddingRight: '14px' }}>
                             {formatBDT(item.totalConveyance)}
                           </td>
 
                           <td
                             style={{
                               textAlign: 'right',
-                              fontWeight: 700,
-                              fontFamily: 'monospace',
+                              fontWeight: 600,
+                              fontFamily: 'var(--font-mono)',
                               color: 'var(--maroon)',
                               paddingRight: '14px'
                             }}
@@ -1426,7 +1426,7 @@ export const ManpowerView: React.FC = () => {
                             style={{ padding: '6px 12px' }}
                           >
                             {isUnassigned || item.clientName === ALL_CLIENTS ? (
-                              <span style={{ color: 'var(--ink-muted)', fontStyle: 'italic', fontSize: '12px' }}>
+                              <span style={{ color: 'var(--ink-muted)', fontStyle: 'italic', fontSize: 'var(--text-sm)' }}>
                                 Not applicable
                               </span>
                             ) : canEditRemarks ? (
@@ -1441,7 +1441,7 @@ export const ManpowerView: React.FC = () => {
                                   style={{
                                     width: '100%',
                                     height: '30px',
-                                    fontSize: '12px',
+                                    fontSize: 'var(--text-sm)',
                                     paddingRight: savingRemarkId === item.clientId ? '24px' : '8px'
                                   }}
                                 />
@@ -1450,7 +1450,7 @@ export const ManpowerView: React.FC = () => {
                                     style={{
                                       position: 'absolute',
                                       right: '8px',
-                                      fontSize: '10px',
+                                      fontSize: 'var(--text-xs)',
                                       color: '#03543F'
                                     }}
                                   >
@@ -1459,7 +1459,7 @@ export const ManpowerView: React.FC = () => {
                                 )}
                               </div>
                             ) : (
-                              <span style={{ fontSize: '12.5px', color: 'var(--ink)' }}>
+                              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--ink)' }}>
                                 {remarksMap[item.clientId] || '—'}
                               </span>
                             )}
@@ -1471,35 +1471,35 @@ export const ManpowerView: React.FC = () => {
                     {/* Bold GRAND TOTAL Row at the bottom */}
                     <tr
                       style={{
-                        fontWeight: 800,
+                        fontWeight: 600,
                         background: '#F1F5F9',
                         borderTop: '2px solid var(--line-strong)',
-                        fontSize: '13px'
+                        fontSize: 'var(--text-base)'
                       }}
                     >
                       <td style={{ textAlign: 'center', color: 'var(--ink-muted)' }}>—</td>
 
-                      <td style={{ fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                      <td style={{ fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                         GRAND TOTAL
                       </td>
 
-                      <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--navy)' }}>
+                      <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--navy)' }}>
                         {grandTotalManpower}
                       </td>
 
-                      <td style={{ textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', paddingRight: '14px', color: 'var(--ink)' }}>
+                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)', paddingRight: '14px', color: 'var(--ink)' }}>
                         {formatBDT(grandTotalSalary)}
                       </td>
 
-                      <td style={{ textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', paddingRight: '14px', color: 'var(--ink)' }}>
+                      <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)', paddingRight: '14px', color: 'var(--ink)' }}>
                         {formatBDT(grandTotalConveyance)}
                       </td>
 
                       <td
                         style={{
                           textAlign: 'right',
-                          fontWeight: 800,
-                          fontFamily: 'monospace',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-mono)',
                           color: 'var(--maroon)',
                           paddingRight: '14px'
                         }}
@@ -1507,7 +1507,7 @@ export const ManpowerView: React.FC = () => {
                         {formatBDT(grandTotalCost)}
                       </td>
 
-                      <td style={{ color: 'var(--ink-muted)', fontSize: '12px', fontStyle: 'italic', paddingLeft: '12px' }}>
+                      <td style={{ color: 'var(--ink-muted)', fontSize: 'var(--text-sm)', fontStyle: 'italic', paddingLeft: '12px' }}>
                         All client costs aggregated
                       </td>
                     </tr>
@@ -1558,7 +1558,7 @@ export const ManpowerView: React.FC = () => {
                 padding: '12px 18px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 700 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 'var(--text-base)', fontWeight: 600 }}>
                 <Pencil size={15} />
                 <span>EDIT MANPOWER RECORD</span>
               </div>
@@ -1590,17 +1590,17 @@ export const ManpowerView: React.FC = () => {
               }}
             >
               <div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>
+                <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--ink)' }}>
                   {editingRecord.name}
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--navy)', fontFamily: 'monospace', fontWeight: 700 }}>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--navy)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
                   {editingRecord.empId}
                 </div>
               </div>
               <span
                 style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 600,
                   background: '#E2E8F0',
                   color: 'var(--ink)',
                   padding: '3px 8px',
@@ -1616,9 +1616,9 @@ export const ManpowerView: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: showEditAcademicYear ? '1fr 1fr' : '1fr', gap: '12px' }}>
                 <div className="form-field">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>Designation</label>
+                    <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, margin: 0 }}>Designation</label>
                     {!isAdmin && (
-                      <span style={{ fontSize: '11px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
                         Admin only
                       </span>
                     )}
@@ -1630,7 +1630,7 @@ export const ManpowerView: React.FC = () => {
                     disabled={!isAdmin}
                     style={{
                       height: '36px',
-                      fontSize: '13px',
+                      fontSize: 'var(--text-base)',
                       background: !isAdmin ? '#F1F5F9' : '#ffffff',
                       cursor: !isAdmin ? 'not-allowed' : undefined,
                       color: !isAdmin ? 'var(--ink-muted)' : undefined,
@@ -1651,12 +1651,12 @@ export const ManpowerView: React.FC = () => {
 
                 {showEditAcademicYear && (
                 <div className="form-field">
-                  <label style={{ fontSize: '12px', fontWeight: 700 }}>Academic Year</label>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Academic Year</label>
                   <select
                     className="form-select"
                     value={editAcademicYear}
                     onChange={e => setEditAcademicYear(e.target.value)}
-                    style={{ height: '36px', fontSize: '13px' }}
+                    style={{ height: '36px', fontSize: 'var(--text-base)' }}
                   >
                     <option value="">None / Not Applicable</option>
                     <option value="1st Year">1ˢᵗ Year</option>
@@ -1672,7 +1672,7 @@ export const ManpowerView: React.FC = () => {
               </div>
 
               <div className="form-field" style={{ position: 'relative' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700 }}>Assigned Client</label>
+                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Assigned Client</label>
                 {editClients.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
                     {editClients.map(c => (
@@ -1686,7 +1686,7 @@ export const ManpowerView: React.FC = () => {
                           border: '1px solid var(--navy, #1B2A6B)',
                           borderRadius: '20px',
                           padding: '2px 10px',
-                          fontSize: '12px',
+                          fontSize: 'var(--text-sm)',
                           color: 'var(--navy, #1B2A6B)',
                           fontWeight: 600
                         }}
@@ -1695,7 +1695,7 @@ export const ManpowerView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
-                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
+                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 600, padding: 0, lineHeight: 1, fontSize: 'var(--text-base)' }}
                         >×</button>
                       </span>
                     ))}
@@ -1709,7 +1709,7 @@ export const ManpowerView: React.FC = () => {
                   onBlur={() => setTimeout(() => setEditClientSuggestions([]), 150)}
                   placeholder="Type to search client name…"
                   autoComplete="off"
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '36px', fontSize: 'var(--text-base)' }}
                 />
                 {editClientSuggestions.length > 0 && (
                   <ul
@@ -1734,7 +1734,7 @@ export const ManpowerView: React.FC = () => {
                       <li
                         key={c.id}
                         onMouseDown={() => addEditClient(c)}
-                        style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
+                        style={{ padding: '8px 14px', cursor: 'pointer', fontSize: 'var(--text-base)', color: 'var(--ink)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
                         onMouseLeave={e => (e.currentTarget.style.background = '')}
                       >
@@ -1747,7 +1747,7 @@ export const ManpowerView: React.FC = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-field">
-                  <label style={{ fontSize: '12px', fontWeight: 700 }}>Monthly Salary (৳)</label>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Monthly Salary (৳)</label>
                   <input
                     type="number"
                     min="0"
@@ -1755,12 +1755,12 @@ export const ManpowerView: React.FC = () => {
                     className="form-input"
                     value={editSalary}
                     onChange={e => setEditSalary(Number(e.target.value) || 0)}
-                    style={{ height: '36px', fontSize: '13px', fontFamily: 'monospace', fontWeight: 600 }}
+                    style={{ height: '36px', fontSize: 'var(--text-base)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}
                   />
                 </div>
 
                 <div className="form-field">
-                  <label style={{ fontSize: '12px', fontWeight: 700 }}>Conveyance (৳)</label>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Conveyance (৳)</label>
                   <input
                     type="number"
                     min="0"
@@ -1768,7 +1768,7 @@ export const ManpowerView: React.FC = () => {
                     className="form-input"
                     value={editConveyance}
                     onChange={e => setEditConveyance(Number(e.target.value) || 0)}
-                    style={{ height: '36px', fontSize: '13px', fontFamily: 'monospace', fontWeight: 600 }}
+                    style={{ height: '36px', fontSize: 'var(--text-base)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}
                   />
                 </div>
               </div>
@@ -1785,23 +1785,23 @@ export const ManpowerView: React.FC = () => {
                   alignItems: 'center'
                 }}
               >
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--maroon)' }}>
+                <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--maroon)' }}>
                   Total Monthly Cost:
                 </span>
-                <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--maroon)' }}>
+                <span style={{ fontSize: 'var(--text-base)', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--maroon)' }}>
                   {formatBDT(Number(editSalary) + Number(editConveyance))}
                 </span>
               </div>
 
               <div className="form-field">
-                <label style={{ fontSize: '12px', fontWeight: 700 }}>Remarks</label>
+                <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Remarks</label>
                 <input
                   type="text"
                   className="form-input"
                   value={editRemarks}
                   onChange={e => setEditRemarks(e.target.value)}
                   placeholder="Optional staff remarks…"
-                  style={{ height: '36px', fontSize: '13px' }}
+                  style={{ height: '36px', fontSize: 'var(--text-base)' }}
                 />
               </div>
             </div>

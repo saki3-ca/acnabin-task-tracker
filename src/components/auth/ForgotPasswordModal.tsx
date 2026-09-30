@@ -64,7 +64,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {error && <div className="auth-alert-error">{error}</div>}
-            <p style={{ fontSize: '13px', color: 'var(--ink-soft)' }}>
+            <p style={{ fontSize: 'var(--text-base)', color: 'var(--ink-soft)' }}>
               Enter your registered official email address. A password reset link will be dispatched to your email.
             </p>
             <div className="form-field">
