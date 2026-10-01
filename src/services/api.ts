@@ -1336,11 +1336,11 @@ export const api = {
 
       case 'listQueries': {
         const session = readSession();
-        if (!session) return [] as T;
+        if (!session) throw new Error('Your login has expired. Please log out and log in again.');
         const { data, error } = await supabase.rpc('app_list_queries', { p_session: session.token });
         if (error) {
-          console.warn('[listQueries] failed (run supabase_user_queries.sql?):', error.message);
-          return [] as T;
+          console.warn('[listQueries] failed:', error.message);
+          throw new Error('Could not load queries: ' + error.message);
         }
         return (data || []).map((r: any) => ({
           id: Number(r.id),

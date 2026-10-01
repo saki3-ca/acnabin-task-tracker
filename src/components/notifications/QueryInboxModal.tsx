@@ -13,11 +13,12 @@ const formatTime = (iso: string) => {
 
 interface Props {
   queries: UserQuery[];
+  error?: string;
   onChanged: () => void;
   onClose: () => void;
 }
 
-export const QueryInboxModal: React.FC<Props> = ({ queries, onChanged, onClose }) => {
+export const QueryInboxModal: React.FC<Props> = ({ queries, error: loadError, onChanged, onClose }) => {
   const [openId, setOpenId] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,7 +56,10 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, onChanged, onClose }
         </div>
 
         <div style={{ padding: '14px 16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {queries.length === 0 && (
+          {queries.length === 0 && loadError && (
+            <div className="auth-alert-error" style={{ margin: 0, fontSize: '12.5px' }}>{loadError}</div>
+          )}
+          {queries.length === 0 && !loadError && (
             <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--ink-muted)', fontSize: '13px' }}>
               No open queries. 🎉
             </div>
@@ -107,7 +111,7 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, onChanged, onClose }
             </div>
           ))}
 
-          {error && <div className="auth-alert-error" style={{ margin: 0 }}>{error}</div>}
+          {error && <div className="auth-alert-error" style={{ margin: 0 }}>{loadError}</div>}
         </div>
       </div>
     </div>

@@ -30,14 +30,17 @@ export const NotificationsView: React.FC = () => {
   const [queryOpen, setQueryOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [openQueries, setOpenQueries] = useState<UserQuery[]>([]);
+  const [queryError, setQueryError] = useState('');
   const isAdmin = currentUser?.role === 'ADMIN';
 
   const loadQueries = useCallback(async () => {
     if (!isAdmin) return;
     try {
       setOpenQueries(await notificationService.listQueries());
-    } catch {
+      setQueryError('');
+    } catch (e: any) {
       setOpenQueries([]);
+      setQueryError(e?.message || 'Could not load queries.');
     }
   }, [isAdmin]);
 
@@ -276,6 +279,7 @@ export const NotificationsView: React.FC = () => {
       {inboxOpen && (
         <QueryInboxModal
           queries={openQueries}
+          error={queryError}
           onChanged={() => {
             loadQueries();
             refreshNotifications();
