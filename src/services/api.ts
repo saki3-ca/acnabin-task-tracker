@@ -470,6 +470,17 @@ export const api = {
     return data || null;
   },
 
+  /** True while an Admin is using "Switch User": the saved login still belongs to the Admin, not the person shown. */
+  isViewingAsAnother(): boolean {
+    try {
+      const session = readSession();
+      const stored = JSON.parse(localStorage.getItem('acnabin_current_user') || 'null');
+      return Boolean(session && stored?.id && stored.id !== session.userId);
+    } catch {
+      return false;
+    }
+  },
+
   /** The login token the Drive bridge checks (it asks the database whether the person may use the Proposal Tracker). */
   getSessionToken(): string | null {
     return readSession()?.token || null;

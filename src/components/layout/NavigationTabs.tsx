@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { canViewManpower, canViewTeamTasks } from '../../lib/permissions';
+import { api } from '../../services/api';
 import { proposalService } from '../../services/proposalService';
 
 export type TabKey = 'own' | 'team' | 'manpower' | 'proposals' | 'requests' | 'notifications' | 'profile' | 'admin';
@@ -25,7 +26,13 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   const [proposalAccess, setProposalAccess] = useState(false);
   const checkProposalAccess = useCallback(async () => {
     if (!currentUser) return;
-    setProposalAccess(isAdminUser ? true : await proposalService.hasAccess().catch(() => false));
+    if (isAdminUser) return setProposalAccess(true);
+    if (api.isViewingAsAnother()) {
+      // Admin using Switch User: the saved login is the Admin's, so ask whether THIS person was given access
+      const ids = await proposalService.getAccess().catch(() => [] as string[]);
+      return setProposalAccess(ids.includes(currentUser.id));
+    }
+    setProposalAccess(await proposalService.hasAccess().catch(() => false));
   }, [currentUser?.id, isAdminUser]);
   useEffect(() => {
     void checkProposalAccess();
