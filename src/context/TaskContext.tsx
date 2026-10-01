@@ -26,7 +26,7 @@ interface TaskContextType {
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, allUsers } = useAuth();
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [teamTasks, setTeamTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -77,13 +77,25 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           memberId: teamFilters.memberId
         })
       ]);
+      // A task keeps the name the person had when it was created. If the account was renamed since,
+      // show the current name so the same person is not listed under two names.
+      const currentName = new Map(allUsers.map(u => [u.id, u.name]));
+      const withCurrentNames = (list: Task[]) =>
+        list.map(t => {
+          const assignee = currentName.get(t.assignedToId);
+          const creator = currentName.get(t.createdById);
+          return assignee !== t.assignedToName || (creator && creator !== t.createdByName)
+            ? { ...t, assignedToName: assignee || t.assignedToName, createdByName: creator || t.createdByName }
+            : t;
+        });
+
       if (myResult.status === 'fulfilled') {
-        setMyTasks(myResult.value);
+        setMyTasks(withCurrentNames(myResult.value));
       } else {
         console.error('Failed to fetch my tasks:', myResult.reason);
       }
       if (teamResult.status === 'fulfilled') {
-        setTeamTasks(teamResult.value);
+        setTeamTasks(withCurrentNames(teamResult.value));
       } else {
         console.error('Failed to fetch team tasks:', teamResult.reason);
       }
