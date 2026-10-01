@@ -1,9 +1,12 @@
-import { Bell, Briefcase, CheckSquare, FileText, Shield, User as UserIcon, Users } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, Shield, User as UserIcon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useLivePolling } from '../../lib/useLivePolling';
 import { canViewManpower, canViewTeamTasks } from '../../lib/permissions';
+import { proposalService } from '../../services/proposalService';
 
-export type TabKey = 'own' | 'team' | 'manpower' | 'requests' | 'notifications' | 'profile' | 'admin';
+export type TabKey = 'own' | 'team' | 'manpower' | 'proposals' | 'requests' | 'notifications' | 'profile' | 'admin';
 
 interface NavigationTabsProps {
   activeTab: TabKey;
@@ -16,6 +19,19 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const { pendingRequestsCount, unreadCount } = useNotifications();
+
+  // The Proposal Tracker tab is only for people the Admin chose (Admin always has it)
+  const isAdminUser = currentUser?.role === 'ADMIN';
+  const [proposalAccess, setProposalAccess] = useState(false);
+  const checkProposalAccess = useCallback(async () => {
+    if (!currentUser) return;
+    setProposalAccess(isAdminUser ? true : await proposalService.hasAccess().catch(() => false));
+  }, [currentUser?.id, isAdminUser]);
+  useEffect(() => {
+    void checkProposalAccess();
+  }, [checkProposalAccess]);
+  useLivePolling(() => checkProposalAccess(), 60000, Boolean(currentUser));
+
   if (!currentUser) return null;
 
   // Team Tasks: In Charge and above (not Students)
@@ -112,6 +128,17 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
         >
           <Briefcase size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           Manpower
+        </button>
+      )}
+
+      {/* Proposal Tracker: only for people the Admin chose */}
+      {proposalAccess && (
+        <button
+          className={`tab-btn ${activeTab === 'proposals' ? 'active' : ''}`}
+          onClick={() => onSelectTab('proposals')}
+        >
+          <ClipboardList size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Proposal Tracker
         </button>
       )}
 

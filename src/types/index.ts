@@ -254,3 +254,41 @@ export interface ClientManpowerRemark {
   updatedAt?: string;
 }
 
+
+export type ProposalStatus =
+  | 'Draft' | 'In Progress' | 'Submitted' | 'Under Review' | 'On Hold'
+  | 'Approved' | 'Rejected' | 'Not Started' | 'Assigned To Other Team';
+
+export interface Proposal {
+  id: string;
+  name: string;
+  client: string;
+  type: string;
+  assignedTo: string;
+  receiveDate: string;
+  deadline: string;
+  status: string;
+  remarks: string;
+  createdAt?: string;
+}
+
+export interface ProposalImportRow {
+  name: string;
+  client: string;
+  type: string;
+  assignedTo: string;
+  receiveDate: string;
+  deadline: string;
+  status: string;
+  remarks: string;
+}
+
+export interface ProposalImportResult {
+  status: string;
+  dryRun?: boolean;
+  total?: number;
+  added?: number;
+  skipped?: number;
+  errors?: number;
+  rows?: { name: string; client: string; result: 'NEW' | 'DUPLICATE' | 'ERROR'; error?: string }[];
+}

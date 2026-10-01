@@ -28,7 +28,8 @@ import {
 const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary',
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
-  'sendTaskEmail', 'saveMyStaff', 'importStaff']);
+  'sendTaskEmail', 'saveMyStaff', 'importStaff',
+  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -1419,6 +1420,95 @@ export const api = {
           emergencyPhone: s(r.emergency_phone), presentAddress: s(r.present_address), laptopAvailable: s(r.laptop_available),
           laptopOwnership: s(r.laptop_ownership), laptopId: s(r.laptop_id), remarks: s(r.remarks)
         })) as T;
+      }
+
+      // ----------------------------------------------------------------------
+      // PROPOSAL TRACKER (access is granted by the Admin; all checks run in the database)
+      // ----------------------------------------------------------------------
+      case 'proposalHasAccess': {
+        const session = readSession();
+        if (!session) return false as T;
+        const { data, error } = await supabase.rpc('app_proposal_has_access', { p_session: session.token });
+        if (error) {
+          console.warn('[proposalHasAccess] failed (run supabase_proposals.sql?):', error.message);
+          return false as T;
+        }
+        return Boolean(data) as T;
+      }
+
+      case 'proposalList': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_proposal_list', { p_session: session.token });
+        if (error) {
+          console.error('app_proposal_list failed:', error);
+          throw new Error('Could not load proposals. Has supabase_proposals.sql been run?');
+        }
+        if (data === null) throw new Error('You do not have access to the Proposal Tracker.');
+        return data as T;
+      }
+
+      case 'proposalSave': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_proposal_save', { p_session: session.token, p_fields: payload.fields });
+        if (error) {
+          console.error('app_proposal_save failed:', error);
+          throw new Error('Could not save the proposal. Has supabase_proposals.sql been run?');
+        }
+        if (data === 'DUPLICATE') throw new Error('This proposal already exists for this client (same name and client).');
+        if (data === 'NO_ACCESS') throw new Error('You do not have access to the Proposal Tracker.');
+        if (data !== 'OK') throw new Error('Please check the proposal details (name, client and dates).');
+        return { success: true } as T;
+      }
+
+      case 'proposalDelete': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_proposal_delete', { p_session: session.token, p_id: payload.id });
+        if (error) throw new Error('Could not delete the proposal.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can delete proposals.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'proposalImport': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_proposal_import', {
+          p_session: session.token,
+          p_rows: payload.rows,
+          p_dry_run: Boolean(payload.dryRun)
+        });
+        if (error) {
+          console.error('app_proposal_import failed:', error);
+          throw new Error('Import failed. Has supabase_proposals.sql been run?');
+        }
+        const res: any = data;
+        if (res?.status === 'FORBIDDEN') throw new Error('Only Admin can import proposals.');
+        if (res?.status === 'INVALID_SESSION') throw new Error('Your login has expired. Please log out and log in again.');
+        if (res?.status !== 'OK') throw new Error('The file has no valid rows.');
+        return res as T;
+      }
+
+      case 'proposalAccessGet': {
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_proposal_access_get', { p_session: session.token });
+        if (error) throw new Error('Could not load the access list. Has supabase_proposals.sql been run?');
+        return ((data as string[]) || []) as T;
+      }
+
+      case 'proposalAccessSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_proposal_access_set', { p_session: session.token, p_user_ids: payload.userIds });
+        if (error) throw new Error('Could not save the access list. Has supabase_proposals.sql been run?');
+        if (data !== 'OK') throw new Error('Only Admin can change who has access.');
+        return { success: true } as T;
       }
 
       case 'importStaff': {

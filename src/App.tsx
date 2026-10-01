@@ -25,6 +25,7 @@ import { NotificationsView } from './components/notifications/NotificationsView'
 import { NotificationProvider } from './context/NotificationContext';
 import { CompletedTasksModal } from './components/tasks/CompletedTasksModal';
 import { ManpowerView } from './components/manpower/ManpowerView';
+import { ProposalTracker } from './components/proposals/ProposalTracker';
 
 const MainApp: React.FC = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
@@ -259,6 +260,9 @@ const MainApp: React.FC = () => {
       {activeTab === 'manpower' && (
         <ManpowerView />
       )}
+
+      {/* Proposal Tracker (people the Admin chose) */}
+      {activeTab === 'proposals' && <ProposalTracker />}
 
       {/* Pane 7: Admin Panel */}
       {activeTab === 'admin' && (
