@@ -10,12 +10,12 @@ export const notificationService = {
     await api.callBackend('markNotificationRead', { notificationId });
   },
 
-  async sendInfoRequest(userId?: string): Promise<{ count: number }> {
-    return api.callBackend('sendInfoRequest', { userId });
+  async sendInfoRequest(userId?: string, group?: 'STD' | 'EMP'): Promise<{ count: number }> {
+    return api.callBackend('sendInfoRequest', { userId, group });
   },
 
-  async sendAnnouncement(message: string, userId?: string): Promise<{ count: number }> {
-    return api.callBackend('sendAnnouncement', { message, userId });
+  async sendAnnouncement(message: string, userId?: string, group?: 'STD' | 'EMP'): Promise<{ count: number }> {
+    return api.callBackend('sendAnnouncement', { message, userId, group });
   },
 
   async getMyInfo(): Promise<MyInfo | null> {

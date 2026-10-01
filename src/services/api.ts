@@ -1241,7 +1241,7 @@ export const api = {
       case 'sendInfoRequest': {
         const { data: targets, error: tErr } = await supabase
           .from('users')
-          .select('id, role, designation')
+          .select('id, role, designation, emp_id')
           .eq('status', 'ACTIVE');
         if (tErr) throw tErr;
         const requestId = `INFO-${Date.now()}`;
@@ -1250,7 +1250,8 @@ export const api = {
             payload?.userId
               ? u.id === payload.userId
               : (u.role || '').toUpperCase() !== 'ADMIN' &&
-                (u.designation || '').toLowerCase().trim() !== 'partner')
+                (u.designation || '').toLowerCase().trim() !== 'partner' &&
+                (!payload?.group || String(u.emp_id || '').toUpperCase().startsWith(payload.group + '-')))
           .map((u: any) => ({
             user_id: u.id,
             type: 'INFO_REQUEST',
@@ -1293,7 +1294,7 @@ export const api = {
         if (!message) throw new Error('Please type your message.');
         const { data: targets, error: tErr } = await supabase
           .from('users')
-          .select('id, role, designation')
+          .select('id, role, designation, emp_id')
           .eq('status', 'ACTIVE');
         if (tErr) throw tErr;
         const rows = (targets || [])
@@ -1301,7 +1302,8 @@ export const api = {
             payload?.userId
               ? u.id === payload.userId
               : (u.role || '').toUpperCase() !== 'ADMIN' &&
-                (u.designation || '').toLowerCase().trim() !== 'partner')
+                (u.designation || '').toLowerCase().trim() !== 'partner' &&
+                (!payload?.group || String(u.emp_id || '').toUpperCase().startsWith(payload.group + '-')))
           .map((u: any) => ({
             user_id: u.id,
             type: 'ANNOUNCEMENT',

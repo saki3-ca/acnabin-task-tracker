@@ -3,7 +3,7 @@ import { Send, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationService } from '../../services/notificationService';
 
-type Audience = 'ALL' | 'ONE';
+type Audience = 'ALL' | 'STD' | 'EMP' | 'ONE';
 type Kind = 'MESSAGE' | 'INFO';
 
 const segStyle = (active: boolean): React.CSSProperties => ({
@@ -44,15 +44,17 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
     setNote(null);
     if (audience === 'ONE' && !userId) return setNote({ ok: false, text: 'Please select a user.' });
     if (kind === 'MESSAGE' && !text.trim()) return setNote({ ok: false, text: 'Please type your message.' });
-    if (audience === 'ALL' && !window.confirm(kind === 'INFO' ? 'Send an "update your information" request to ALL active users?' : 'Send this message to ALL active users?')) return;
+    const who = audience === 'STD' ? 'all active STUDENTS (STD)' : audience === 'EMP' ? 'all active EMPLOYEES (EMP)' : 'ALL active users';
+    if (audience !== 'ONE' && !window.confirm(kind === 'INFO' ? `Send an "update your information" request to ${who}?` : `Send this message to ${who}?`)) return;
 
     setSending(true);
     try {
       const target = audience === 'ONE' ? userId : undefined;
+      const group = audience === 'STD' || audience === 'EMP' ? audience : undefined;
       const { count } =
         kind === 'INFO'
-          ? await notificationService.sendInfoRequest(target)
-          : await notificationService.sendAnnouncement(text.trim(), target);
+          ? await notificationService.sendInfoRequest(target, group)
+          : await notificationService.sendAnnouncement(text.trim(), target, group);
       if (kind === 'MESSAGE') setText('');
       setNote({ ok: true, text: `Sent to ${count} user${count === 1 ? '' : 's'}.` });
       onSent();
@@ -84,6 +86,8 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
             <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>Send to</div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button type="button" style={segStyle(audience === 'ALL')} onClick={() => setAudience('ALL')}>All users</button>
+              <button type="button" style={segStyle(audience === 'STD')} onClick={() => setAudience('STD')}>Students (STD)</button>
+              <button type="button" style={segStyle(audience === 'EMP')} onClick={() => setAudience('EMP')}>Employees (EMP)</button>
               <button type="button" style={segStyle(audience === 'ONE')} onClick={() => setAudience('ONE')}>Individual</button>
             </div>
           </div>
