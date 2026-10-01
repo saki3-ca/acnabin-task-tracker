@@ -323,10 +323,10 @@ export const ProposalTracker: React.FC = () => {
                         value={p.status}
                         onChange={e => void changeStatus(p, e.target.value)}
                         aria-label="Change status"
-                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', color: '#111111', background: '#FFFFFF' }}
                       >
                         {PROPOSAL_STATUSES.map(s => (
-                          <option key={s} value={s}>{s}</option>
+                          <option key={s} value={s} style={{ color: '#111111', background: '#FFFFFF' }}>{s}</option>
                         ))}
                       </select>
                     </span>
