@@ -961,27 +961,42 @@ export const api = {
         const { taskId, updates } = payload;
         const user = await this.getCurrentUser();
 
+        const { data: existingTask } = await supabase
+          .from('tasks')
+          .select('created_by_id, assigned_to_id, particular, client_name')
+          .eq('id', taskId)
+          .maybeSingle();
+
         // Enforce task edit rule: only creator (or ADMIN) can edit core fields. Otherwise can only comment.
-        if (user && user.role !== 'ADMIN') {
-          const { data: existingTask } = await supabase
-            .from('tasks')
-            .select('created_by_id, assigned_to_id')
-            .eq('id', taskId)
-            .single();
+        if (user && user.role !== 'ADMIN' && existingTask) {
+          const isCreator = existingTask.created_by_id === user.id;
+          const isEditingCore =
+            updates.particular !== undefined ||
+            updates.priority !== undefined ||
+            updates.deadline !== undefined ||
+            updates.clientId !== undefined ||
+            updates.assignedToId !== undefined;
 
-          if (existingTask) {
-            const isCreator = existingTask.created_by_id === user.id;
-            const isEditingCore =
-              updates.particular !== undefined ||
-              updates.priority !== undefined ||
-              updates.deadline !== undefined ||
-              updates.clientId !== undefined ||
-              updates.assignedToId !== undefined;
-
-            if (!isCreator && isEditingCore) {
-              throw new Error('Only the task creator can edit task details. Others can only add comments.');
-            }
+          if (!isCreator && isEditingCore) {
+            throw new Error('Only the task creator can edit task details. Others can only add comments.');
           }
+        }
+
+        // Giving the task to someone else: the saved name must follow the new person
+        // (it used to stay as the old person's name).
+        const reassigned =
+          updates.assignedToId !== undefined && existingTask && updates.assignedToId !== existingTask.assigned_to_id;
+        if (reassigned) {
+          const { data: target } = await supabase
+            .from('users')
+            .select('name, role, designation')
+            .eq('id', updates.assignedToId)
+            .maybeSingle();
+          if (!target) throw new Error('The person you chose could not be found.');
+          if ((target.role === 'ADMIN' || target.designation === 'Admin') && user?.role !== 'ADMIN') {
+            throw new Error('Tasks cannot be assigned to Administrator.');
+          }
+          updates.assignedToName = target.name;
         }
 
         const dbUpdates: any = { last_updated: new Date().toISOString() };
@@ -1010,6 +1025,19 @@ export const api = {
           .single();
 
         if (error) throw error;
+
+        // The new assignee is told about the task, like with a new assignment
+        if (reassigned && data && updates.assignedToId !== user?.id) {
+          const assigner = user?.name || 'Management';
+          await safeInsertNotification({
+            user_id: updates.assignedToId,
+            type: 'TASK_ASSIGNED',
+            title: 'New Task Assigned',
+            message: `${assigner} assigned you "${data.particular}" for ${data.client_name || 'General'}`,
+            data: { taskId, assignerName: assigner }
+          });
+          void this.sendTaskEmail('TASK_ASSIGNED', [taskId]);
+        }
 
         // If manager comment was updated, notify assigned user
         if (updates.managerComment && data) {
