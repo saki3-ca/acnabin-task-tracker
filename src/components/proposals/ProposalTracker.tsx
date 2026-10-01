@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileUp, Pencil, Plus, Trash2 } from 'lucide-react';
+import { FileUp, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { daysLeft, isClosedStatus, PROPOSAL_STATUSES, PROPOSAL_TYPES, statusRank, STATUS_COLORS } from '../../lib/proposals';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { proposalService } from '../../services/proposalService';
-import { Proposal } from '../../types';
+import { Proposal, ProposalAttachment } from '../../types';
+import { deleteFromDrive, uploadToDrive } from '../../lib/driveFiles';
 import { StatPills } from '../dashboard/StatPills';
 import { Modal } from '../ui/Modal';
+import { ProposalAttachments } from './ProposalAttachments';
 import { ProposalImport } from './ProposalImport';
 
 const EMPTY: Omit<Proposal, 'id'> = {
@@ -52,6 +54,12 @@ export const ProposalTracker: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
+  // Attachments (files live in Google Drive)
+  const [attachments, setAttachments] = useState<ProposalAttachment[]>([]);
+  const [driveUrl, setDriveUrl] = useState('');
+  const [queued, setQueued] = useState<File[]>([]);
+  const [progress, setProgress] = useState<Record<number, number>>({});
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2600);
@@ -59,8 +67,14 @@ export const ProposalTracker: React.FC = () => {
 
   const load = useCallback(async () => {
     try {
-      const rows = await proposalService.list();
+      const [rows, files, url] = await Promise.all([
+        proposalService.list(),
+        proposalService.listAttachments().catch(() => [] as ProposalAttachment[]),
+        proposalService.getDriveUrl().catch(() => '')
+      ]);
       setProposals(prev => (JSON.stringify(prev) === JSON.stringify(rows) ? prev : rows));
+      setAttachments(prev => (JSON.stringify(prev) === JSON.stringify(files) ? prev : files));
+      setDriveUrl(url);
       setLoadError(null);
     } catch (e: any) {
       setLoadError(e?.message || 'Could not load proposals.');
@@ -96,6 +110,8 @@ export const ProposalTracker: React.FC = () => {
     setEditingId(p ? p.id : null);
     setForm(p ? { name: p.name, client: p.client, type: p.type || 'Statutory Audit', assignedTo: p.assignedTo, receiveDate: p.receiveDate, deadline: p.deadline, status: p.status, remarks: p.remarks } : EMPTY);
     setFormError(null);
+    setQueued([]);
+    setProgress({});
     setModalOpen(true);
   };
 
@@ -106,21 +122,50 @@ export const ProposalTracker: React.FC = () => {
     }
     setSaving(true);
     setFormError(null);
+    // a new proposal gets its id here, so the files can be linked to it straight after saving
+    const id = editingId || `p${Date.now()}`;
     try {
-      await proposalService.save({ ...(editingId ? { id: editingId } : {}), ...form, name: form.name.trim(), client: form.client.trim() });
-      setModalOpen(false);
-      showToast(editingId ? 'Changes saved' : 'Proposal added');
-      await load();
+      await proposalService.save({ id, ...form, name: form.name.trim(), client: form.client.trim() });
     } catch (e: any) {
       setFormError(e?.message || 'Could not save.');
-    } finally {
       setSaving(false);
+      return;
+    }
+
+    // The proposal is saved. Now upload the files to Drive (Attachment / client / file).
+    const failed: string[] = [];
+    for (let i = 0; i < queued.length; i++) {
+      const f = queued[i];
+      try {
+        const up = await uploadToDrive(driveUrl, form.client.trim(), f, frac => setProgress(p => ({ ...p, [i]: frac })));
+        await proposalService.addAttachment({
+          proposalId: id, fileName: up.name, mime: f.type || '', size: f.size, driveFileId: up.driveFileId, clientFolder: up.clientFolder
+        });
+      } catch (e: any) {
+        failed.push(`${f.name} (${e?.message || 'failed'})`);
+      }
+    }
+    await load();
+    setSaving(false);
+    setQueued([]);
+    setProgress({});
+    if (failed.length === 0) {
+      setModalOpen(false);
+      showToast(editingId ? 'Changes saved' : 'Proposal added');
+    } else {
+      // keep the form open on the saved proposal so the files can be tried again
+      setEditingId(id);
+      setFormError(`The proposal was saved, but these files did not upload: ${failed.join('; ')}. Add them again and press Save changes.`);
     }
   };
 
   const remove = async (p: Proposal) => {
     if (!window.confirm(`Delete the proposal "${p.name}"? This cannot be undone.`)) return;
     try {
+      // files are removed from Drive first, then the proposal (its file list goes with it)
+      for (const a of attachments.filter(x => x.proposalId === p.id)) {
+        await deleteFromDrive(driveUrl, a.driveFileId);
+      }
       await proposalService.remove(p.id);
       showToast('Proposal deleted');
       await load();
@@ -147,6 +192,15 @@ export const ProposalTracker: React.FC = () => {
     return d !== null && d >= 0 && d <= 3;
   }).length;
 
+  const clip = (id: string) => {
+    const n = attachments.filter(a => a.proposalId === id).length;
+    return n > 0 ? (
+      <span title={`${n} attachment${n > 1 ? 's' : ''}`} style={{ marginLeft: '8px', color: 'var(--navy)', fontSize: '12px', whiteSpace: 'nowrap' }}>
+        <Paperclip size={12} style={{ verticalAlign: 'middle' }} /> {n}
+      </span>
+    ) : null;
+  };
+
   const wrapCell: React.CSSProperties = { textAlign: 'left', whiteSpace: 'normal', overflowWrap: 'anywhere' };
 
   const fullTable = (rows: Proposal[], empty: string) => (
@@ -165,7 +219,7 @@ export const ProposalTracker: React.FC = () => {
             rows.map((p, i) => (
               <tr key={p.id}>
                 <td style={{ textAlign: 'center', fontWeight: 600 }}>{i + 1}</td>
-                <td style={{ ...wrapCell, fontWeight: 500, minWidth: '180px' }}>{p.name}</td>
+                <td style={{ ...wrapCell, fontWeight: 500, minWidth: '180px' }}>{p.name}{clip(p.id)}</td>
                 <td style={{ ...wrapCell, minWidth: '150px' }}>{p.client}</td>
                 <td>{p.type || '—'}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(p.receiveDate)}</td>
@@ -241,7 +295,7 @@ export const ProposalTracker: React.FC = () => {
                     nearDeadline.map((p, i) => (
                       <tr key={p.id}>
                         <td style={{ textAlign: 'center', fontWeight: 600 }}>{i + 1}</td>
-                        <td style={{ ...wrapCell, fontWeight: 500, minWidth: '180px' }}>{p.name}</td>
+                        <td style={{ ...wrapCell, fontWeight: 500, minWidth: '180px' }}>{p.name}{clip(p.id)}</td>
                         <td style={{ ...wrapCell, minWidth: '150px' }}>{p.client}</td>
                         <td>{p.type || '—'}</td>
                         <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(p.deadline)}</td>
@@ -270,7 +324,7 @@ export const ProposalTracker: React.FC = () => {
         </>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} title={editingId ? 'Edit Proposal' : 'New Proposal'} maxWidth="520px">
+      <Modal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} title={editingId ? 'Edit Proposal' : 'New Proposal'} maxWidth="560px">
         <div className="modal-body">
           <div className="form-field">
             <label>Proposal name</label>
@@ -316,12 +370,23 @@ export const ProposalTracker: React.FC = () => {
             <label>Remarks</label>
             <textarea className="form-textarea" rows={3} value={form.remarks} onChange={e => setForm({ ...form, remarks: e.target.value })} />
           </div>
+          <ProposalAttachments
+            saved={editingId ? attachments.filter(a => a.proposalId === editingId) : []}
+            queued={queued}
+            onQueue={files => setQueued(q => [...q, ...files])}
+            onUnqueue={i => setQueued(q => q.filter((_, idx) => idx !== i))}
+            driveUrl={driveUrl}
+            isAdmin={isAdmin}
+            busy={saving}
+            progress={progress}
+            onChanged={() => void load()}
+          />
           {formError && <div className="auth-alert-error" style={{ margin: 0 }}>{formError}</div>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={() => setModalOpen(false)} disabled={saving}>Cancel</button>
           <button className="btn btn-primary" onClick={save} disabled={saving}>
-            {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add proposal'}
+            {saving ? (queued.length ? 'Saving & uploading…' : 'Saving…') : editingId ? 'Save changes' : 'Add proposal'}
           </button>
         </div>
       </Modal>

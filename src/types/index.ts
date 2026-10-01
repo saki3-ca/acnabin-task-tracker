@@ -292,3 +292,14 @@ export interface ProposalImportResult {
   errors?: number;
   rows?: { name: string; client: string; result: 'NEW' | 'DUPLICATE' | 'ERROR'; error?: string }[];
 }
+
+export interface ProposalAttachment {
+  id: string;
+  proposalId: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  driveFileId: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}

@@ -11,6 +11,9 @@ export const ProposalAccess: React.FC = () => {
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [driveUrl, setDriveUrl] = useState('');
+  const [driveSaved, setDriveSaved] = useState('');
+  const [driveMsg, setDriveMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     proposalService
@@ -21,6 +24,27 @@ export const ProposalAccess: React.FC = () => {
       })
       .catch(e => setMsg({ ok: false, text: e?.message || 'Could not load the access list.' }));
   }, []);
+
+  useEffect(() => {
+    proposalService
+      .getDriveUrl()
+      .then(u => {
+        setDriveUrl(u);
+        setDriveSaved(u);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const saveDrive = async () => {
+    setDriveMsg(null);
+    try {
+      await proposalService.setDriveUrl(driveUrl.trim());
+      setDriveSaved(driveUrl.trim());
+      setDriveMsg({ ok: true, text: driveUrl.trim() ? 'Saved. Attachments are now on.' : 'Saved. Attachments are now off.' });
+    } catch (e: any) {
+      setDriveMsg({ ok: false, text: e?.message || 'Could not save.' });
+    }
+  };
 
   const people = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -62,6 +86,18 @@ export const ProposalAccess: React.FC = () => {
       <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '14px' }}>
         Tick the people who should see the Proposal Tracker tab. Everyone with access can add and edit proposals. Only Admin can delete.
       </p>
+      <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)', marginBottom: '16px' }}>
+        <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--navy)', marginBottom: '4px' }}>Drive upload link (for proposal attachments)</div>
+        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginBottom: '8px' }}>
+          Paste the web app link of the "Proposal Files" Google script (ends in /exec). Files are saved in your Drive as Attachment → Client name → file.
+        </div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input className="form-input" placeholder="https://script.google.com/macros/s/…/exec" value={driveUrl} onChange={e => setDriveUrl(e.target.value)} style={{ flex: '1 1 360px' }} />
+          <button className="btn btn-primary btn-sm" onClick={saveDrive} disabled={driveUrl.trim() === driveSaved}>Save link</button>
+          {driveMsg && <span style={{ fontSize: '12.5px', color: driveMsg.ok ? '#166534' : '#B91C1C' }}>{driveMsg.text}</span>}
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
         <input className="form-input" placeholder="Search name, ID or designation…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: '300px' }} />
         <span style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>{granted.size} with access</span>

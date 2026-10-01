@@ -29,7 +29,8 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
-  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet']);
+  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet',
+  'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -459,6 +460,11 @@ export const api = {
       return null;
     }
     return data || null;
+  },
+
+  /** The login token the Drive bridge checks (it asks the database whether the person may use the Proposal Tracker). */
+  getSessionToken(): string | null {
+    return readSession()?.token || null;
   },
 
   async callBackend<T>(action: string, payload: any = {}): Promise<T> {
@@ -1508,6 +1514,60 @@ export const api = {
         const { data, error } = await supabase.rpc('app_proposal_access_set', { p_session: session.token, p_user_ids: payload.userIds });
         if (error) throw new Error('Could not save the access list. Has supabase_proposals.sql been run?');
         if (data !== 'OK') throw new Error('Only Admin can change who has access.');
+        return { success: true } as T;
+      }
+
+      case 'proposalSettingsGet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_proposal_settings_get', { p_session: session.token });
+        if (error) throw new Error('Could not load the file settings. Has supabase_proposal_files.sql been run?');
+        return (data || '') as T;
+      }
+
+      case 'proposalSettingsSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_proposal_settings_set', { p_session: session.token, p_drive_url: payload.driveUrl });
+        if (error) throw new Error('Could not save. Has supabase_proposal_files.sql been run?');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can change this.');
+        if (data !== 'OK') throw new Error('That is not a valid Apps Script link. It should start with https://script.google.com/macros/s/ and end with /exec');
+        return { success: true } as T;
+      }
+
+      case 'proposalAttachmentList': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_proposal_attachment_list', { p_session: session.token });
+        if (error) {
+          console.warn('[proposalAttachmentList] failed (run supabase_proposal_files.sql?):', error.message);
+          return [] as T;
+        }
+        return ((data as any[]) || []) as T;
+      }
+
+      case 'proposalAttachmentAdd': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_proposal_attachment_add', {
+          p_session: session.token, p_proposal_id: payload.proposalId, p_file_name: payload.fileName,
+          p_mime: payload.mime || '', p_size: payload.size || 0, p_drive_file_id: payload.driveFileId, p_client_folder: payload.clientFolder || ''
+        });
+        if (error) throw new Error('Could not record the file. Has supabase_proposal_files.sql been run?');
+        if (data !== 'OK') throw new Error('Could not record the file (no access, or the proposal was removed).');
+        return { success: true } as T;
+      }
+
+      case 'proposalAttachmentDelete': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_proposal_attachment_delete', { p_session: session.token, p_id: payload.id });
+        if (error) throw new Error('Could not remove the file record.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can delete attachments.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }
 

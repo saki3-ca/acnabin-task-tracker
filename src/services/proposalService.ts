@@ -1,4 +1,4 @@
-import { Proposal, ProposalImportResult, ProposalImportRow } from '../types';
+import { Proposal, ProposalAttachment, ProposalImportResult, ProposalImportRow } from '../types';
 import { api } from './api';
 
 export const proposalService = {
@@ -32,5 +32,28 @@ export const proposalService = {
 
   async setAccess(userIds: string[]): Promise<void> {
     await api.callBackend('proposalAccessSet', { userIds });
+  },
+
+  /** Link of the Google Apps Script that stores files in Drive ('' = not set up yet) */
+  async getDriveUrl(): Promise<string> {
+    return api.callBackend('proposalSettingsGet', {});
+  },
+
+  /** Admin only */
+  async setDriveUrl(driveUrl: string): Promise<void> {
+    await api.callBackend('proposalSettingsSet', { driveUrl });
+  },
+
+  async listAttachments(): Promise<ProposalAttachment[]> {
+    return api.callBackend('proposalAttachmentList', {});
+  },
+
+  async addAttachment(a: { proposalId: string; fileName: string; mime: string; size: number; driveFileId: string; clientFolder: string }): Promise<void> {
+    await api.callBackend('proposalAttachmentAdd', a);
+  },
+
+  /** Admin only: removes the record (the file is removed from Drive first, see driveFiles.deleteFromDrive) */
+  async removeAttachment(id: string): Promise<void> {
+    await api.callBackend('proposalAttachmentDelete', { id });
   }
 };
