@@ -154,3 +154,35 @@ export function splitLinks(text: string): { text: string; url?: string }[] {
   if (last < text.length) out.push({ text: text.slice(last) });
   return out;
 }
+
+const TITLES = new Set(['md', 'md.', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'dr', 'dr.', 'mohammad', 'mohammed', 'muhammad', 'mohd', 'mohd.', 'engr.', 'engr']);
+
+/** "Md. Ashraf Hossain Emon" -> "Ashraf": the first real name, skipping titles like Md. / Mr. */
+export function firstName(full: string): string {
+  const words = full.trim().split(/\s+/).filter(Boolean);
+  const real = words.find(w => !TITLES.has(w.toLowerCase()));
+  return real || words[0] || full;
+}
+
+/** A name that fits a narrow column: short names stay as they are, long ones become the first name. */
+export function shortPerson(full: string, max = 12): string {
+  const t = full.trim();
+  return t.length <= max ? t : firstName(t);
+}
+
+/** The first words of a label that fit in max characters ("Management Audit" -> "Management"). */
+export function shortText(text: string, max: number): string {
+  const t = (text || '').trim();
+  if (t.length <= max) return t;
+  const words = t.split(/\s+/);
+  let out = '';
+  for (const w of words) {
+    const next = out ? `${out} ${w}` : w;
+    if (next.length > max) break;
+    out = next;
+  }
+  return out || `${t.slice(0, max - 1)}…`;
+}
+
+const SHORT_STATUS: Record<string, string> = { 'Assigned To Other Team': 'Other Team' };
+export const shortStatus = (status: string) => SHORT_STATUS[status] || shortText(status, 13);

@@ -3,7 +3,7 @@ import { Download, FileUp, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext';
 import { downloadProposalsExcel } from '../../lib/proposalsExcel';
 import {
-  daysLeft, isClosedStatus, isSubmittedGroup, PROPOSAL_STATUSES, PROPOSAL_TYPES, splitLinks, statusRank, STATUS_COLORS
+  daysLeft, isClosedStatus, isSubmittedGroup, PROPOSAL_STATUSES, PROPOSAL_TYPES, shortPerson, shortStatus, shortText, splitLinks, statusRank, STATUS_COLORS
 } from '../../lib/proposals';
 import { uploadQueue } from '../../lib/uploadQueue';
 import { deleteFromDrive, MAX_FILE_BYTES, fmtSize } from '../../lib/driveFiles';
@@ -219,11 +219,14 @@ export const ProposalTracker: React.FC = () => {
     const list = names.length > 0 ? names : p.assignedTo ? p.assignedTo.split(',').map(s => s.trim()).filter(Boolean) : [];
     if (list.length === 0) return <span style={{ color: 'var(--ink-muted)' }}>—</span>;
     const linked = (p.assignedIds || []).length > 0;
+    const shown = list.slice(0, 2);
+    const extra = list.length - shown.length;
     return (
-      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {list.map((n, i) => (
-          <Chip key={i} bg={linked ? '#EBF0FE' : '#F1F5F9'} fg={linked ? 'var(--navy)' : '#475569'}>{n}</Chip>
+      <div title={list.join(', ')} style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
+        {shown.map((n, i) => (
+          <Chip key={i} bg={linked ? '#EBF0FE' : '#F1F5F9'} fg={linked ? 'var(--navy)' : '#475569'}>{shortPerson(n, shown.length > 1 ? 9 : 14)}</Chip>
         ))}
+        {extra > 0 && <Chip bg="#E5E7EB" fg="#374151">+{extra}</Chip>}
       </div>
     );
   };
@@ -262,10 +265,10 @@ export const ProposalTracker: React.FC = () => {
           <col style={{ width: '280px' }} />
           <col style={{ width: '110px' }} />
           <col style={{ width: '185px' }} />
-          <col style={{ width: '175px' }} />
+          <col style={{ width: '190px' }} />
           <col style={{ width: '150px' }} />
           <col style={{ width: '110px' }} />
-          <col style={{ width: '190px' }} />
+          <col style={{ width: '175px' }} />
           <col style={{ width: '104px' }} />
         </colgroup>
         <thead>
@@ -301,7 +304,7 @@ export const ProposalTracker: React.FC = () => {
                     <div style={{ fontWeight: 600, lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                     <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.client}</div>
                   </td>
-                  <td style={{ textAlign: 'center', whiteSpace: 'normal' }}>{p.type || '—'}</td>
+                  <td title={p.type || undefined} style={{ textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}>{p.type ? shortText(p.type, 12) : '—'}</td>
                   <td style={{ textAlign: 'center' }}>
                     <div style={{ whiteSpace: 'nowrap', fontSize: '13px' }}>
                       {fmtShort(p.receiveDate)} <span style={{ color: 'var(--ink-muted)' }}>→</span> <strong>{fmtShort(p.deadline)}</strong>
@@ -309,21 +312,33 @@ export const ProposalTracker: React.FC = () => {
                     {withDays && <div style={{ marginTop: '4px' }}><DaysChip iso={p.deadline} /></div>}
                   </td>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{assignees(p)}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    <select
-                      value={p.status}
-                      onChange={e => void changeStatus(p, e.target.value)}
-                      title="Change status"
-                      style={{ background: sc.bg, color: sc.fg, border: 'none', borderRadius: '12px', padding: '4px 8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', maxWidth: '170px' }}
+                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                    {/* a short label is shown; the real list (full names) opens when it is clicked */}
+                    <span
+                      title={p.status}
+                      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px', background: sc.bg, color: sc.fg, borderRadius: '12px', padding: '4px 10px', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', minWidth: '96px', justifyContent: 'center' }}
                     >
-                      {PROPOSAL_STATUSES.map(s => (
-                        <option key={s} value={s} style={{ background: '#fff', color: '#111' }}>{s}</option>
-                      ))}
-                    </select>
+                      {shortStatus(p.status)} <span style={{ fontSize: '9px' }}>▾</span>
+                      <select
+                        value={p.status}
+                        onChange={e => void changeStatus(p, e.target.value)}
+                        aria-label="Change status"
+                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                      >
+                        {PROPOSAL_STATUSES.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </span>
                   </td>
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                     {n > 0 ? (
-                      <button className="btn btn-secondary btn-sm" onClick={() => setFilesFor(p)} title="View and download the files" style={{ padding: '3px 9px' }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setFilesFor(p)}
+                        title={`${n} file${n === 1 ? '' : 's'}: click to view and download`}
+                        style={{ padding: '3px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', minWidth: '56px', height: '28px' }}
+                      >
                         <Paperclip size={13} /> {n}
                       </button>
                     ) : (
