@@ -55,6 +55,7 @@ export const ProposalTracker: React.FC = () => {
   const [showClosed, setShowClosed] = useState(false);
   const [submittedOpen, setSubmittedOpen] = useState(false);
   const [filesFor, setFilesFor] = useState<Proposal | null>(null);
+  const [readFor, setReadFor] = useState<Proposal | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -227,19 +228,22 @@ export const ProposalTracker: React.FC = () => {
     );
   };
 
-  const remarksCell = (text: string) =>
+  /** Remarks with clickable web links. wrap = full text (used in the read window), otherwise one line. */
+  const remarksCell = (text: string, wrap = false) =>
     text ? (
-      <span style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+      <span style={wrap ? { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } : undefined}>
         {splitLinks(text).map((part, i) =>
           part.url ? (
-            <a key={i} href={part.url} target="_blank" rel="noreferrer" title={part.url} style={{ fontWeight: 600 }}>
-              {(() => {
-                try {
-                  return `${new URL(part.url).hostname.replace(/^www\./, '')} ↗`;
-                } catch {
-                  return 'link ↗';
-                }
-              })()}
+            <a key={i} href={part.url} target="_blank" rel="noreferrer" title={part.url} onClick={e => e.stopPropagation()} style={{ fontWeight: 600 }}>
+              {wrap
+                ? part.url
+                : (() => {
+                    try {
+                      return `${new URL(part.url).hostname.replace(/^www\./, '')} ↗`;
+                    } catch {
+                      return 'link ↗';
+                    }
+                  })()}
             </a>
           ) : (
             <React.Fragment key={i}>{part.text}</React.Fragment>
@@ -252,18 +256,29 @@ export const ProposalTracker: React.FC = () => {
 
   const table = (rows: Proposal[], empty: string, withDays: boolean) => (
     <div className="table-responsive">
-      <table className="data-table" style={{ minWidth: '1080px' }}>
+      <table className="data-table" style={{ minWidth: '1350px', tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '44px' }} />
+          <col style={{ width: '280px' }} />
+          <col style={{ width: '110px' }} />
+          <col style={{ width: '185px' }} />
+          <col style={{ width: '175px' }} />
+          <col style={{ width: '150px' }} />
+          <col style={{ width: '110px' }} />
+          <col style={{ width: '190px' }} />
+          <col style={{ width: '104px' }} />
+        </colgroup>
         <thead>
           <tr>
-            <th style={{ width: '46px' }}>SL</th>
-            <th style={{ textAlign: 'left', minWidth: '260px' }}>Proposal / Client</th>
-            <th>Type</th>
-            <th style={{ minWidth: '170px' }}>Timeline</th>
-            <th style={{ minWidth: '150px', textAlign: 'center' }}>Assigned To</th>
-            <th style={{ minWidth: '150px' }}>Status</th>
-            <th style={{ width: '110px', minWidth: '110px', whiteSpace: 'nowrap' }}>Attachment</th>
-            <th style={{ textAlign: 'left', minWidth: '180px' }}>Remarks</th>
-            <th style={{ width: '104px' }} />
+            <th style={{ textAlign: 'center' }}>SL</th>
+            <th style={{ textAlign: 'center' }}>Proposal / Client</th>
+            <th style={{ textAlign: 'center' }}>Type</th>
+            <th style={{ textAlign: 'center' }}>Timeline</th>
+            <th style={{ textAlign: 'center' }}>Assigned To</th>
+            <th style={{ textAlign: 'center' }}>Status</th>
+            <th style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>Attachment</th>
+            <th style={{ textAlign: 'center' }}>Remarks</th>
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -278,9 +293,13 @@ export const ProposalTracker: React.FC = () => {
               return (
                 <tr key={p.id}>
                   <td style={{ textAlign: 'center', fontWeight: 600 }}>{i + 1}</td>
-                  <td style={{ textAlign: 'left', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
-                    <div style={{ fontWeight: 600, lineHeight: 1.35 }}>{p.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px' }}>{p.client}</div>
+                  <td
+                    onClick={() => setReadFor(p)}
+                    title="Click to read the full name and remarks"
+                    style={{ textAlign: 'left', cursor: 'pointer', overflow: 'hidden' }}
+                  >
+                    <div style={{ fontWeight: 600, lineHeight: 1.35, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.client}</div>
                   </td>
                   <td style={{ textAlign: 'center', whiteSpace: 'normal' }}>{p.type || '—'}</td>
                   <td style={{ textAlign: 'center' }}>
@@ -311,7 +330,13 @@ export const ProposalTracker: React.FC = () => {
                       <span style={{ color: 'var(--ink-muted)' }}>—</span>
                     )}
                   </td>
-                  <td style={{ textAlign: 'left', whiteSpace: 'normal', fontSize: '13px' }}>{remarksCell(p.remarks)}</td>
+                  <td
+                    onClick={() => p.remarks && setReadFor(p)}
+                    title={p.remarks ? 'Click to read the full remarks' : undefined}
+                    style={{ textAlign: 'left', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: p.remarks ? 'pointer' : 'default' }}
+                  >
+                    {remarksCell(p.remarks)}
+                  </td>
                   <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                     <button className="btn btn-secondary btn-sm" onClick={() => openModal(p)} title="Edit" style={{ padding: '4px 8px' }}>
                       <Pencil size={13} />
@@ -354,9 +379,10 @@ export const ProposalTracker: React.FC = () => {
           />
 
           <div className="table-card">
-            <div className="banner-strip banner-teal" style={{ justifyContent: 'space-between', padding: '0 14px' }}>
+            <div className="banner-strip banner-teal" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '0 14px' }}>
+              <span />
               <span>ACTIVE PROPOSAL</span>
-              <span style={{ display: 'flex', gap: '8px' }}>
+              <span style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 {isAdmin && (
                   <button className="btn btn-sm" style={{ ...bannerBtn, background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} onClick={() => setImportOpen(true)}>
                     <FileUp size={14} /> Import
@@ -394,6 +420,32 @@ export const ProposalTracker: React.FC = () => {
       {/* Submitted proposals, like the completed tasks list */}
       <Modal isOpen={submittedOpen} onClose={() => setSubmittedOpen(false)} title={`Submitted Proposals (${submitted.length})`} maxWidth="1180px">
         <div style={{ padding: '0 0 6px' }}>{table(submitted, 'No submitted proposals yet', false)}</div>
+      </Modal>
+
+      {/* Full name and remarks of one proposal */}
+      <Modal isOpen={Boolean(readFor)} onClose={() => setReadFor(null)} title="Proposal details" maxWidth="640px">
+        {readFor && (
+          <div className="modal-body">
+            <div className="form-field">
+              <label>Proposal</label>
+              <div style={{ fontWeight: 600, fontSize: '14px', overflowWrap: 'anywhere' }}>{readFor.name}</div>
+            </div>
+            <div className="form-field">
+              <label>Client</label>
+              <div style={{ overflowWrap: 'anywhere' }}>{readFor.client}</div>
+            </div>
+            <div className="form-field">
+              <label>Remarks</label>
+              <div style={{ fontSize: '13.5px', lineHeight: 1.5 }}>{remarksCell(readFor.remarks, true)}</div>
+            </div>
+          </div>
+        )}
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={() => { const p = readFor; setReadFor(null); if (p) openModal(p); }}>
+            <Pencil size={13} /> Edit
+          </button>
+          <button className="btn btn-primary" onClick={() => setReadFor(null)}>Close</button>
+        </div>
       </Modal>
 
       <FilesModal
