@@ -216,6 +216,7 @@ export const DESIGNATION_RANKS: Record<string, number> = {
   'Senior Assistant Manager': 30,
   'Supervisor': 20,
   'In Charge': 15,
+  'Trainee': 10,
   'Student': 10
 };
 
@@ -309,7 +310,8 @@ export function getEligibleTaskRequestRecipients(
   if (!currentUser || !canRequestTask(currentUser)) return { peers: [], superiors: [] };
 
   const currentRank = getUserRank(currentUser);
-  const isStudent = currentUser.designation === 'Student';
+  // Trainees follow the same rules as Students
+  const isStudent = currentUser.designation === 'Student' || currentUser.designation === 'Trainee';
   const isADPlus = isAssistantDirectorOrAbove(currentUser.designation);
 
   // 1. AD to Above (Assistant Director, Deputy Director, Director, Partner):
@@ -329,7 +331,7 @@ export function getEligibleTaskRequestRecipients(
     const peers = allUsers.filter(u => {
       if (u.id === currentUser.id) return false;
       if (u.role === 'ADMIN' || u.designation === 'Admin') return false;
-      if (u.designation !== 'Student') return false;
+      if (u.designation !== 'Student' && u.designation !== 'Trainee') return false;
       if (!selectedClientId) return false;
       const clients = getUserAssignedClientIds(u);
       return clients.includes(selectedClientId);

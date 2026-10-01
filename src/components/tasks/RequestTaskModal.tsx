@@ -76,7 +76,8 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
 
     const allRecipients = [...peers, ...superiors];
     const targetUser = allRecipients.find(u => u.id === targetUserId);
-    const selectedClient = availableClients.find(c => c.id === clientId);
+    // activeClientId, not clientId: with a single client it is correct even before the form state has caught up
+    const selectedClient = availableClients.find(c => c.id === activeClientId);
 
     setIsSubmitting(true);
     try {
@@ -85,7 +86,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
         requesterName: currentUser.name,
         superiorId: targetUserId,
         superiorName: targetUser?.name || 'Recipient',
-        clientId: selectedClient?.id || clientId || 'general',
+        clientId: selectedClient?.id || activeClientId || 'general',
         clientName: selectedClient?.name || 'General',
         particular,
         priority,

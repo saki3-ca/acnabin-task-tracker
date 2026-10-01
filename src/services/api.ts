@@ -71,6 +71,14 @@ const deadlineCheckedAt: Record<string, number> = {};
 const isMissingFunction = (err: any) =>
   err?.code === 'PGRST202' || /could not find the function/i.test(err?.message || '');
 
+/** A clear sentence for a failed proposal call: update not run yet, no access, or the real reason. */
+const proposalDbError = (err: any, what: string): string => {
+  const msg = String(err?.message || '');
+  if (isMissingFunction(err)) return `${what}: the Proposal Tracker database update has not been run yet. Please tell Admin.`;
+  if (err?.code === '42501' || /permission denied/i.test(msg)) return `${what}: you do not have access to the Proposal Tracker.`;
+  return `${what}.${msg ? ` (${msg})` : ''}`;
+};
+
 /** Verify a password; on success also open a session. Status: OK | INVALID | NO_PASSWORD. */
 async function verifyPassword(userId: string, password: string): Promise<{ status: string; token: string | null }> {
   const { data, error } = await supabase.rpc('app_login_session', { p_user_id: userId, p_password: password });
@@ -1476,7 +1484,7 @@ export const api = {
         const { data, error } = await supabase.rpc('app_proposal_list', { p_session: session.token });
         if (error) {
           console.error('app_proposal_list failed:', error);
-          throw new Error('Could not load proposals. Has supabase_proposals.sql been run?');
+          throw new Error(proposalDbError(error, 'Could not load proposals'));
         }
         if (data === null) throw new Error('You do not have access to the Proposal Tracker.');
         return data as T;
@@ -1489,11 +1497,11 @@ export const api = {
         const { data, error } = await supabase.rpc('app_proposal_save', { p_session: session.token, p_fields: payload.fields });
         if (error) {
           console.error('app_proposal_save failed:', error);
-          throw new Error('Could not save the proposal. Has supabase_proposals.sql been run?');
+          throw new Error(proposalDbError(error, 'Could not save the proposal'));
         }
         if (data === 'DUPLICATE') throw new Error('This proposal already exists for this client (same name and client).');
         if (data === 'NO_ACCESS') throw new Error('You do not have access to the Proposal Tracker.');
-        if (data !== 'OK') throw new Error('Please check the proposal details (name, client and dates).');
+        if (data !== 'OK') throw new Error('The proposal could not be saved. Please check that the name and client are filled in and the dates are valid.');
         return { success: true } as T;
       }
 
@@ -1518,7 +1526,7 @@ export const api = {
         });
         if (error) {
           console.error('app_proposal_import failed:', error);
-          throw new Error('Import failed. Has supabase_proposals.sql been run?');
+          throw new Error(proposalDbError(error, 'Import failed'));
         }
         const res: any = data;
         if (res?.status === 'FORBIDDEN') throw new Error('Only Admin can import proposals.');
@@ -1531,7 +1539,7 @@ export const api = {
         const session = readSession();
         if (!session) return [] as T;
         const { data, error } = await supabase.rpc('app_proposal_access_get', { p_session: session.token });
-        if (error) throw new Error('Could not load the access list. Has supabase_proposals.sql been run?');
+        if (error) throw new Error(proposalDbError(error, 'Could not load the access list'));
         return ((data as string[]) || []) as T;
       }
 
@@ -1540,7 +1548,7 @@ export const api = {
         if (!session) throw new Error('Please log out and log in again, then try again.');
         await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_proposal_access_set', { p_session: session.token, p_user_ids: payload.userIds });
-        if (error) throw new Error('Could not save the access list. Has supabase_proposals.sql been run?');
+        if (error) throw new Error(proposalDbError(error, 'Could not save the access list'));
         if (data !== 'OK') throw new Error('Only Admin can change who has access.');
         return { success: true } as T;
       }
@@ -1565,7 +1573,7 @@ export const api = {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again.');
         const { data, error } = await supabase.rpc('app_proposal_settings_get', { p_session: session.token });
-        if (error) throw new Error('Could not load the file settings. Has supabase_proposal_files.sql been run?');
+        if (error) throw new Error(proposalDbError(error, 'Could not load the file settings'));
         return (data || '') as T;
       }
 
@@ -1574,7 +1582,7 @@ export const api = {
         if (!session) throw new Error('Please log out and log in again, then try again.');
         await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_proposal_settings_set', { p_session: session.token, p_drive_url: payload.driveUrl });
-        if (error) throw new Error('Could not save. Has supabase_proposal_files.sql been run?');
+        if (error) throw new Error(proposalDbError(error, 'Could not save'));
         if (data === 'FORBIDDEN') throw new Error('Only Admin can change this.');
         if (data !== 'OK') throw new Error('That is not a valid Apps Script link. It should start with https://script.google.com/macros/s/ and end with /exec');
         return { success: true } as T;
@@ -1599,7 +1607,7 @@ export const api = {
           p_session: session.token, p_proposal_id: payload.proposalId, p_file_name: payload.fileName,
           p_mime: payload.mime || '', p_size: payload.size || 0, p_drive_file_id: payload.driveFileId, p_client_folder: payload.clientFolder || ''
         });
-        if (error) throw new Error('Could not record the file. Has supabase_proposal_files.sql been run?');
+        if (error) throw new Error(proposalDbError(error, 'Could not record the file'));
         if (data !== 'OK') throw new Error('Could not record the file (no access, or the proposal was removed).');
         return { success: true } as T;
       }
@@ -1712,7 +1720,7 @@ export const api = {
 
         // Student restrictions: students cannot request tasks to AD or above
         const user = await this.getCurrentUser();
-        if (user && user.designation === 'Student') {
+        if (user && (user.designation === 'Student' || user.designation === 'Trainee')) {
           const adAndAbove = ['Assistant Director', 'Deputy Director', 'Director', 'Partner'];
           if (targetSuperior && adAndAbove.includes(targetSuperior.designation)) {
             throw new Error('Students can only request tasks to fellow students or In-Charge to Manager.');
@@ -2104,7 +2112,7 @@ export const api = {
       case 'getManagerStudents': {
         const { managerUserId } = payload;
         const [usersRes, accessRes] = await Promise.all([
-          supabase.from('users').select('*').eq('designation', 'Student').order('name', { ascending: true }),
+          supabase.from('users').select('*').in('designation', ['Student', 'Trainee']).order('name', { ascending: true }),
           supabase.from('manager_student_access').select('student_user_id').eq('manager_user_id', managerUserId).eq('status', 'ACTIVE')
         ]);
 
@@ -2955,7 +2963,7 @@ export const api = {
 
       case 'getManagerStudents': {
         const assignedIds = fallbackStore.managerStudents[payload.managerUserId] || [];
-        const students = fallbackStore.users.filter(u => u.designation === 'Student');
+        const students = fallbackStore.users.filter(u => u.designation === 'Student' || u.designation === 'Trainee');
         return students.map(s => ({
           studentId: s.id,
           studentName: s.name,
