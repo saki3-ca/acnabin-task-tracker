@@ -30,7 +30,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
   'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet',
-  'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
+  'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -411,7 +411,7 @@ export const api = {
    * Email about a task / request (assignee, person asked, or requester). Never throws and never
    * blocks the action: a failed email is only logged.
    */
-  async sendTaskEmail(event: 'TASK_ASSIGNED' | 'TASK_REQUEST' | 'REQUEST_RESPONDED', ids: string[]): Promise<void> {
+  async sendTaskEmail(event: 'TASK_ASSIGNED' | 'TASK_REQUEST' | 'REQUEST_RESPONDED' | 'PROPOSAL_ASSIGNED', ids: string[]): Promise<void> {
     try {
       const session = readSession();
       if (!session || ids.length === 0) return;
@@ -1542,6 +1542,22 @@ export const api = {
         const { data, error } = await supabase.rpc('app_proposal_access_set', { p_session: session.token, p_user_ids: payload.userIds });
         if (error) throw new Error('Could not save the access list. Has supabase_proposals.sql been run?');
         if (data !== 'OK') throw new Error('Only Admin can change who has access.');
+        return { success: true } as T;
+      }
+
+      case 'proposalPeople': {
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_proposal_people', { p_session: session.token });
+        if (error) {
+          console.warn('[proposalPeople] failed (run supabase_proposals_v2.sql?):', error.message);
+          return [] as T;
+        }
+        return ((data as any[]) || []) as T;
+      }
+
+      case 'proposalEmailAssigned': {
+        await this.sendTaskEmail('PROPOSAL_ASSIGNED', [payload.id]);
         return { success: true } as T;
       }
 

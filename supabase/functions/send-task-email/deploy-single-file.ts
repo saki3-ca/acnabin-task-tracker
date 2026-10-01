@@ -9,6 +9,7 @@ import nodemailer from 'npm:nodemailer@6.9.16';
 //   event = TASK_ASSIGNED      ids = task ids       -> email to each assignee
 //   event = TASK_REQUEST       ids = request ids    -> email to the person asked
 //   event = REQUEST_RESPONDED  ids = request ids    -> email to the person who sent the request
+//   event = PROPOSAL_ASSIGNED  ids = proposal ids   -> email to each person assigned to the proposal
 //
 // Recipients always come from the database, never from the caller. The caller must own the
 // task/request, it must be recent, and each (event, item, recipient) is emailed only once.
@@ -36,6 +37,10 @@ export interface RequestRow {
   /** Remarks written by whoever accepted / declined (column may not exist yet) */
   response_remarks?: string | null;
 }
+export interface ProposalRow {
+  id: string; name: string; client: string; type: string | null; deadline: string | null; status: string;
+  remarks: string | null; assigned_ids: string[] | null; created_by: string | null; updated_at: string | null;
+}
 export interface Mail { to: string; subject: string; text: string; html: string }
 
 export interface Deps {
@@ -44,6 +49,9 @@ export interface Deps {
   getTasks(ids: string[]): Promise<TaskRow[]>;
   getRequests(ids: string[]): Promise<RequestRow[]>;
   getUsers(ids: string[]): Promise<MailUser[]>;
+  getProposals(ids: string[]): Promise<ProposalRow[]>;
+  /** Admin, or someone the Admin gave the Proposal Tracker to */
+  hasProposalAccess(userId: string): Promise<boolean>;
   /** true if this (event, item, recipient) had not been emailed before and is now claimed */
   claim(event: string, refId: string, userId: string): Promise<boolean>;
   sendMail(mail: Mail): Promise<void>;
@@ -91,6 +99,24 @@ export function assignedMail(appUrl: string, t: TaskRow, to: MailUser): Mail {
   return { to: to.email, subject: `New task assigned: ${clip(t.particular, 80)}`, ...m };
 }
 
+const fmtDay = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(`${iso}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+};
+
+export function proposalMail(appUrl: string, p: ProposalRow, assignerName: string, to: MailUser, today: Date): Mail {
+  let deadline = fmtDay(p.deadline);
+  if (p.deadline) {
+    const left = Math.round((new Date(`${p.deadline}T00:00:00Z`).getTime() - Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())) / 86400000);
+    if (!Number.isNaN(left)) deadline += left < 0 ? ` (${-left} day${left === -1 ? '' : 's'} overdue)` : left === 0 ? ' (due today)' : ` (${left} day${left === 1 ? '' : 's'} left)`;
+  }
+  const m = layout(appUrl, to.name || 'there', `${assignerName || 'Someone'} assigned you a proposal.`, [
+    ['Proposal', p.name], ['Client', p.client], ['Type', p.type || ''], ['Deadline', deadline], ['Status', p.status], ['Remarks', p.remarks || '']
+  ]);
+  return { to: to.email, subject: `New proposal assigned: ${clip(p.name, 80)}`, ...m };
+}
+
 export function requestMail(appUrl: string, r: RequestRow, to: MailUser): Mail {
   const m = layout(appUrl, to.name || 'there', `${r.requester_name || 'Someone'} sent you a task request. Please accept or decline it in the app.`, [
     ['Task', r.particular], ['Client', r.client_name], ['Priority', r.priority], ['Deadline', r.deadline], ['Notes', r.notes]
@@ -131,7 +157,7 @@ export function createHandler(deps: Deps) {
     } catch {
       return json({ ok: false, message: 'Invalid request.' }, 400);
     }
-    if (!['TASK_ASSIGNED', 'TASK_REQUEST', 'REQUEST_RESPONDED'].includes(event) || ids.length === 0 || ids.length > MAX_IDS) {
+    if (!['TASK_ASSIGNED', 'TASK_REQUEST', 'REQUEST_RESPONDED', 'PROPOSAL_ASSIGNED'].includes(event) || ids.length === 0 || ids.length > MAX_IDS) {
       return json({ ok: false, message: 'Invalid request.' }, 400);
     }
     if (!session) return json({ ok: false, message: 'Not logged in.' }, 401);
@@ -150,6 +176,16 @@ export function createHandler(deps: Deps) {
           if (!t.assigned_to_id || t.assigned_to_id === t.created_by_id) continue;
           if (!isRecent(t.created_date)) continue;
           planned.push({ refId: String(t.id), eventKey: 'TASK_ASSIGNED', recipientId: t.assigned_to_id, build: to => assignedMail(deps.appUrl, t, to) });
+        }
+      } else if (event === 'PROPOSAL_ASSIGNED') {
+        // The caller must be allowed to use the tracker. Recipients are the people saved on the proposal.
+        if (!isAdmin && !(await deps.hasProposalAccess(caller.id))) return json({ ok: false, message: 'No access.' }, 403);
+        for (const p of await deps.getProposals(ids)) {
+          if (!isRecent(p.updated_at)) continue;
+          for (const uid of p.assigned_ids || []) {
+            if (uid === caller.id) continue; // no email to yourself
+            planned.push({ refId: String(p.id), eventKey: 'PROPOSAL_ASSIGNED', recipientId: uid, build: to => proposalMail(deps.appUrl, p, caller.name, to, now()) });
+          }
         }
       } else {
         for (const r of await deps.getRequests(ids)) {
@@ -193,7 +229,7 @@ export function createHandler(deps: Deps) {
 
 // Supabase Edge Function: send-task-email
 //
-// Emails people about task assignments and task requests (see handler.ts for the rules).
+// Emails people about task assignments, task requests and proposal assignments (see handler.ts for the rules).
 //
 // Secrets (already set for request-password-reset; Supabase Dashboard -> Edge Functions -> Secrets):
 //   GMAIL_USER, GMAIL_APP_PASSWORD   (APP_URL is optional: defaults to https://acntask.vercel.app)
@@ -245,6 +281,19 @@ function createProductionHandler() {
       const { data, error } = await supabase.from('task_requests').select('*').in('id', ids);
       if (error) throw error;
       return data || [];
+    },
+    async getProposals(ids) {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('id, name, client, type, deadline, status, remarks, assigned_ids, created_by, updated_at')
+        .in('id', ids);
+      if (error) throw error;
+      return data || [];
+    },
+    async hasProposalAccess(userId) {
+      const { data, error } = await supabase.from('proposal_access').select('user_id').eq('user_id', userId).maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
     },
     async getUsers(ids) {
       if (ids.length === 0) return [];

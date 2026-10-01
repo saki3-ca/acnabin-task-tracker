@@ -265,11 +265,19 @@ export interface Proposal {
   client: string;
   type: string;
   assignedTo: string;
+  /** Accounts the proposal is assigned to (they get an email); old proposals only have the text in assignedTo */
+  assignedIds?: string[];
   receiveDate: string;
   deadline: string;
   status: string;
   remarks: string;
   createdAt?: string;
+}
+
+export interface ProposalPerson {
+  id: string;
+  name: string;
+  designation: string;
 }
 
 export interface ProposalImportRow {

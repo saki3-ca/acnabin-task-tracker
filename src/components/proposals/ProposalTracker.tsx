@@ -1,40 +1,45 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FileUp, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Download, FileUp, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { daysLeft, isClosedStatus, PROPOSAL_STATUSES, PROPOSAL_TYPES, statusRank, STATUS_COLORS } from '../../lib/proposals';
+import { downloadProposalsExcel } from '../../lib/proposalsExcel';
+import {
+  daysLeft, isClosedStatus, isSubmittedGroup, PROPOSAL_STATUSES, PROPOSAL_TYPES, splitLinks, statusRank, STATUS_COLORS
+} from '../../lib/proposals';
+import { uploadQueue } from '../../lib/uploadQueue';
+import { deleteFromDrive, MAX_FILE_BYTES, fmtSize } from '../../lib/driveFiles';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { proposalService } from '../../services/proposalService';
-import { Proposal, ProposalAttachment } from '../../types';
-import { deleteFromDrive, uploadToDrive } from '../../lib/driveFiles';
+import { Proposal, ProposalAttachment, ProposalPerson } from '../../types';
 import { StatPills } from '../dashboard/StatPills';
 import { Modal } from '../ui/Modal';
-import { ProposalAttachments } from './ProposalAttachments';
+import { AssigneePicker } from './AssigneePicker';
+import { FilesModal } from './FilesModal';
 import { ProposalImport } from './ProposalImport';
 
-const EMPTY: Omit<Proposal, 'id'> = {
-  name: '', client: '', type: 'Statutory Audit', assignedTo: '', receiveDate: '', deadline: '', status: 'Draft', remarks: ''
+type Form = Omit<Proposal, 'id'> & { assignedIds: string[] };
+const EMPTY: Form = {
+  name: '', client: '', type: 'Statutory Audit', assignedTo: '', assignedIds: [], receiveDate: '', deadline: '', status: 'Draft', remarks: ''
 };
 
-const fmtDate = (iso: string) => {
+const fmtShort = (iso: string) => {
   if (!iso) return '—';
   const d = new Date(`${iso}T00:00:00`);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const c = STATUS_COLORS[status] || { bg: '#E5E7EB', fg: '#374151' };
-  return (
-    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap', background: c.bg, color: c.fg }}>
-      {status}
-    </span>
-  );
-};
+const Chip: React.FC<{ children: React.ReactNode; bg: string; fg: string }> = ({ children, bg, fg }) => (
+  <span style={{ display: 'inline-block', padding: '2px 9px', borderRadius: '10px', fontSize: '11px', fontWeight: 600, background: bg, color: fg, whiteSpace: 'nowrap' }}>
+    {children}
+  </span>
+);
 
-const DaysCell: React.FC<{ iso: string }> = ({ iso }) => {
+const DaysChip: React.FC<{ iso: string }> = ({ iso }) => {
   const d = daysLeft(iso);
-  if (d === null) return <>—</>;
-  const urgent = d <= 3;
-  return <span style={{ fontWeight: urgent ? 700 : 500, color: d < 0 ? '#B91C1C' : urgent ? '#C2410C' : 'inherit' }}>{d}</span>;
+  if (d === null) return null;
+  if (d < 0) return <Chip bg="#FEE2E2" fg="#991B1B">{-d} day{d === -1 ? '' : 's'} overdue</Chip>;
+  if (d === 0) return <Chip bg="#FFEDD5" fg="#9A3412">Due today</Chip>;
+  if (d <= 3) return <Chip bg="#FFEDD5" fg="#9A3412">{d} day{d === 1 ? '' : 's'} left</Chip>;
+  return <Chip bg="#E5E7EB" fg="#374151">{d} days left</Chip>;
 };
 
 export const ProposalTracker: React.FC = () => {
@@ -42,38 +47,43 @@ export const ProposalTracker: React.FC = () => {
   const isAdmin = currentUser?.role === 'ADMIN';
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [attachments, setAttachments] = useState<ProposalAttachment[]>([]);
+  const [people, setPeople] = useState<ProposalPerson[]>([]);
+  const [driveUrl, setDriveUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showClosed, setShowClosed] = useState(false);
+  const [submittedOpen, setSubmittedOpen] = useState(false);
+  const [filesFor, setFilesFor] = useState<Proposal | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<Omit<Proposal, 'id'>>(EMPTY);
+  const [form, setForm] = useState<Form>(EMPTY);
+  const [touchedAssignees, setTouchedAssignees] = useState(false);
+  const [queued, setQueued] = useState<File[]>([]);
+  const [fileNote, setFileNote] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-
-  // Attachments (files live in Google Drive)
-  const [attachments, setAttachments] = useState<ProposalAttachment[]>([]);
-  const [driveUrl, setDriveUrl] = useState('');
-  const [queued, setQueued] = useState<File[]>([]);
-  const [progress, setProgress] = useState<Record<number, number>>({});
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2600);
+    setTimeout(() => setToast(null), 2800);
   };
 
   const load = useCallback(async () => {
     try {
-      const [rows, files, url] = await Promise.all([
+      const [rows, files, ppl, url] = await Promise.all([
         proposalService.list(),
         proposalService.listAttachments().catch(() => [] as ProposalAttachment[]),
+        proposalService.people().catch(() => [] as ProposalPerson[]),
         proposalService.getDriveUrl().catch(() => '')
       ]);
-      setProposals(prev => (JSON.stringify(prev) === JSON.stringify(rows) ? prev : rows));
-      setAttachments(prev => (JSON.stringify(prev) === JSON.stringify(files) ? prev : files));
+      const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+      setProposals(prev => (same(prev, rows) ? prev : rows));
+      setAttachments(prev => (same(prev, files) ? prev : files));
+      setPeople(prev => (same(prev, ppl) ? prev : ppl));
       setDriveUrl(url);
       setLoadError(null);
     } catch (e: any) {
@@ -89,30 +99,55 @@ export const ProposalTracker: React.FC = () => {
 
   useLivePolling(() => load(), 30000, !modalOpen && !importOpen);
 
+  // A background upload finished: refresh the file counts
+  useEffect(() => {
+    const onFiles = () => void load();
+    window.addEventListener('proposal-files-changed', onFiles);
+    return () => window.removeEventListener('proposal-files-changed', onFiles);
+  }, [load]);
+
+  const counted = useMemo(() => proposals.filter(p => !isClosedStatus(p.status)), [proposals]); // Rejected is not counted anywhere
   const active = useMemo(
-    () => proposals.filter(p => !isClosedStatus(p.status)).sort((a, b) => statusRank(a.status) - statusRank(b.status)),
-    [proposals]
+    () => counted.filter(p => !isSubmittedGroup(p.status)).sort((a, b) => statusRank(a.status) - statusRank(b.status)),
+    [counted]
   );
+  const submitted = useMemo(() => counted.filter(p => isSubmittedGroup(p.status)), [counted]);
   const closed = useMemo(() => proposals.filter(p => isClosedStatus(p.status)), [proposals]);
   const nearDeadline = useMemo(
     () =>
       active
-        .filter(p => p.status !== 'Submitted')
         .filter(p => {
           const d = daysLeft(p.deadline);
           return d !== null && d >= 0 && d <= 3;
         })
-        .sort((a, b) => statusRank(a.status) - statusRank(b.status) || (daysLeft(a.deadline) || 0) - (daysLeft(b.deadline) || 0)),
+        .sort((a, b) => (daysLeft(a.deadline) || 0) - (daysLeft(b.deadline) || 0)),
     [active]
   );
 
+  const filesOf = (id: string) => attachments.filter(a => a.proposalId === id);
+  const nameOf = (id: string) => people.find(p => p.id === id)?.name;
+
   const openModal = (p?: Proposal) => {
     setEditingId(p ? p.id : null);
-    setForm(p ? { name: p.name, client: p.client, type: p.type || 'Statutory Audit', assignedTo: p.assignedTo, receiveDate: p.receiveDate, deadline: p.deadline, status: p.status, remarks: p.remarks } : EMPTY);
-    setFormError(null);
+    setForm(
+      p
+        ? { name: p.name, client: p.client, type: p.type || 'Statutory Audit', assignedTo: p.assignedTo, assignedIds: p.assignedIds || [], receiveDate: p.receiveDate, deadline: p.deadline, status: p.status, remarks: p.remarks }
+        : EMPTY
+    );
+    setTouchedAssignees(false);
     setQueued([]);
-    setProgress({});
+    setFileNote(null);
+    setFormError(null);
     setModalOpen(true);
+  };
+
+  const pickFiles = (list: FileList | null) => {
+    if (!list) return;
+    const ok: File[] = [];
+    const bad: string[] = [];
+    Array.from(list).forEach(f => (f.size === 0 || f.size > MAX_FILE_BYTES ? bad.push(f.name) : ok.push(f)));
+    setFileNote(bad.length ? `Not added (empty or bigger than 100 MB): ${bad.join(', ')}` : null);
+    if (ok.length) setQueued(q => [...q, ...ok]);
   };
 
   const save = async () => {
@@ -122,50 +157,45 @@ export const ProposalTracker: React.FC = () => {
     }
     setSaving(true);
     setFormError(null);
-    // a new proposal gets its id here, so the files can be linked to it straight after saving
     const id = editingId || `p${Date.now()}`;
+    const { assignedIds, ...rest } = form;
     try {
-      await proposalService.save({ id, ...form, name: form.name.trim(), client: form.client.trim() });
+      // Step 1: save the proposal. Nothing waits for the files.
+      await proposalService.save({
+        id, ...rest, name: form.name.trim(), client: form.client.trim(),
+        // old proposals keep their typed names until someone is picked
+        ...(!editingId || touchedAssignees ? { assignedIds } : {})
+      } as Partial<Proposal>);
     } catch (e: any) {
       setFormError(e?.message || 'Could not save.');
       setSaving(false);
       return;
     }
-
-    // The proposal is saved. Now upload the files to Drive (Attachment / client / file).
-    const failed: string[] = [];
-    for (let i = 0; i < queued.length; i++) {
-      const f = queued[i];
-      try {
-        const up = await uploadToDrive(driveUrl, form.client.trim(), f, frac => setProgress(p => ({ ...p, [i]: frac })));
-        await proposalService.addAttachment({
-          proposalId: id, fileName: up.name, mime: f.type || '', size: f.size, driveFileId: up.driveFileId, clientFolder: up.clientFolder
-        });
-      } catch (e: any) {
-        failed.push(`${f.name} (${e?.message || 'failed'})`);
-      }
-    }
-    await load();
+    setModalOpen(false);
     setSaving(false);
-    setQueued([]);
-    setProgress({});
-    if (failed.length === 0) {
-      setModalOpen(false);
-      showToast(editingId ? 'Changes saved' : 'Proposal added');
-    } else {
-      // keep the form open on the saved proposal so the files can be tried again
-      setEditingId(id);
-      setFormError(`The proposal was saved, but these files did not upload: ${failed.join('; ')}. Add them again and press Save changes.`);
+    showToast(editingId ? 'Changes saved' : 'Proposal added');
+    if (!editingId || touchedAssignees) void proposalService.emailAssigned(id); // only people not emailed before get one
+    // Step 2: the files go up in the background
+    if (queued.length > 0) uploadQueue.add(driveUrl, id, form.client.trim(), queued);
+    await load();
+  };
+
+  const changeStatus = async (p: Proposal, status: string) => {
+    try {
+      // assignedIds is left out on purpose: the people (or the old typed names) stay as they are
+      const { assignedIds: _keep, ...rest } = p;
+      await proposalService.save({ ...rest, status });
+      showToast(isSubmittedGroup(status) ? `Moved to Submitted: ${p.name.slice(0, 40)}` : 'Status updated');
+      await load();
+    } catch (e: any) {
+      showToast(e?.message || 'Could not change the status.');
     }
   };
 
   const remove = async (p: Proposal) => {
-    if (!window.confirm(`Delete the proposal "${p.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete the proposal "${p.name}"? Its files are also removed from Google Drive. This cannot be undone.`)) return;
     try {
-      // files are removed from Drive first, then the proposal (its file list goes with it)
-      for (const a of attachments.filter(x => x.proposalId === p.id)) {
-        await deleteFromDrive(driveUrl, a.driveFileId);
-      }
+      for (const a of filesOf(p.id)) await deleteFromDrive(driveUrl, a.driveFileId);
       await proposalService.remove(p.id);
       showToast('Proposal deleted');
       await load();
@@ -174,88 +204,138 @@ export const ProposalTracker: React.FC = () => {
     }
   };
 
-  const rowActions = (p: Proposal) => (
-    <td style={{ whiteSpace: 'nowrap' }}>
-      <button className="btn btn-secondary btn-sm" onClick={() => openModal(p)} title="Edit" style={{ padding: '4px 8px' }}>
-        <Pencil size={13} />
-      </button>
-      {isAdmin && (
-        <button className="btn btn-secondary btn-sm" onClick={() => remove(p)} title="Delete (Admin)" style={{ padding: '4px 8px', marginLeft: '6px', color: '#B91C1C' }}>
-          <Trash2 size={13} />
-        </button>
-      )}
-    </td>
-  );
-
-  const dueSoon = active.filter(p => {
-    const d = daysLeft(p.deadline);
-    return d !== null && d >= 0 && d <= 3;
-  }).length;
-
-  const clip = (id: string) => {
-    const n = attachments.filter(a => a.proposalId === id).length;
-    return n > 0 ? (
-      <span title={`${n} attachment${n > 1 ? 's' : ''}`} style={{ marginLeft: '8px', color: 'var(--navy)', fontSize: '12px', whiteSpace: 'nowrap' }}>
-        <Paperclip size={12} style={{ verticalAlign: 'middle' }} /> {n}
-      </span>
-    ) : null;
+  const exportExcel = async () => {
+    try {
+      const rows = [...active, ...submitted].map(p => ({ p, files: filesOf(p.id).length, daysLeft: daysLeft(p.deadline) }));
+      await downloadProposalsExcel(rows, `ACNABIN_Proposals_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch {
+      window.alert('Could not create the Excel file. Please try again.');
+    }
   };
 
-  const wrapCell: React.CSSProperties = { textAlign: 'left', whiteSpace: 'normal', overflowWrap: 'anywhere' };
+  const assignees = (p: Proposal): React.ReactNode => {
+    const names = (p.assignedIds || []).map(nameOf).filter(Boolean) as string[];
+    const list = names.length > 0 ? names : p.assignedTo ? p.assignedTo.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (list.length === 0) return <span style={{ color: 'var(--ink-muted)' }}>—</span>;
+    const linked = (p.assignedIds || []).length > 0;
+    return (
+      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+        {list.map((n, i) => (
+          <Chip key={i} bg={linked ? '#EBF0FE' : '#F1F5F9'} fg={linked ? 'var(--navy)' : '#475569'}>{n}</Chip>
+        ))}
+      </div>
+    );
+  };
 
-  const fullTable = (rows: Proposal[], empty: string) => (
+  const remarksCell = (text: string) =>
+    text ? (
+      <span style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {splitLinks(text).map((part, i) =>
+          part.url ? (
+            <a key={i} href={part.url} target="_blank" rel="noreferrer" title={part.url} style={{ fontWeight: 600 }}>
+              {(() => {
+                try {
+                  return `${new URL(part.url).hostname.replace(/^www\./, '')} ↗`;
+                } catch {
+                  return 'link ↗';
+                }
+              })()}
+            </a>
+          ) : (
+            <React.Fragment key={i}>{part.text}</React.Fragment>
+          )
+        )}
+      </span>
+    ) : (
+      <span style={{ color: 'var(--ink-muted)' }}>—</span>
+    );
+
+  const table = (rows: Proposal[], empty: string, withDays: boolean) => (
     <div className="table-responsive">
-      <table className="data-table">
+      <table className="data-table" style={{ minWidth: '1080px' }}>
         <thead>
           <tr>
-            <th style={{ width: '44px' }}>SL</th><th>Name</th><th>Client</th><th>Type</th><th>Receive Date</th>
-            <th>Deadline</th><th>Days Left</th><th>Assigned To</th><th>Status</th><th>Remarks</th><th />
+            <th style={{ width: '46px' }}>SL</th>
+            <th style={{ textAlign: 'left', minWidth: '260px' }}>Proposal / Client</th>
+            <th>Type</th>
+            <th style={{ minWidth: '170px' }}>Timeline</th>
+            <th style={{ minWidth: '140px' }}>Assigned To</th>
+            <th style={{ minWidth: '150px' }}>Status</th>
+            <th style={{ width: '70px' }}>Files</th>
+            <th style={{ textAlign: 'left', minWidth: '180px' }}>Remarks</th>
+            <th style={{ width: '104px' }} />
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
-            <tr><td colSpan={11} style={{ textAlign: 'center', padding: '28px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{empty}</td></tr>
+            <tr>
+              <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>{empty}</td>
+            </tr>
           ) : (
-            rows.map((p, i) => (
-              <tr key={p.id}>
-                <td style={{ textAlign: 'center', fontWeight: 600 }}>{i + 1}</td>
-                <td style={{ ...wrapCell, fontWeight: 500, minWidth: '180px' }}>{p.name}{clip(p.id)}</td>
-                <td style={{ ...wrapCell, minWidth: '150px' }}>{p.client}</td>
-                <td>{p.type || '—'}</td>
-                <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(p.receiveDate)}</td>
-                <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(p.deadline)}</td>
-                <td style={{ textAlign: 'center' }}><DaysCell iso={p.deadline} /></td>
-                <td>{p.assignedTo || '—'}</td>
-                <td><StatusBadge status={p.status} /></td>
-                <td style={{ ...wrapCell, minWidth: '140px' }}>{p.remarks || '—'}</td>
-                {rowActions(p)}
-              </tr>
-            ))
+            rows.map((p, i) => {
+              const n = filesOf(p.id).length;
+              const sc = STATUS_COLORS[p.status] || { bg: '#E5E7EB', fg: '#374151' };
+              return (
+                <tr key={p.id}>
+                  <td style={{ textAlign: 'center', fontWeight: 600 }}>{i + 1}</td>
+                  <td style={{ textAlign: 'left', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
+                    <div style={{ fontWeight: 600, lineHeight: 1.35 }}>{p.name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px' }}>{p.client}</div>
+                  </td>
+                  <td style={{ textAlign: 'center', whiteSpace: 'normal' }}>{p.type || '—'}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <div style={{ whiteSpace: 'nowrap', fontSize: '13px' }}>
+                      {fmtShort(p.receiveDate)} <span style={{ color: 'var(--ink-muted)' }}>→</span> <strong>{fmtShort(p.deadline)}</strong>
+                    </div>
+                    {withDays && <div style={{ marginTop: '4px' }}><DaysChip iso={p.deadline} /></div>}
+                  </td>
+                  <td>{assignees(p)}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <select
+                      value={p.status}
+                      onChange={e => void changeStatus(p, e.target.value)}
+                      title="Change status"
+                      style={{ background: sc.bg, color: sc.fg, border: 'none', borderRadius: '12px', padding: '4px 8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', maxWidth: '170px' }}
+                    >
+                      {PROPOSAL_STATUSES.map(s => (
+                        <option key={s} value={s} style={{ background: '#fff', color: '#111' }}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    {n > 0 ? (
+                      <button className="btn btn-secondary btn-sm" onClick={() => setFilesFor(p)} title="View and download the files" style={{ padding: '3px 9px' }}>
+                        <Paperclip size={13} /> {n}
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--ink-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ textAlign: 'left', whiteSpace: 'normal', fontSize: '13px' }}>{remarksCell(p.remarks)}</td>
+                  <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => openModal(p)} title="Edit" style={{ padding: '4px 8px' }}>
+                      <Pencil size={13} />
+                    </button>
+                    {isAdmin && (
+                      <button className="btn btn-secondary btn-sm" onClick={() => remove(p)} title="Delete (Admin)" style={{ padding: '4px 8px', marginLeft: '6px', color: '#B91C1C' }}>
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
     </div>
   );
 
+  const dueSoon = nearDeadline.length;
+  const bannerBtn: React.CSSProperties = { height: '32px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '6px' };
+
   return (
     <div className="tab-pane">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--maroon)' }}>Proposal Tracker</h2>
-          <div style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>Everyone with access sees all proposals. Only Admin can delete.</div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {isAdmin && (
-            <button className="btn btn-secondary" onClick={() => setImportOpen(true)}>
-              <FileUp size={14} /> Import from Sheet
-            </button>
-          )}
-          <button className="btn btn-primary" onClick={() => openModal()}>
-            <Plus size={14} /> New Proposal
-          </button>
-        </div>
-      </div>
-
       {loadError ? (
         <div className="auth-alert-error">{loadError}</div>
       ) : loading ? (
@@ -265,66 +345,67 @@ export const ProposalTracker: React.FC = () => {
           <StatPills
             variant="maroon"
             items={[
-              { label: 'ACTIVE PROPOSAL', value: active.length },
-              { label: 'TOTAL PROPOSAL', value: proposals.length },
-              { label: 'SUBMITTED PROPOSAL', value: proposals.filter(p => p.status === 'Submitted').length },
-              { label: 'IN-PROGRESS', value: proposals.filter(p => p.status === 'In Progress').length },
-              { label: 'DUE SOON (0-3 DAYS)', value: dueSoon, isOverdue: dueSoon > 0 }
+              { label: 'TOTAL', value: counted.length },
+              { label: 'ACTIVE', value: active.length },
+              { label: 'IN-PROGRESS', value: counted.filter(p => p.status === 'In Progress').length },
+              { label: 'DUE SOON (0-3 DAYS)', value: dueSoon, isOverdue: dueSoon > 0 },
+              { label: 'SUBMITTED', value: submitted.length, onClick: () => setSubmittedOpen(true), title: 'Click to see the submitted proposals' }
             ]}
           />
 
           <div className="table-card">
-            <div className="banner-strip banner-teal">ACTIVE TENDERS</div>
-            {fullTable(active, 'No active proposals')}
+            <div className="banner-strip banner-teal" style={{ justifyContent: 'space-between', padding: '0 14px' }}>
+              <span>ACTIVE PROPOSAL</span>
+              <span style={{ display: 'flex', gap: '8px' }}>
+                {isAdmin && (
+                  <button className="btn btn-sm" style={{ ...bannerBtn, background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} onClick={() => setImportOpen(true)}>
+                    <FileUp size={14} /> Import
+                  </button>
+                )}
+                <button className="btn btn-sm" style={{ ...bannerBtn, background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} onClick={exportExcel}>
+                  <Download size={14} /> Excel
+                </button>
+                <button className="btn btn-sm" style={{ ...bannerBtn, background: '#fff', color: 'var(--teal-dark)', border: 'none' }} onClick={() => openModal()}>
+                  <Plus size={14} /> New Proposal
+                </button>
+              </span>
+            </div>
+            {table(active, 'No active proposals', true)}
           </div>
 
           <div className="table-card">
-            <div className="banner-strip banner-maroon">NEAR DEADLINE TASK</div>
-            <div className="table-responsive">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '44px' }}>SL</th><th>Name</th><th>Client</th><th>Type</th><th>Deadline</th>
-                    <th>Days Left</th><th>Assigned To</th><th>Status</th><th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {nearDeadline.length === 0 ? (
-                    <tr><td colSpan={9} style={{ textAlign: 'center', padding: '28px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>No near-deadline tasks</td></tr>
-                  ) : (
-                    nearDeadline.map((p, i) => (
-                      <tr key={p.id}>
-                        <td style={{ textAlign: 'center', fontWeight: 600 }}>{i + 1}</td>
-                        <td style={{ ...wrapCell, fontWeight: 500, minWidth: '180px' }}>{p.name}{clip(p.id)}</td>
-                        <td style={{ ...wrapCell, minWidth: '150px' }}>{p.client}</td>
-                        <td>{p.type || '—'}</td>
-                        <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(p.deadline)}</td>
-                        <td style={{ textAlign: 'center' }}><DaysCell iso={p.deadline} /></td>
-                        <td>{p.assignedTo || '—'}</td>
-                        <td><StatusBadge status={p.status} /></td>
-                        {rowActions(p)}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <div className="banner-strip banner-maroon">NEAR DEADLINE PROPOSAL</div>
+            {table(nearDeadline, 'No near-deadline proposals', true)}
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', margin: '4px 2px 12px', cursor: 'pointer' }}>
             <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
-            Show closed proposals (Approved / Rejected): {closed.length}
+            Show closed proposals (Rejected): {closed.length}
           </label>
           {showClosed && (
             <div className="table-card">
-              <div className="banner-strip banner-navy">CLOSED PROPOSALS</div>
-              {fullTable(closed, 'No closed proposals')}
+              <div className="banner-strip banner-navy">CLOSED PROPOSALS (REJECTED)</div>
+              {table(closed, 'No closed proposals', false)}
             </div>
           )}
         </>
       )}
 
-      <Modal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} title={editingId ? 'Edit Proposal' : 'New Proposal'} maxWidth="560px">
+      {/* Submitted proposals, like the completed tasks list */}
+      <Modal isOpen={submittedOpen} onClose={() => setSubmittedOpen(false)} title={`Submitted Proposals (${submitted.length})`} maxWidth="1180px">
+        <div style={{ padding: '0 0 6px' }}>{table(submitted, 'No submitted proposals yet', false)}</div>
+      </Modal>
+
+      <FilesModal
+        proposal={filesFor}
+        files={filesFor ? filesOf(filesFor.id) : []}
+        driveUrl={driveUrl}
+        isAdmin={isAdmin}
+        onClose={() => setFilesFor(null)}
+        onChanged={() => void load()}
+      />
+
+      <Modal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} title={editingId ? 'Edit Proposal' : 'New Proposal'} maxWidth="580px">
         <div className="modal-body">
           <div className="form-field">
             <label>Proposal name</label>
@@ -335,8 +416,16 @@ export const ProposalTracker: React.FC = () => {
             <input className="form-input" value={form.client} onChange={e => setForm({ ...form, client: e.target.value })} />
           </div>
           <div className="form-field">
-            <label>Assigned to</label>
-            <input className="form-input" value={form.assignedTo} onChange={e => setForm({ ...form, assignedTo: e.target.value })} />
+            <label>Assigned to (they get an email)</label>
+            <AssigneePicker
+              people={people}
+              value={form.assignedIds}
+              legacyText={form.assignedIds.length === 0 ? form.assignedTo : ''}
+              onChange={ids => {
+                setForm({ ...form, assignedIds: ids });
+                setTouchedAssignees(true);
+              }}
+            />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="form-field">
@@ -370,23 +459,41 @@ export const ProposalTracker: React.FC = () => {
             <label>Remarks</label>
             <textarea className="form-textarea" rows={3} value={form.remarks} onChange={e => setForm({ ...form, remarks: e.target.value })} />
           </div>
-          <ProposalAttachments
-            saved={editingId ? attachments.filter(a => a.proposalId === editingId) : []}
-            queued={queued}
-            onQueue={files => setQueued(q => [...q, ...files])}
-            onUnqueue={i => setQueued(q => q.filter((_, idx) => idx !== i))}
-            driveUrl={driveUrl}
-            isAdmin={isAdmin}
-            busy={saving}
-            progress={progress}
-            onChanged={() => void load()}
-          />
+
+          <div className="form-field">
+            <label>Attachments</label>
+            <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)' }}>TOR, tender notice, PDF, image, doc … up to 100 MB each. They upload to Google Drive after the proposal is saved.</div>
+            {!driveUrl ? (
+              <div style={{ fontSize: '12.5px', color: 'var(--ink-soft)', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '6px', padding: '8px 10px' }}>
+                File upload is not set up yet. Ask Admin to add the Drive upload link (Admin Panel → Proposal Tracker Access).
+              </div>
+            ) : (
+              <>
+                {editingId && filesOf(editingId).length > 0 && (
+                  <button type="button" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => setFilesFor(proposals.find(p => p.id === editingId) || null)}>
+                    <Paperclip size={13} /> {filesOf(editingId).length} saved file{filesOf(editingId).length === 1 ? '' : 's'}: view / download
+                  </button>
+                )}
+                {queued.map((f, i) => (
+                  <div key={`${f.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', border: '1px solid var(--line)', borderRadius: '6px', background: '#EFF6FF', fontSize: '12.5px' }}>
+                    <Paperclip size={14} color="var(--navy)" />
+                    <span style={{ flex: 1, overflowWrap: 'anywhere' }}>{f.name}</span>
+                    <span style={{ color: 'var(--ink-muted)' }}>{fmtSize(f.size)}</span>
+                    <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '2px 8px' }} onClick={() => setQueued(q => q.filter((_, idx) => idx !== i))}>×</button>
+                  </div>
+                ))}
+                <input type="file" multiple onChange={e => { pickFiles(e.target.files); e.target.value = ''; }} />
+                {fileNote && <div style={{ fontSize: '12px', color: '#B91C1C' }}>{fileNote}</div>}
+              </>
+            )}
+          </div>
+
           {formError && <div className="auth-alert-error" style={{ margin: 0 }}>{formError}</div>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={() => setModalOpen(false)} disabled={saving}>Cancel</button>
           <button className="btn btn-primary" onClick={save} disabled={saving}>
-            {saving ? (queued.length ? 'Saving & uploading…' : 'Saving…') : editingId ? 'Save changes' : 'Add proposal'}
+            {saving ? 'Saving…' : editingId ? 'Save changes' : 'Add proposal'}
           </button>
         </div>
       </Modal>

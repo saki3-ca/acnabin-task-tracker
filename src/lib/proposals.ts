@@ -11,7 +11,11 @@ export const PROPOSAL_TYPES = [
   'Audit', 'Consultancy', 'Advisory', 'Management Audit', 'Fixed Asset Audit', 'Tax', 'Others'
 ];
 
-export const isClosedStatus = (status: string) => status === 'Approved' || status === 'Rejected';
+/** Rejected = discarded: not counted anywhere, only listed under "Show closed proposals". */
+export const isClosedStatus = (status: string) => status === 'Rejected';
+
+/** Already sent to the client (like a completed task): leaves the active list, opened by clicking SUBMITTED. */
+export const isSubmittedGroup = (status: string) => status === 'Submitted' || status === 'Under Review' || status === 'Approved';
 
 export const statusRank = (status: string) => {
   const i = PROPOSAL_STATUSES.indexOf(status);
@@ -134,4 +138,19 @@ export function parseProposalSheet(text: string, forcedOrder?: DateOrder): Parse
     });
   });
   return { rows, warnings, order, headerOk };
+}
+
+/** Splits text into plain parts and web links, so links in remarks can be clicked. */
+export function splitLinks(text: string): { text: string; url?: string }[] {
+  const out: { text: string; url?: string }[] = [];
+  const re = /(https?:\/\/[^\s<>"']+)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index) });
+    out.push({ text: m[1], url: m[1] });
+    last = m.index + m[1].length;
+  }
+  if (last < text.length) out.push({ text: text.slice(last) });
+  return out;
 }

@@ -1054,3 +1054,6 @@ button, input, select, textarea {
 /* Full Details card: two panels per row, one on narrow screens */
 .fd-grid { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: stretch; }
 @media (min-width: 760px) { .fd-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

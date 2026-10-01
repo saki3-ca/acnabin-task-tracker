@@ -26,6 +26,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import { CompletedTasksModal } from './components/tasks/CompletedTasksModal';
 import { ManpowerView } from './components/manpower/ManpowerView';
 import { ProposalTracker } from './components/proposals/ProposalTracker';
+import { UploadPanel } from './components/proposals/UploadPanel';
 
 const MainApp: React.FC = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
@@ -270,6 +271,9 @@ const MainApp: React.FC = () => {
           <AdminPanel />
         </div>
       )}
+
+      {/* Background attachment uploads (Proposal Tracker) */}
+      <UploadPanel />
 
       {/* Modals */}
       <TaskModal

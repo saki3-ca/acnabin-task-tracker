@@ -1,6 +1,6 @@
 // Supabase Edge Function: send-task-email
 //
-// Emails people about task assignments and task requests (see handler.ts for the rules).
+// Emails people about task assignments, task requests and proposal assignments (see handler.ts for the rules).
 //
 // Secrets (already set for request-password-reset; Supabase Dashboard -> Edge Functions -> Secrets):
 //   GMAIL_USER, GMAIL_APP_PASSWORD   (APP_URL is optional: defaults to https://acntask.vercel.app)
@@ -55,6 +55,19 @@ function createProductionHandler() {
       const { data, error } = await supabase.from('task_requests').select('*').in('id', ids);
       if (error) throw error;
       return data || [];
+    },
+    async getProposals(ids) {
+      const { data, error } = await supabase
+        .from('proposals')
+        .select('id, name, client, type, deadline, status, remarks, assigned_ids, created_by, updated_at')
+        .in('id', ids);
+      if (error) throw error;
+      return data || [];
+    },
+    async hasProposalAccess(userId) {
+      const { data, error } = await supabase.from('proposal_access').select('user_id').eq('user_id', userId).maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
     },
     async getUsers(ids) {
       if (ids.length === 0) return [];

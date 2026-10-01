@@ -1,4 +1,4 @@
-import { Proposal, ProposalAttachment, ProposalImportResult, ProposalImportRow } from '../types';
+import { Proposal, ProposalAttachment, ProposalImportResult, ProposalImportRow, ProposalPerson } from '../types';
 import { api } from './api';
 
 export const proposalService = {
@@ -55,5 +55,19 @@ export const proposalService = {
   /** Admin only: removes the record (the file is removed from Drive first, see driveFiles.deleteFromDrive) */
   async removeAttachment(id: string): Promise<void> {
     await api.callBackend('proposalAttachmentDelete', { id });
+  },
+
+  /** People who have access to the tracker (the "Assigned to" choices) */
+  async people(): Promise<ProposalPerson[]> {
+    return api.callBackend('proposalPeople', {});
+  },
+
+  /** Emails the people assigned to the proposal (only the ones not emailed before) */
+  async emailAssigned(id: string): Promise<void> {
+    try {
+      await api.callBackend('proposalEmailAssigned', { id });
+    } catch {
+      /* the proposal is saved; a missing email must not block anything */
+    }
   }
 };
