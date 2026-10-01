@@ -219,7 +219,7 @@ export const ProposalTracker: React.FC = () => {
     if (list.length === 0) return <span style={{ color: 'var(--ink-muted)' }}>—</span>;
     const linked = (p.assignedIds || []).length > 0;
     return (
-      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', justifyContent: 'center' }}>
         {list.map((n, i) => (
           <Chip key={i} bg={linked ? '#EBF0FE' : '#F1F5F9'} fg={linked ? 'var(--navy)' : '#475569'}>{n}</Chip>
         ))}
@@ -259,9 +259,9 @@ export const ProposalTracker: React.FC = () => {
             <th style={{ textAlign: 'left', minWidth: '260px' }}>Proposal / Client</th>
             <th>Type</th>
             <th style={{ minWidth: '170px' }}>Timeline</th>
-            <th style={{ minWidth: '140px' }}>Assigned To</th>
+            <th style={{ minWidth: '150px', textAlign: 'center' }}>Assigned To</th>
             <th style={{ minWidth: '150px' }}>Status</th>
-            <th style={{ width: '70px' }}>Files</th>
+            <th style={{ width: '110px', minWidth: '110px', whiteSpace: 'nowrap' }}>Attachment</th>
             <th style={{ textAlign: 'left', minWidth: '180px' }}>Remarks</th>
             <th style={{ width: '104px' }} />
           </tr>
@@ -289,7 +289,7 @@ export const ProposalTracker: React.FC = () => {
                     </div>
                     {withDays && <div style={{ marginTop: '4px' }}><DaysChip iso={p.deadline} /></div>}
                   </td>
-                  <td>{assignees(p)}</td>
+                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{assignees(p)}</td>
                   <td style={{ textAlign: 'center' }}>
                     <select
                       value={p.status}

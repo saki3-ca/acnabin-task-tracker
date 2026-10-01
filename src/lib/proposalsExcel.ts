@@ -24,7 +24,7 @@ export async function downloadProposalsExcel(
   const cols = [
     { h: 'SL', w: 6, a: 'center' }, { h: 'Proposal', w: 52, a: 'left' }, { h: 'Client', w: 34, a: 'left' }, { h: 'Type', w: 18, a: 'center' },
     { h: 'Receive Date', w: 14, a: 'center' }, { h: 'Deadline', w: 14, a: 'center' }, { h: 'Days Left', w: 10, a: 'center' },
-    { h: 'Assigned To', w: 28, a: 'left' }, { h: 'Status', w: 20, a: 'center' }, { h: 'Files', w: 8, a: 'center' }, { h: 'Remarks', w: 50, a: 'left' }
+    { h: 'Assigned To', w: 28, a: 'left' }, { h: 'Status', w: 20, a: 'center' }, { h: 'Attachments', w: 13, a: 'center' }, { h: 'Remarks', w: 50, a: 'left' }
   ] as const;
 
   ws.mergeCells(1, 1, 1, cols.length);
