@@ -9,10 +9,12 @@ import {
   MessageSquare,
   MessagesSquare,
   Send,
+  Trash2,
   UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { api } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
 import { SendNotificationModal } from './SendNotificationModal';
 import { QueryInboxModal } from './QueryInboxModal';
@@ -32,6 +34,30 @@ export const NotificationsView: React.FC = () => {
   const [openQueries, setOpenQueries] = useState<UserQuery[]>([]);
   const [queryError, setQueryError] = useState('');
   const isAdmin = currentUser?.role === 'ADMIN';
+  // The real Admin can delete notifications, also while looking at someone else's account (Switch User)
+  const canDelete = isAdmin || api.isViewingAsAnother();
+
+  const deleteNotif = async (id: string) => {
+    if (!window.confirm('Delete this notification for good?')) return;
+    try {
+      await notificationService.deleteNotification(id);
+      await refreshNotifications();
+    } catch (e: any) {
+      window.alert(e?.message || 'Could not delete.');
+    }
+  };
+
+  const trashBtn = (id: string) =>
+    canDelete ? (
+      <button
+        type="button"
+        onClick={() => deleteNotif(id)}
+        title="Delete this notification (Admin)"
+        style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', padding: '5px 7px', borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#B91C1C', cursor: 'pointer', verticalAlign: 'middle' }}
+      >
+        <Trash2 size={14} />
+      </button>
+    ) : null;
 
   const loadQueries = useCallback(async () => {
     if (!isAdmin) return;
@@ -522,6 +548,7 @@ export const NotificationsView: React.FC = () => {
                         <CheckCheck size={14} /> Read
                       </button>
                       )}
+                      {trashBtn(notif.id)}
                     </td>
                   </tr>
                 ))
@@ -590,6 +617,7 @@ export const NotificationsView: React.FC = () => {
                       >
                         <CheckCheck size={14} color="#166534" /> {notif.type === 'INFO_REQUEST' ? 'Completed' : notif.type === 'USER_QUERY' ? 'Handled' : 'Read'}
                       </span>
+                      {trashBtn(notif.id)}
                     </td>
                   </tr>
                 ))

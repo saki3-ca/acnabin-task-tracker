@@ -25,7 +25,7 @@ import {
 // Actions that must never fall back to the local store: credential checks (it has
 // no passwords) and every write. A silent local save would look like success while
 // nothing reached the database.
-const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'setManpowerSalary',
+const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'addClient', 'updateClient', 'deleteClient', 'sendInfoRequest', 'submitProfileInfo', 'submitQuery', 'listQueries', 'resolveQuery', 'sendAnnouncement', 'deleteNotification', 'setManpowerSalary',
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
@@ -1224,6 +1224,17 @@ export const api = {
           .from('notifications')
           .update({ is_read: true })
           .eq('id', notificationId);
+        return { success: true } as T;
+      }
+
+      case 'deleteNotification': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data: me } = await supabase.from('users').select('role').eq('id', session.userId).maybeSingle();
+        if ((me?.role || '').toUpperCase() !== 'ADMIN') throw new Error('Only Admin can delete notifications.');
+        const { data, error } = await supabase.from('notifications').delete().eq('id', payload.notificationId).select('id');
+        if (error) throw new Error('Could not delete: ' + error.message);
+        if (!data || data.length === 0) throw new Error('Could not delete this notification. The database may not allow deleting yet.');
         return { success: true } as T;
       }
 

@@ -6,6 +6,11 @@ export const notificationService = {
     return api.callBackend('getNotifications', { userId });
   },
 
+  /** Admin only (also while using Switch User) */
+  async deleteNotification(notificationId: string): Promise<void> {
+    await api.callBackend('deleteNotification', { notificationId });
+  },
+
   async markAsRead(notificationId: string): Promise<void> {
     await api.callBackend('markNotificationRead', { notificationId });
   },
