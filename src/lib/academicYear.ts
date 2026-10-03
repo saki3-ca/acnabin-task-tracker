@@ -70,3 +70,10 @@ export function employmentYearFromJoining(joiningIso?: string | null, today = to
 }
 
 export const isEmployeeId = (empId?: string | null) => /^EMP/i.test((empId || '').trim());
+
+const STUDENT_LEVEL = ['student', 'trainee', 'in charge', 'incharge', 'supervisor'];
+/** Employee profile = anyone above student level. Uses the designation (so a promotion shows at once); the ID is only used when there is no designation. */
+export const isEmployeeProfile = (empId?: string | null, designation?: string | null) => {
+  const d = (designation || '').toLowerCase().trim();
+  return d ? !STUDENT_LEVEL.includes(d) : isEmployeeId(empId);
+};

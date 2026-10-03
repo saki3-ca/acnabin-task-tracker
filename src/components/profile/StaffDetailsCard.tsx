@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   academicYearFromStart,
   employmentYearFromJoining,
-  isEmployeeId,
+  isEmployeeProfile,
   principalDisplay
 } from '../../lib/academicYear';
 import { notificationService } from '../../services/notificationService';
@@ -137,7 +137,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
 
   if (!currentUser) return null;
 
-  const isEmp = isEmployeeId(currentUser.empId);
+  const isEmp = isEmployeeProfile(currentUser.empId, currentUser.designation);
   const isPartner = currentUser.designation === 'Partner'; // Partners have no pay or emergency panels
 
   const yearValue = isEmp

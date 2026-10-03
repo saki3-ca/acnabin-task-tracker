@@ -10,7 +10,16 @@ import { Modal } from '../ui/Modal';
 import { StaffImport } from './StaffImport';
 import { ProposalAccess } from './ProposalAccess';
 
+type Section = 'users' | 'access' | 'managers' | 'import';
+const SECTIONS: { key: Section; label: string }[] = [
+  { key: 'users', label: 'Users & Roles' },
+  { key: 'access', label: 'Tab Access' },
+  { key: 'managers', label: 'Manager Access' },
+  { key: 'import', label: 'Staff Import' }
+];
+
 export const AdminPanel: React.FC = () => {
+  const [section, setSection] = useState<Section>('users');
   const { allUsers, allClients, refreshContextData } = useAuth();
 
   // Local state for user edits before saving
@@ -193,266 +202,293 @@ export const AdminPanel: React.FC = () => {
         )}
       </div>
 
-      <StaffImport />
-
-      <ProposalAccess />
-
-      {/* 1. Manager Client Access Matrix */}
-      <div className="table-card" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
-          <Key size={18} /> Manager Client Access Control
-        </h3>
-        <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
-          Select a manager or supervisor to configure which client audit engagements they can view and supervise.
-        </p>
-
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
-          <select
-            value={selectedManagerForClients}
-            onChange={e => setSelectedManagerForClients(e.target.value)}
-            className="form-select"
-            style={{ maxWidth: '280px' }}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '4px 0' }}>
+        {SECTIONS.map(sec => (
+          <button
+            key={sec.key}
+            type="button"
+            onClick={() => setSection(sec.key)}
+            style={{
+              padding: '8px 16px', fontSize: '13px', fontWeight: 700, borderRadius: '20px', cursor: 'pointer',
+              border: '1px solid ' + (section === sec.key ? 'var(--maroon, #800000)' : 'var(--line)'),
+              background: section === sec.key ? 'var(--maroon, #800000)' : '#fff',
+              color: section === sec.key ? '#fff' : 'var(--ink)'
+            }}
           >
-            <option value="">Select Manager / Supervisor…</option>
-            {managers.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.designation})
-              </option>
-            ))}
-          </select>
+            {sec.label}
+          </button>
+        ))}
+      </div>
+
+      {section === 'access' && <ProposalAccess />}
+
+      {section === 'import' && <StaffImport />}
+
+      {section === 'managers' && (
+        <>
+        {/* 1. Manager Client Access Matrix */}
+        <div className="table-card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+            <Key size={18} /> Manager Client Access Control
+          </h3>
+          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
+            Select a manager or supervisor to configure which client audit engagements they can view and supervise.
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <select
+              value={selectedManagerForClients}
+              onChange={e => setSelectedManagerForClients(e.target.value)}
+              className="form-select"
+              style={{ maxWidth: '280px' }}
+            >
+              <option value="">Select Manager / Supervisor…</option>
+              {managers.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.designation})
+                </option>
+              ))}
+            </select>
+
+            {selectedManagerForClients && (
+              <button className="btn btn-teal btn-sm" onClick={handleSaveManagerClients} disabled={isSaving}>
+                <Check size={14} /> Save Client Access
+              </button>
+            )}
+          </div>
 
           {selectedManagerForClients && (
-            <button className="btn btn-teal btn-sm" onClick={handleSaveManagerClients} disabled={isSaving}>
-              <Check size={14} /> Save Client Access
-            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+              {managerClients.map(item => (
+                <label
+                  key={item.clientId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: item.hasAccess ? '#E6F5F5' : '#FAF8F5',
+                    border: `1px solid ${item.hasAccess ? 'var(--teal)' : 'var(--line)'}`,
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={item.hasAccess}
+                    onChange={() => toggleClientAccess(item.clientId)}
+                  />
+                  <span style={{ fontWeight: item.hasAccess ? 600 : 400 }}><ClientLabel id={item.clientId} name={item.clientName} /></span>
+                </label>
+              ))}
+            </div>
           )}
         </div>
 
-        {selectedManagerForClients && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
-            {managerClients.map(item => (
-              <label
-                key={item.clientId}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: item.hasAccess ? '#E6F5F5' : '#FAF8F5',
-                  border: `1px solid ${item.hasAccess ? 'var(--teal)' : 'var(--line)'}`,
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '12.5px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={item.hasAccess}
-                  onChange={() => toggleClientAccess(item.clientId)}
-                />
-                <span style={{ fontWeight: item.hasAccess ? 600 : 400 }}><ClientLabel id={item.clientId} name={item.clientName} /></span>
-              </label>
-            ))}
+        {/* 2. Manager Student Assignments */}
+        <div className="table-card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+            <Users size={18} /> Manager Student Supervisory Assignments
+          </h3>
+          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
+            Assign articled students and trainees to specific managers for team task review and task delegation.
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <select
+              value={selectedManagerForStudents}
+              onChange={e => setSelectedManagerForStudents(e.target.value)}
+              className="form-select"
+              style={{ maxWidth: '280px' }}
+            >
+              <option value="">Select Manager / Supervisor…</option>
+              {managers.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.designation})
+                </option>
+              ))}
+            </select>
+
+            {selectedManagerForStudents && (
+              <button className="btn btn-teal btn-sm" onClick={handleSaveManagerStudents} disabled={isSaving}>
+                <Check size={14} /> Save Student Assignments
+              </button>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* 2. Manager Student Assignments */}
-      <div className="table-card" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
-          <Users size={18} /> Manager Student Supervisory Assignments
-        </h3>
-        <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
-          Assign articled students and trainees to specific managers for team task review and task delegation.
-        </p>
-
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
-          <select
-            value={selectedManagerForStudents}
-            onChange={e => setSelectedManagerForStudents(e.target.value)}
-            className="form-select"
-            style={{ maxWidth: '280px' }}
-          >
-            <option value="">Select Manager / Supervisor…</option>
-            {managers.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.designation})
-              </option>
-            ))}
-          </select>
 
           {selectedManagerForStudents && (
-            <button className="btn btn-teal btn-sm" onClick={handleSaveManagerStudents} disabled={isSaving}>
-              <Check size={14} /> Save Student Assignments
-            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
+              {managerStudents.map(item => (
+                <label
+                  key={item.studentId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: item.isAssigned ? '#EBF0FE' : '#FAF8F5',
+                    border: `1px solid ${item.isAssigned ? 'var(--navy)' : 'var(--line)'}`,
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={item.isAssigned}
+                    onChange={() => toggleStudentAccess(item.studentId)}
+                  />
+                  <div>
+                    <div style={{ fontWeight: item.isAssigned ? 600 : 400 }}>{item.studentName}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>{item.empId}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
           )}
         </div>
+        </>
+      )}
 
-        {selectedManagerForStudents && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
-            {managerStudents.map(item => (
-              <label
-                key={item.studentId}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: item.isAssigned ? '#EBF0FE' : '#FAF8F5',
-                  border: `1px solid ${item.isAssigned ? 'var(--navy)' : 'var(--line)'}`,
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '12.5px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={item.isAssigned}
-                  onChange={() => toggleStudentAccess(item.studentId)}
-                />
-                <div>
-                  <div style={{ fontWeight: item.isAssigned ? 600 : 400 }}>{item.studentName}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>{item.empId}</div>
-                </div>
-              </label>
-            ))}
+      {section === 'users' && (
+        <>
+        {/* 3. User Management */}
+        <div className="table-card">
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--maroon)' }}>
+                <UserCog size={18} /> User Accounts, Designations & Roles
+              </h3>
+              <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px' }}>
+                Update designations, security roles, primary client mapping, and account activation states.
+              </p>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={handleSaveAllUserChanges} disabled={isSaving}>
+              <Check size={14} /> Save User Changes
+            </button>
           </div>
-        )}
-      </div>
 
-      {/* 3. User Management */}
-      <div className="table-card">
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--maroon)' }}>
-              <UserCog size={18} /> User Accounts, Designations & Roles
-            </h3>
-            <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px' }}>
-              Update designations, security roles, primary client mapping, and account activation states.
-            </p>
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name & ID</th>
+                  <th>Email</th>
+                  <th style={{ width: '180px' }}>Designation</th>
+                  <th style={{ width: '130px' }}>Role</th>
+                  <th style={{ width: '210px' }}>Assigned Clients</th>
+                  <th style={{ width: '120px' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allUsers.map(user => {
+                  const currentEdits = userEdits[user.id] || {};
+                  const designation = currentEdits.designation ?? user.designation;
+                  const role = currentEdits.role ?? user.role;
+                  const status = currentEdits.status ?? user.status;
+                  const assignedIds = getUserAssignedClientIds(user);
+
+                  return (
+                    <tr key={user.id}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{user.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontFamily: 'monospace' }}>
+                          {user.designation === 'Partner'
+                            ? `# Initial: ${user.empId}`
+                            : user.role === 'ADMIN'
+                            ? `Admin ID: ${user.empId}`
+                            : user.empId}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>{user.email}</td>
+                      <td>
+                        <select
+                          value={designation}
+                          onChange={e => handleUserChange(user.id, 'designation', e.target.value as Designation)}
+                          className="form-select"
+                          style={{ fontSize: '11.5px', padding: '4px 8px' }}
+                        >
+                          {DESIGNATIONS.map(d => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          value={role}
+                          onChange={e => handleUserChange(user.id, 'role', e.target.value as Role)}
+                          className="form-select"
+                          style={{ fontSize: '11.5px', padding: '4px 8px' }}
+                        >
+                          {ROLES.map(r => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setEditingClientAssignmentsUser(user);
+                            setClientSearchFilter('');
+                          }}
+                          style={{
+                            fontSize: '11.5px',
+                            padding: '5px 10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            width: '100%',
+                            justifyContent: 'space-between'
+                          }}
+                          title="Click to assign or edit client engagements for this user"
+                        >
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {assignedIds.length === 0 ? (
+                              <span style={{ color: 'var(--ink-soft)' }}>+ Assign Clients</span>
+                            ) : (
+                              <span style={{ fontWeight: 600, color: 'var(--navy)' }}>
+                                🏢 {assignedIds.length} {assignedIds.length === 1 ? 'Client' : 'Clients'}
+                              </span>
+                            )}
+                          </span>
+                          <span style={{ fontSize: '10.5px', color: 'var(--maroon)', fontWeight: 600 }}>Edit</span>
+                        </button>
+                      </td>
+                      <td>
+                        <select
+                          value={status}
+                          onChange={e => handleUserChange(user.id, 'status', e.target.value as 'ACTIVE' | 'INACTIVE')}
+                          className="form-select"
+                          style={{
+                            fontSize: '11.5px',
+                            padding: '4px 8px',
+                            fontWeight: 600,
+                            color: status === 'ACTIVE' ? '#166534' : '#991B1B'
+                          }}
+                        >
+                          <option value="ACTIVE">Active</option>
+                          <option value="INACTIVE">Inactive</option>
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={handleSaveAllUserChanges} disabled={isSaving}>
-            <Check size={14} /> Save User Changes
-          </button>
         </div>
+        </>
+      )}
 
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name & ID</th>
-                <th>Email</th>
-                <th style={{ width: '180px' }}>Designation</th>
-                <th style={{ width: '130px' }}>Role</th>
-                <th style={{ width: '210px' }}>Assigned Clients</th>
-                <th style={{ width: '120px' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allUsers.map(user => {
-                const currentEdits = userEdits[user.id] || {};
-                const designation = currentEdits.designation ?? user.designation;
-                const role = currentEdits.role ?? user.role;
-                const status = currentEdits.status ?? user.status;
-                const assignedIds = getUserAssignedClientIds(user);
-
-                return (
-                  <tr key={user.id}>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{user.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontFamily: 'monospace' }}>
-                        {user.designation === 'Partner'
-                          ? `# Initial: ${user.empId}`
-                          : user.role === 'ADMIN'
-                          ? `Admin ID: ${user.empId}`
-                          : user.empId}
-                      </div>
-                    </td>
-                    <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>{user.email}</td>
-                    <td>
-                      <select
-                        value={designation}
-                        onChange={e => handleUserChange(user.id, 'designation', e.target.value as Designation)}
-                        className="form-select"
-                        style={{ fontSize: '11.5px', padding: '4px 8px' }}
-                      >
-                        {DESIGNATIONS.map(d => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        value={role}
-                        onChange={e => handleUserChange(user.id, 'role', e.target.value as Role)}
-                        className="form-select"
-                        style={{ fontSize: '11.5px', padding: '4px 8px' }}
-                      >
-                        {ROLES.map(r => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setEditingClientAssignmentsUser(user);
-                          setClientSearchFilter('');
-                        }}
-                        style={{
-                          fontSize: '11.5px',
-                          padding: '5px 10px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          width: '100%',
-                          justifyContent: 'space-between'
-                        }}
-                        title="Click to assign or edit client engagements for this user"
-                      >
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {assignedIds.length === 0 ? (
-                            <span style={{ color: 'var(--ink-soft)' }}>+ Assign Clients</span>
-                          ) : (
-                            <span style={{ fontWeight: 600, color: 'var(--navy)' }}>
-                              🏢 {assignedIds.length} {assignedIds.length === 1 ? 'Client' : 'Clients'}
-                            </span>
-                          )}
-                        </span>
-                        <span style={{ fontSize: '10.5px', color: 'var(--maroon)', fontWeight: 600 }}>Edit</span>
-                      </button>
-                    </td>
-                    <td>
-                      <select
-                        value={status}
-                        onChange={e => handleUserChange(user.id, 'status', e.target.value as 'ACTIVE' | 'INACTIVE')}
-                        className="form-select"
-                        style={{
-                          fontSize: '11.5px',
-                          padding: '4px 8px',
-                          fontWeight: 600,
-                          color: status === 'ACTIVE' ? '#166534' : '#991B1B'
-                        }}
-                      >
-                        <option value="ACTIVE">Active</option>
-                        <option value="INACTIVE">Inactive</option>
-                      </select>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
       {/* Multi-Client Assignment Modal */}
       {editingClientAssignmentsUser && (

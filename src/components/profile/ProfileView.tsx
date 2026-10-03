@@ -24,7 +24,7 @@ import { clientService } from '../../services/clientService';
 import { useNotifications } from '../../context/NotificationContext';
 import { ClientLabel } from '../ui/ClientLabel';
 import { StaffDetailsCard } from './StaffDetailsCard';
-import { academicYearFromStart, employmentYearFromJoining, isEmployeeId, PRINCIPALS, canonicalPrincipal } from '../../lib/academicYear';
+import { academicYearFromStart, employmentYearFromJoining, isEmployeeProfile, PRINCIPALS, canonicalPrincipal } from '../../lib/academicYear';
 import { titleCaseWords } from '../../lib/text';
 import { staffService } from '../../services/staffService';
 import { MyStaff } from '../../types';
@@ -440,7 +440,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       laptop_id: editLaptopId.trim(),
       remarks: editRemarks.trim()
     };
-    if (!isEmployeeId(currentUser.empId)) {
+    if (!isEmployeeProfile(currentUser.empId, currentUser.designation)) {
       staffFields.articleship_start = editArtStart;
       staffFields.articleship_end = editArtEnd;
       staffFields.principal_name = editPrincipal;
@@ -462,7 +462,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       editLaptopOwner.trim() !== (st?.laptopOwnership || '') ||
       editLaptopId.trim() !== (st?.laptopId || '') ||
       editRemarks.trim() !== (st?.remarks || '') ||
-      (!isEmployeeId(currentUser.empId) &&
+      (!isEmployeeProfile(currentUser.empId, currentUser.designation) &&
         (editArtStart !== (st?.articleshipStart || '') ||
           editArtEnd !== (st?.articleshipEnd || '') ||
           editPrincipal !== canonicalPrincipal(st?.principalName)));
@@ -593,8 +593,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   };
 
   // Assigned clients sit inside the info box from Senior Assistant Manager up; below that they stay above it
-  const payFullLabel = isEmployeeId(currentUser.empId) ? 'Monthly Salary (৳)' : 'Monthly Allowance (৳)';
-  const payShortLabel = isEmployeeId(currentUser.empId) ? 'Salary (৳)' : 'Allowance (৳)';
+  const payFullLabel = isEmployeeProfile(currentUser.empId, currentUser.designation) ? 'Monthly Salary (৳)' : 'Monthly Allowance (৳)';
+  const payShortLabel = isEmployeeProfile(currentUser.empId, currentUser.designation) ? 'Salary (৳)' : 'Allowance (৳)';
   const clientsInInfoBox = getUserRank(currentUser) >= DESIGNATION_RANKS['Senior Assistant Manager'];
   const hasYearField = isStudentLevelDesignation(currentUser.designation) && !editArtStart;
   const infoInputStyle: React.CSSProperties = { height: '38px', padding: '0 10px', margin: 0, fontSize: '12.5px', lineHeight: '36px', boxSizing: 'border-box', width: '100%', minWidth: 0 };
@@ -689,7 +689,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           style={{ justifyContent: 'space-between', padding: '0 20px' }}
         >
           <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>
-            {isPartner ? "OFFICIAL PARTNER'S PROFILE" : isEmployeeId(currentUser.empId) ? 'OFFICIAL EMPLOYEE PROFILE' : 'OFFICIAL STUDENT PROFILE'}
+            {isPartner ? "OFFICIAL PARTNER'S PROFILE" : isEmployeeProfile(currentUser.empId, currentUser.designation) ? 'OFFICIAL EMPLOYEE PROFILE' : 'OFFICIAL STUDENT PROFILE'}
           </span>
           <span
             style={{
@@ -1440,7 +1440,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <label style={{ fontSize: '11.5px' }}>Joining Date</label>
                   <input type="date" className="form-input" value={editJoining} onChange={e => setEditJoining(e.target.value)} style={infoInputStyle} />
                 </div>
-                {isEmployeeId(currentUser.empId) ? (
+                {isEmployeeProfile(currentUser.empId, currentUser.designation) ? (
                   <div className="form-field" style={{ gridColumn: 'span 3' }}>
                     <label style={{ fontSize: '11.5px' }}>Employment Year</label>
                     <input type="text" className="form-input" readOnly value={employmentYearFromJoining(editJoining) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />

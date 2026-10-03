@@ -5,6 +5,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { canViewManpower, canViewTeamTasks } from '../../lib/permissions';
 import { api } from '../../services/api';
+import { manpowerAccessService } from '../../services/manpowerAccessService';
 import { proposalService } from '../../services/proposalService';
 
 export type TabKey = 'own' | 'team' | 'manpower' | 'proposals' | 'requests' | 'notifications' | 'profile' | 'admin';
@@ -39,13 +40,29 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   }, [checkProposalAccess]);
   useLivePolling(() => checkProposalAccess(), 60000, Boolean(currentUser));
 
+  // Manpower is for Assistant Director and above, plus anyone the Admin added
+  const [manpowerGranted, setManpowerGranted] = useState(false);
+  const checkManpowerAccess = useCallback(async () => {
+    if (!currentUser) return;
+    if (isAdminUser || canViewManpower(currentUser)) return setManpowerGranted(false);
+    if (api.isViewingAsAnother()) {
+      const ids = await manpowerAccessService.get().catch(() => [] as string[]);
+      return setManpowerGranted(ids.includes(currentUser.id));
+    }
+    setManpowerGranted(await manpowerAccessService.hasAccess().catch(() => false));
+  }, [currentUser?.id, currentUser?.designation, isAdminUser]);
+  useEffect(() => {
+    void checkManpowerAccess();
+  }, [checkManpowerAccess]);
+  useLivePolling(() => checkManpowerAccess(), 60000, Boolean(currentUser));
+
   if (!currentUser) return null;
 
   // Team Tasks: In Charge and above (not Students)
   const showTeamTasksTab = canViewTeamTasks(currentUser);
 
   // Manpower: Admin or Assistant Director and above
-  const showManpowerTab = canViewManpower(currentUser);
+  const showManpowerTab = canViewManpower(currentUser) || manpowerGranted;
 
   // Task Requests, Notifications & My Profile: available for all practice users
   const showRequestsTab = currentUser.role !== 'ADMIN';

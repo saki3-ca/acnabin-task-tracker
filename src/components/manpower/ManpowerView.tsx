@@ -20,7 +20,7 @@ import { isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib
 import { adminService } from '../../services/adminService';
 import { ClientLabel, clientText } from '../ui/ClientLabel';
 import { staffService } from '../../services/staffService';
-import { academicYearFromStart, employmentYearFromJoining, isEmployeeId } from '../../lib/academicYear';
+import { academicYearFromStart, employmentYearFromJoining, isEmployeeProfile } from '../../lib/academicYear';
 import { manpowerService } from '../../services/manpowerService';
 import { ClientManpowerSummaryItem, ManpowerRecord } from '../../types';
 
@@ -132,7 +132,7 @@ export const ManpowerView: React.FC = () => {
             const base = withAllClients(r);
             const d = datesById.get((r.empId || '').trim().toUpperCase());
             const year = d
-              ? isEmployeeId(r.empId)
+              ? isEmployeeProfile(r.empId, r.designation)
                 ? employmentYearFromJoining(d.joiningDate)
                 : academicYearFromStart(d.articleshipStart, d.articleshipEnd)
               : '';
