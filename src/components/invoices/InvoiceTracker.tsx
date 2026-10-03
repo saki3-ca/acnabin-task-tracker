@@ -358,7 +358,7 @@ export const InvoiceTracker: React.FC = () => {
       key: 'client', head: 'Client Name', w: 250, group: 'inv', align: 'left', sticky: 'left', left: 46,
       render: i => <span title={i.client} style={{ fontWeight: 600 }}>{i.client}</span>
     },
-    { key: 'jic', head: 'JIC Name', w: 150, group: 'inv', align: 'left', render: i => cell(i.jicName) },
+    { key: 'jic', head: 'Job In-Charge', w: 150, group: 'inv', align: 'left', render: i => cell(i.jicName) },
     { key: 'month', head: 'For the Month', w: 130, group: 'inv', align: 'center', render: i => cell([i.forMonth, i.year].filter(Boolean).join(' ')) },
     { key: 'idate', head: 'Invoice Date', w: 112, group: 'inv', align: 'center', render: i => dateCell(i.invoiceDate) },
     { key: 'job', head: 'Job No.', w: 90, group: 'inv', align: 'center', render: i => cell(i.jobNumber) },
@@ -447,7 +447,7 @@ export const InvoiceTracker: React.FC = () => {
                   type="text"
                   className="form-input"
                   style={{ paddingLeft: '32px', height: '36px', fontSize: '12.5px', width: '100%' }}
-                  placeholder="Search client, invoice no., job no., JIC…"
+                  placeholder="Search client, invoice no., job no., job in-charge…"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                 />
@@ -660,7 +660,7 @@ export const InvoiceTracker: React.FC = () => {
               <input className="form-input" list="inv-clients" value={form.client} onChange={e => setClient(e.target.value)} />
             </div>
             <div className="form-field">
-              <label>JIC name</label>
+              <label>Job In-Charge</label>
               <input className="form-input" list="inv-jics" value={form.jicName} onChange={e => set('jicName', e.target.value)} />
             </div>
           </div>
