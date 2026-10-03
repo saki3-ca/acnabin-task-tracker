@@ -79,14 +79,20 @@ const MainApp: React.FC = () => {
 
   // Team active and completed tasks
   const activeTeamTasks = useMemo(() => {
+    let list: typeof teamTasks;
     if (teamFilters.status === 'Completed') {
-      return teamTasks.filter(t => t.status === 'Completed');
+      list = teamTasks.filter(t => t.status === 'Completed');
+    } else if (teamFilters.status && teamFilters.status !== 'All') {
+      list = teamTasks.filter(t => t.status === teamFilters.status);
+    } else {
+      list = teamTasks.filter(t => t.status !== 'Completed');
     }
-    if (teamFilters.status && teamFilters.status !== 'All') {
-      return teamTasks.filter(t => t.status === teamFilters.status);
-    }
-    return teamTasks.filter(t => t.status !== 'Completed');
-  }, [teamTasks, teamFilters.status]);
+    const q = (teamFilters.searchTerm || '').trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(t =>
+      [t.particular, t.clientName, t.assignedToName].some(v => (v || '').toLowerCase().includes(q))
+    );
+  }, [teamTasks, teamFilters.status, teamFilters.searchTerm]);
 
   const completedTeamTasks = useMemo(
     () => teamTasks.filter(t => t.status === 'Completed'),
@@ -219,7 +225,7 @@ const MainApp: React.FC = () => {
               }
             }}
           />
-          <TaskFilterBar onOpenAssignModal={() => handleOpenAddTask('team')} />
+          <TaskFilterBar onOpenAssignModal={() => handleOpenAddTask('team')} shownCount={activeTeamTasks.length} />
           <TaskTable
             title="TEAM ENGAGEMENT TASKS"
             bannerColor="maroon"

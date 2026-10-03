@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, ExternalLink, Paperclip, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { Download, ExternalLink, Paperclip, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { downloadInvoicesExcel } from '../../lib/invoicesExcel';
 import {
@@ -84,7 +84,8 @@ export const InvoiceTracker: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [show, setShow] = useState<'ALL' | 'OUT' | 'COL'>('ALL');
+  const [show, setShow] = useState<'ALL' | 'NOSUB' | 'OUT' | 'COL'>('ALL');
+  const [clientFilter, setClientFilter] = useState('');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -150,12 +151,21 @@ export const InvoiceTracker: React.FC = () => {
   const rows = useMemo(() => {
     const q = norm(search);
     return invoices.filter(i => {
+      if (clientFilter && i.client !== clientFilter) return false;
+      if (show === 'NOSUB' && isYes(i.clientSubmitted)) return false;
       if (show === 'OUT' && isYes(i.collected)) return false;
       if (show === 'COL' && !isYes(i.collected)) return false;
       if (!q) return true;
       return [i.client, i.invoiceNo, i.submissionNo, i.jobNumber, i.jicName, i.purpose, i.forMonth].some(v => norm(v || '').includes(q));
     });
-  }, [invoices, search, show]);
+  }, [invoices, search, show, clientFilter]);
+  const hasActiveFilters = Boolean(search.trim() || clientFilter || show !== 'ALL');
+  const clearFilters = () => {
+    setSearch('');
+    setClientFilter('');
+    setShow('ALL');
+  };
+  const clientsInTable = useMemo(() => [...new Set(invoices.map(i => i.client).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [invoices]);
 
   const lists = useMemo(() => {
     const uniq = (xs: string[]) => [...new Set(xs.map(x => x.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -331,34 +341,37 @@ export const InvoiceTracker: React.FC = () => {
     { key: 'job', head: 'Job No.', w: 90, group: 'inv', align: 'center', render: i => cell(i.jobNumber) },
     { key: 'purpose', head: 'Purpose', w: 160, group: 'inv', align: 'left', render: i => cell(i.purpose) },
     { key: 'ino', head: 'Invoice No.', w: 190, group: 'inv', align: 'center', render: i => <strong style={{ fontSize: '12.5px' }}>{i.invoiceNo}</strong> },
-    { key: 'sno', head: 'Submission No.', w: 104, group: 'inv', align: 'center', render: i => cell(i.submissionNo) },
+    { key: 'sno', head: 'Submission No.', w: 112, group: 'inv', align: 'center', render: i => cell(i.submissionNo) },
 
-    { key: 'amt', head: 'Invoice Amount (৳)', w: 124, group: 'amt', align: 'right', render: i => <strong>{money(i.amount)}</strong> },
+    { key: 'amt', head: 'Invoice Amount (৳)', w: 132, group: 'amt', align: 'right', render: i => <strong>{money(i.amount)}</strong> },
     { key: 'tds', head: 'TDS (৳)', w: 100, group: 'amt', align: 'right', render: i => money(i.tds) },
     { key: 'vds', head: 'VDS (৳)', w: 100, group: 'amt', align: 'right', render: i => money(i.vds) },
 
-    { key: 'csub', head: 'Submitted to Client', w: 112, group: 'sub', align: 'center', render: i => <Chip value={i.clientSubmitted} /> },
-    { key: 'csubd', head: 'Client Submission Date', w: 118, group: 'sub', align: 'center', render: i => dateCell(i.clientSubmitDate) },
-    { key: 'signed', head: 'Signed Invoice to ACNABIN', w: 120, group: 'sub', align: 'center', render: i => <Chip value={i.signedSubmitted} /> },
-    { key: 'mail', head: 'Mail Date (to ACNABIN)', w: 120, group: 'sub', align: 'center', render: i => dateCell(i.mailDate) },
+    { key: 'csub', head: 'Submitted to Client', w: 124, group: 'sub', align: 'center', render: i => <Chip value={i.clientSubmitted} /> },
+    { key: 'csubd', head: 'Client Submission Date', w: 150, group: 'sub', align: 'center', render: i => dateCell(i.clientSubmitDate) },
+    {
+      key: 'signed', head: 'Signed Invoice Mail to ACNABIN', w: 168, group: 'sub', align: 'center',
+      // Yes = the mail date (or a small "Yes" when no date was entered); No = blank
+      render: i => (isYes(i.signedSubmitted) ? (i.mailDate ? dateCell(i.mailDate) : <Chip value="Yes" />) : null)
+    },
 
-    { key: 'cstat', head: 'Collection Status', w: 104, group: 'col', align: 'center', render: i => <Chip value={i.collected} /> },
+    { key: 'cstat', head: 'Collection Status', w: 112, group: 'col', align: 'center', render: i => <Chip value={i.collected} /> },
     { key: 'cdate', head: 'Collection Date', w: 112, group: 'col', align: 'center', render: i => dateCell(i.collectionDate) },
-    { key: 'cmeth', head: 'Collection Method', w: 120, group: 'col', align: 'center', render: i => cell(i.collectionMethod) },
-    { key: 'cref', head: 'Cheque / Transaction Ref.', w: 190, group: 'col', align: 'center', render: i => cell(i.paymentRef) },
+    { key: 'cmeth', head: 'Collection Method', w: 128, group: 'col', align: 'center', render: i => cell(i.collectionMethod) },
+    { key: 'cref', head: 'Cheque / Transaction Ref.', w: 200, group: 'col', align: 'center', render: i => cell(i.paymentRef) },
 
     { key: 'vstat', head: 'VDS Status', w: 92, group: 'vds', align: 'center', render: i => <Chip value={i.vdsCollected} /> },
-    { key: 'vdate', head: 'VDS Collection Date', w: 118, group: 'vds', align: 'center', render: i => dateCell(i.vdsDate) },
-    { key: 'vfile', head: 'VDS Challan Copy', w: 104, group: 'vds', align: 'center', render: i => challanCell(i, 'VDS') },
+    { key: 'vdate', head: 'VDS Collection Date', w: 148, group: 'vds', align: 'center', render: i => dateCell(i.vdsDate) },
+    { key: 'vfile', head: 'VDS Challan Copy', w: 116, group: 'vds', align: 'center', render: i => challanCell(i, 'VDS') },
     { key: 'vno', head: 'VDS Challan No.', w: 170, group: 'vds', align: 'center', render: i => cell(i.vdsChallanNo) },
 
     { key: 'tstat', head: 'TDS Status', w: 92, group: 'tds', align: 'center', render: i => <Chip value={i.tdsCollected} /> },
-    { key: 'tdate', head: 'TDS Collection Date', w: 118, group: 'tds', align: 'center', render: i => dateCell(i.tdsDate) },
-    { key: 'tfile', head: 'TDS Challan Copy', w: 104, group: 'tds', align: 'center', render: i => challanCell(i, 'TDS') },
+    { key: 'tdate', head: 'TDS Collection Date', w: 148, group: 'tds', align: 'center', render: i => dateCell(i.tdsDate) },
+    { key: 'tfile', head: 'TDS Challan Copy', w: 116, group: 'tds', align: 'center', render: i => challanCell(i, 'TDS') },
     { key: 'tno', head: 'TDS Challan No.', w: 170, group: 'tds', align: 'center', render: i => cell(i.tdsChallanNo) },
 
     { key: 'rem', head: 'Remarks', w: 230, group: 'note', align: 'left', render: i => cell(i.remarks) },
-    { key: 'erp', head: 'ERP Entry / Director Review', w: 190, group: 'note', align: 'left', render: i => cell(i.erpNote) },
+    { key: 'erp', head: 'ERP Entry / Director Review', w: 210, group: 'note', align: 'left', render: i => cell(i.erpNote) },
     {
       key: 'act', head: '', w: 92, group: 'note', align: 'center', sticky: 'right',
       render: i => (
@@ -396,38 +409,83 @@ export const InvoiceTracker: React.FC = () => {
             ]}
           />
 
+          <div
+            className="filter-bar"
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--line)' }}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', flex: 1 }}>
+              <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 240px' }}>
+                <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-soft)' }} />
+                <input
+                  type="text"
+                  className="form-input"
+                  style={{ paddingLeft: '32px', height: '36px', fontSize: '12.5px', width: '100%' }}
+                  placeholder="Search client, invoice no., job no., JIC…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
+              <div style={{ minWidth: '200px', flex: '1 1 220px' }}>
+                <select className="form-select" style={{ height: '36px', fontSize: '12.5px', width: '100%' }} value={clientFilter} onChange={e => setClientFilter(e.target.value)}>
+                  <option value="">All Clients</option>
+                  {clientsInTable.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ minWidth: '190px', flex: '1 1 190px' }}>
+                <select className="form-select" style={{ height: '36px', fontSize: '12.5px', width: '100%' }} value={show} onChange={e => setShow(e.target.value as 'ALL' | 'NOSUB' | 'OUT' | 'COL')}>
+                  <option value="ALL">All Invoices</option>
+                  <option value="NOSUB">Not submitted to client</option>
+                  <option value="OUT">Not collected yet</option>
+                  <option value="COL">Collected</option>
+                </select>
+              </div>
+              {hasActiveFilters && (
+                <button type="button" onClick={clearFilters} className="btn btn-secondary btn-sm" style={{ height: '36px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }} title="Reset all filters">
+                  <RotateCcw size={13} /> Reset
+                </button>
+              )}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--ink-soft)', fontWeight: 600 }}>
+              Showing {rows.length} of {invoices.length} invoice{invoices.length === 1 ? '' : 's'}
+            </div>
+          </div>
+
           <div className="table-card">
-            <div className="banner-strip banner-teal" style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '0 14px' }}>
-              <span />
-              <span>INVOICES</span>
-              <span style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button className="btn btn-sm" style={{ ...bannerBtn, background: 'rgba(255,255,255,0.18)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }} onClick={exportExcel}>
-                  <Download size={14} /> Excel
+            <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Receipt size={16} />
+                <span>INVOICES</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={exportExcel}
+                  style={{ background: 'rgba(255, 255, 255, 0.95)', color: 'var(--maroon, #800000)', border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                  title="Export to Excel"
+                >
+                  <Download size={12} /> Export Excel
                 </button>
-                <button className="btn btn-sm" style={{ ...bannerBtn, background: '#fff', color: 'var(--teal-dark)', border: 'none' }} onClick={() => openModal()}>
-                  <Plus size={14} /> New Invoice
+                <button
+                  type="button"
+                  onClick={() => openModal()}
+                  style={{ background: '#ffffff', color: 'var(--maroon, #800000)', border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                >
+                  <Plus size={12} /> New Invoice
                 </button>
-              </span>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', padding: '10px 14px', flexWrap: 'wrap', alignItems: 'center', borderBottom: '1px solid var(--line)' }}>
-              <input className="form-input" placeholder="Search client, invoice no., job no., JIC…" value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: '320px' }} />
-              <select className="form-select" value={show} onChange={e => setShow(e.target.value as 'ALL' | 'OUT' | 'COL')} style={{ maxWidth: '200px' }}>
-                <option value="ALL">All invoices</option>
-                <option value="OUT">Not collected yet</option>
-                <option value="COL">Collected</option>
-              </select>
-              <span style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>{rows.length} shown</span>
-              <span style={{ marginLeft: 'auto', display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', color: 'var(--ink-soft)' }}>
-                {(Object.keys(GROUPS) as Group[]).map(g => (
-                  <span key={g} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: GROUPS[g].color, display: 'inline-block' }} /> {GROUPS[g].label}
-                  </span>
-                ))}
-              </span>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', padding: '8px 16px', fontSize: '11.5px', color: 'var(--ink-soft)', borderBottom: '1px solid var(--line)', background: '#FCFBF9' }}>
+              {(Object.keys(GROUPS) as Group[]).map(g => (
+                <span key={g} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: GROUPS[g].color, display: 'inline-block' }} /> {GROUPS[g].label}
+                </span>
+              ))}
             </div>
 
-            <div className="table-responsive" style={{ maxHeight: '70vh' }}>
+            <div className="table-responsive" style={{ minHeight: '440px', maxHeight: '70vh' }}>
               <table className="data-table" style={{ minWidth: `${totalWidth}px`, tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
                 <colgroup>
                   {cols.map(c => (
