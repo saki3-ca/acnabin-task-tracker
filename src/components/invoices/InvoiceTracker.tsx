@@ -46,16 +46,17 @@ const YesNo: React.FC<{ value: string; onChange: (v: string) => void }> = ({ val
 );
 
 type Group = 'inv' | 'amt' | 'sub' | 'col' | 'vds' | 'tds' | 'note';
-// Header colour per group of columns
-const GROUPS: Record<Group, { label: string; color: string }> = {
-  inv: { label: 'Invoice', color: '#1E3A8A' },
-  amt: { label: 'Amount', color: '#15803D' },
-  sub: { label: 'Submission', color: '#B45309' },
-  col: { label: 'Collection', color: '#0E7490' },
-  vds: { label: 'VDS', color: '#6D28D9' },
-  tds: { label: 'TDS', color: '#9F1239' },
-  note: { label: 'Notes', color: '#475569' }
+// Soft tinted look (same family as the Profile counters): background, border, text and the header underline per group
+const GROUPS: Record<Group, { label: string; bg: string; border: string; fg: string; accent: string }> = {
+  inv: { label: 'Invoice', bg: '#EFF6FF', border: '#BFDBFE', fg: '#1E40AF', accent: '#2563EB' },
+  amt: { label: 'Amount', bg: '#F0FDF4', border: '#86EFAC', fg: '#166534', accent: '#16A34A' },
+  sub: { label: 'Submission', bg: '#FFFBEB', border: '#FDE68A', fg: '#92400E', accent: '#D97706' },
+  col: { label: 'Collection', bg: '#F0FDFA', border: '#99F6E4', fg: '#0F766E', accent: '#0D9488' },
+  vds: { label: 'VDS', bg: '#FAF5FF', border: '#E9D5FF', fg: '#6B21A8', accent: '#7C3AED' },
+  tds: { label: 'TDS', bg: '#FEF2F2', border: '#FECACA', fg: '#991B1B', accent: '#DC2626' },
+  note: { label: 'Notes', bg: '#F8FAFC', border: '#CBD5E1', fg: '#334155', accent: '#64748B' }
 };
+const TITLE_GREEN = '#146860';
 interface Col {
   key: string;
   head: string;
@@ -453,7 +454,7 @@ export const InvoiceTracker: React.FC = () => {
           </div>
 
           <div className="table-card">
-            <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 16px' }}>
+            <div className="banner-strip" style={{ justifyContent: 'space-between', padding: '0 16px', background: TITLE_GREEN, color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Receipt size={16} />
                 <span>INVOICES</span>
@@ -462,7 +463,7 @@ export const InvoiceTracker: React.FC = () => {
                 <button
                   type="button"
                   onClick={exportExcel}
-                  style={{ background: 'rgba(255, 255, 255, 0.95)', color: 'var(--maroon, #800000)', border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                  style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
                   title="Export to Excel"
                 >
                   <Download size={12} /> Export Excel
@@ -470,17 +471,21 @@ export const InvoiceTracker: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => openModal()}
-                  style={{ background: '#ffffff', color: 'var(--maroon, #800000)', border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                  style={{ background: '#ffffff', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
                 >
                   <Plus size={12} /> New Invoice
                 </button>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', padding: '8px 16px', fontSize: '11.5px', color: 'var(--ink-soft)', borderBottom: '1px solid var(--line)', background: '#FCFBF9' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '10px 16px', borderBottom: '1px solid var(--line)', background: '#fff' }}>
               {(Object.keys(GROUPS) as Group[]).map(g => (
-                <span key={g} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 3, background: GROUPS[g].color, display: 'inline-block' }} /> {GROUPS[g].label}
+                <span
+                  key={g}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 12px', borderRadius: '8px', background: GROUPS[g].bg, border: `1px solid ${GROUPS[g].border}`, color: GROUPS[g].fg, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUPS[g].accent, display: 'inline-block' }} />
+                  {GROUPS[g].label}
                 </span>
               ))}
             </div>
@@ -495,7 +500,7 @@ export const InvoiceTracker: React.FC = () => {
                 <thead>
                   <tr>
                     {cols.map(c => (
-                      <th key={c.key} title={c.head} style={{ ...stickyStyle(c, true), textAlign: 'center', background: GROUPS[c.group].color, color: '#fff', whiteSpace: 'normal', lineHeight: 1.25, padding: '8px 6px', fontSize: '11px', borderBottom: 'none', borderRight: '1px solid rgba(255,255,255,0.18)', position: 'sticky', top: 0, zIndex: c.sticky ? 4 : 3 }}>
+                      <th key={c.key} title={c.head} style={{ ...stickyStyle(c, true), textAlign: 'center', background: GROUPS[c.group].bg, color: GROUPS[c.group].fg, whiteSpace: 'normal', lineHeight: 1.25, padding: '10px 6px', fontSize: '11px', borderTop: 'none', borderBottom: `2px solid ${GROUPS[c.group].accent}`, borderRight: `1px solid ${GROUPS[c.group].border}`, position: 'sticky', top: 0, zIndex: c.sticky ? 4 : 3 }}>
                         {c.head}
                       </th>
                     ))}
