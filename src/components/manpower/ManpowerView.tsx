@@ -898,14 +898,14 @@ export const ManpowerView: React.FC = () => {
 
           {/* Manpower Directory Table Card */}
           <div className="table-card">
-            <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 16px' }}>
+            <div className="banner-strip banner-maroon" style={{ justifyContent: 'center', padding: '0 16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Users size={16} />
                 <span>MANPOWER DIRECTORY</span>
                 {!effectiveIncludeAllHr ? (
                   <span
                     style={{
-                      fontSize: '11px',
+                      position: 'absolute', left: '16px', fontSize: '11px',
                       fontWeight: 600,
                       background: 'rgba(255, 255, 255, 0.18)',
                       color: '#ffffff',
@@ -924,7 +924,7 @@ export const ManpowerView: React.FC = () => {
                 ) : (
                   <span
                     style={{
-                      fontSize: '10px',
+                      position: 'absolute', left: '16px', fontSize: '10px',
                       fontWeight: 700,
                       background: 'rgba(255, 255, 255, 0.2)',
                       padding: '2px 8px',
@@ -940,7 +940,7 @@ export const ManpowerView: React.FC = () => {
                 type="button"
                 onClick={handleExportDetailsExcel}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.95)',
+                  position: 'absolute', right: '16px', background: 'rgba(255, 255, 255, 0.95)',
                   color: 'var(--maroon, #800000)',
                   border: 'none',
                   padding: '3px 10px',
@@ -1191,14 +1191,14 @@ export const ManpowerView: React.FC = () => {
       {/* 3. VIEW 2: CLIENT-WISE SUMMARY */}
       {viewMode === 'summary' && (
         <div className="table-card">
-          <div className="banner-strip banner-maroon" style={{ justifyContent: 'space-between', padding: '0 16px' }}>
+          <div className="banner-strip banner-maroon" style={{ justifyContent: 'center', padding: '0 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Building size={16} />
               <span>CLIENT-WISE MANPOWER & COST SUMMARY</span>
               {!effectiveIncludeAllHr ? (
                 <span
                   style={{
-                    fontSize: '11px',
+                    position: 'absolute', left: '16px', fontSize: '11px',
                     fontWeight: 600,
                     background: 'rgba(255, 255, 255, 0.18)',
                     color: '#ffffff',
@@ -1217,7 +1217,7 @@ export const ManpowerView: React.FC = () => {
               ) : (
                 <span
                   style={{
-                    fontSize: '10px',
+                    position: 'absolute', left: '16px', fontSize: '10px',
                     fontWeight: 700,
                     background: 'rgba(255, 255, 255, 0.2)',
                     padding: '2px 8px',
@@ -1233,7 +1233,7 @@ export const ManpowerView: React.FC = () => {
               type="button"
               onClick={handleExportExcel}
               style={{
-                background: 'rgba(255, 255, 255, 0.95)',
+                position: 'absolute', right: '16px', background: 'rgba(255, 255, 255, 0.95)',
                 color: 'var(--maroon, #800000)',
                 border: 'none',
                 padding: '3px 10px',

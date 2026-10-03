@@ -686,13 +686,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       <div className="table-card">
         <div
           className="banner-strip banner-maroon"
-          style={{ justifyContent: 'space-between', padding: '0 20px' }}
+          style={{ justifyContent: 'center', padding: '0 20px' }}
         >
           <span style={{ fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.8px' }}>
             {isPartner ? "OFFICIAL PARTNER'S PROFILE" : isEmployeeProfile(currentUser.empId, currentUser.designation) ? 'OFFICIAL EMPLOYEE PROFILE' : 'OFFICIAL STUDENT PROFILE'}
           </span>
           <span
             style={{
+              position: 'absolute',
+              right: '20px',
               fontSize: '11px',
               fontWeight: 600,
               opacity: 0.9,

@@ -454,12 +454,12 @@ export const InvoiceTracker: React.FC = () => {
           </div>
 
           <div className="table-card">
-            <div className="banner-strip" style={{ justifyContent: 'space-between', padding: '0 16px', background: TITLE_GREEN, color: '#fff' }}>
+            <div className="banner-strip" style={{ justifyContent: 'center', padding: '0 16px', background: TITLE_GREEN, color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Receipt size={16} />
                 <span>INVOICES</span>
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'absolute', right: '16px' }}>
                 <button
                   type="button"
                   onClick={exportExcel}
