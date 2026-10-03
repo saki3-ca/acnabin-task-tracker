@@ -29,7 +29,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
-  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet',
+  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete',
   'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -1491,6 +1491,78 @@ export const api = {
       // ----------------------------------------------------------------------
       // PROPOSAL TRACKER (access is granted by the Admin; all checks run in the database)
       // ----------------------------------------------------------------------
+      case 'invoiceHasAccess': {
+        const session = readSession();
+        if (!session) return false as T;
+        const { data, error } = await supabase.rpc('app_invoice_has_access', { p_session: session.token });
+        if (error) {
+          console.warn('[invoiceHasAccess] failed (run supabase_invoices.sql?):', error.message);
+          return false as T;
+        }
+        return Boolean(data) as T;
+      }
+
+      case 'invoiceList': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_invoice_list', { p_session: session.token });
+        if (error) {
+          console.error('app_invoice_list failed:', error);
+          throw new Error(isMissingFunction(error) ? 'The Invoices database update has not been run yet. Please tell Admin.' : 'Could not load invoices. (' + error.message + ')');
+        }
+        if (data === null) throw new Error('You do not have access to Invoices.');
+        return data as T;
+      }
+
+      case 'invoiceSave': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_invoice_save', { p_session: session.token, p_fields: payload.fields, p_force: Boolean(payload.force) });
+        if (error) {
+          console.error('app_invoice_save failed:', error);
+          throw new Error(isMissingFunction(error) ? 'The Invoices database update has not been run yet. Please tell Admin.' : 'Could not save the invoice. (' + error.message + ')');
+        }
+        if (data === 'DUPLICATE') throw new Error('This invoice number already exists. An invoice number cannot be used twice.');
+        if (data === 'SUBMISSION_DUP') {
+          const err: any = new Error('Another invoice already has this submission number.');
+          err.code = 'SUBMISSION_DUP';
+          throw err;
+        }
+        if (data === 'NO_ACCESS') throw new Error('You do not have access to Invoices.');
+        if (data !== 'OK') throw new Error('The invoice could not be saved. Please check that the invoice number and client are filled in, and the amounts and dates are valid.');
+        return { success: true } as T;
+      }
+
+      case 'invoiceDelete': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_invoice_delete', { p_session: session.token, p_id: payload.id });
+        if (error) throw new Error('Could not delete the invoice.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can delete invoices.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'invoiceAccessGet': {
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_invoice_access_get', { p_session: session.token });
+        if (error) throw new Error('Could not load the Invoice access list. Has supabase_invoices.sql been run?');
+        return ((data as string[]) || []) as T;
+      }
+
+      case 'invoiceAccessSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_invoice_access_set', { p_session: session.token, p_user_ids: payload.userIds });
+        if (error) throw new Error('Could not save. Has supabase_invoices.sql been run?');
+        if (data !== 'OK') throw new Error('Only Admin can change who has access.');
+        return { success: true } as T;
+      }
+
       case 'manpowerHasAccess': {
         const session = readSession();
         if (!session) return false as T;
@@ -1670,6 +1742,63 @@ export const api = {
         if (!session) throw new Error('Please log out and log in again, then try again.');
         await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_proposal_attachment_delete', { p_session: session.token, p_id: payload.id });
+        if (error) throw new Error('Could not remove the file record.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can delete attachments.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'invoiceSettingsGet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_invoice_settings_get', { p_session: session.token });
+        if (error) {
+          console.warn('[invoiceSettingsGet] failed (run supabase_invoice_files.sql?):', error.message);
+          return '' as T;
+        }
+        return (data || '') as T;
+      }
+
+      case 'invoiceSettingsSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_invoice_settings_set', { p_session: session.token, p_drive_url: payload.driveUrl });
+        if (error) throw new Error('Could not save. Has supabase_invoice_files.sql been run?');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can change this.');
+        if (data !== 'OK') throw new Error('That is not a valid Apps Script link. It should start with https://script.google.com/macros/s/ and end with /exec');
+        return { success: true } as T;
+      }
+
+      case 'invoiceAttachmentList': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_invoice_attachment_list', { p_session: session.token });
+        if (error) {
+          console.warn('[invoiceAttachmentList] failed (run supabase_invoice_files.sql?):', error.message);
+          return [] as T;
+        }
+        return ((data as any[]) || []) as T;
+      }
+
+      case 'invoiceAttachmentAdd': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_invoice_attachment_add', {
+          p_session: session.token, p_invoice_id: payload.invoiceId, p_kind: payload.kind, p_file_name: payload.fileName,
+          p_mime: payload.mime || '', p_size: payload.size || 0, p_drive_file_id: payload.driveFileId
+        });
+        if (error) throw new Error('Could not record the file. Has supabase_invoice_files.sql been run?');
+        if (data !== 'OK') throw new Error('Could not record the file (no access, or the invoice was removed).');
+        return { success: true } as T;
+      }
+
+      case 'invoiceAttachmentDelete': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_invoice_attachment_delete', { p_session: session.token, p_id: payload.id });
         if (error) throw new Error('Could not remove the file record.');
         if (data === 'FORBIDDEN') throw new Error('Only Admin can delete attachments.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');

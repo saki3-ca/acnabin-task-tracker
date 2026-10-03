@@ -1,4 +1,4 @@
-// Talks to the Google Apps Script "Proposal Files" bridge (see apps_script/ProposalFiles.gs).
+// Talks to the Google Apps Script Drive bridges (apps_script/ProposalFiles.gs and apps_script/InvoiceFiles.gs).
 // Big files go in pieces, so a single request never gets too large.
 import { api } from '../services/api';
 
@@ -51,13 +51,14 @@ export async function uploadToDrive(
   driveUrl: string,
   client: string,
   file: File,
-  onProgress?: (fraction: number) => void
+  onProgress?: (fraction: number) => void,
+  extra: Json = {}
 ): Promise<UploadedFile> {
   if (file.size < 1) throw new Error(`"${file.name}" is empty.`);
   if (file.size > MAX_FILE_BYTES) throw new Error(`"${file.name}" is bigger than 100 MB.`);
   const mime = file.type || 'application/octet-stream';
 
-  const started = await call(driveUrl, { action: 'start', client, fileName: file.name, mime, size: file.size });
+  const started = await call(driveUrl, { action: 'start', client, ...extra, fileName: file.name, mime, size: file.size });
   let sent = 0;
   while (sent < file.size) {
     const end = Math.min(sent + UP_CHUNK, file.size);

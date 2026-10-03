@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, Shield, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, Receipt, Shield, User as UserIcon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { canViewManpower, canViewTeamTasks } from '../../lib/permissions';
 import { api } from '../../services/api';
+import { invoiceService } from '../../services/invoiceService';
 import { manpowerAccessService } from '../../services/manpowerAccessService';
 import { proposalService } from '../../services/proposalService';
 
-export type TabKey = 'own' | 'team' | 'manpower' | 'proposals' | 'requests' | 'notifications' | 'profile' | 'admin';
+export type TabKey = 'own' | 'team' | 'manpower' | 'invoices' | 'proposals' | 'requests' | 'notifications' | 'profile' | 'admin';
 
 interface NavigationTabsProps {
   activeTab: TabKey;
@@ -39,6 +40,22 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     void checkProposalAccess();
   }, [checkProposalAccess]);
   useLivePolling(() => checkProposalAccess(), 60000, Boolean(currentUser));
+
+  // Invoices: Admin plus the people the Admin chose
+  const [invoiceAccess, setInvoiceAccess] = useState(false);
+  const checkInvoiceAccess = useCallback(async () => {
+    if (!currentUser) return;
+    if (isAdminUser) return setInvoiceAccess(true);
+    if (api.isViewingAsAnother()) {
+      const ids = await invoiceService.getAccess().catch(() => [] as string[]);
+      return setInvoiceAccess(ids.includes(currentUser.id));
+    }
+    setInvoiceAccess(await invoiceService.hasAccess().catch(() => false));
+  }, [currentUser?.id, isAdminUser]);
+  useEffect(() => {
+    void checkInvoiceAccess();
+  }, [checkInvoiceAccess]);
+  useLivePolling(() => checkInvoiceAccess(), 60000, Boolean(currentUser));
 
   // Manpower is for Assistant Director and above, plus anyone the Admin added
   const [manpowerGranted, setManpowerGranted] = useState(false);
@@ -152,6 +169,17 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
         >
           <Briefcase size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           Manpower
+        </button>
+      )}
+
+      {/* Invoices: only for people the Admin chose */}
+      {invoiceAccess && (
+        <button
+          className={`tab-btn ${activeTab === 'invoices' ? 'active' : ''}`}
+          onClick={() => onSelectTab('invoices')}
+        >
+          <Receipt size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Invoices
         </button>
       )}
 

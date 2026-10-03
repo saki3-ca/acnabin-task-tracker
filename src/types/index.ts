@@ -311,3 +311,49 @@ export interface ProposalAttachment {
   uploadedBy: string;
   uploadedAt: string;
 }
+
+/** One invoice. Money and dates arrive as text ('' = empty); dates are YYYY-MM-DD. */
+export interface Invoice {
+  id: string;
+  forMonth: string;
+  year: string;
+  invoiceDate: string;
+  client: string;
+  jicName: string;
+  jobNumber: string;
+  purpose: string;
+  invoiceNo: string;
+  submissionNo: string;
+  amount: string;
+  tds: string;
+  vds: string;
+  signedSubmitted: string;
+  mailDate: string;
+  collected: string;
+  collectionDate: string;
+  collectionMethod: string;
+  paymentRef: string;
+  vdsCollected: string;
+  vdsDate: string;
+  vdsChallanLink: string;
+  vdsChallanNo: string;
+  tdsCollected: string;
+  tdsDate: string;
+  tdsChallanLink: string;
+  tdsChallanNo: string;
+  remarks: string;
+  erpNote: string;
+  createdAt?: string;
+}
+
+export interface InvoiceAttachment {
+  id: string;
+  invoiceId: string;
+  kind: 'VDS' | 'TDS';
+  fileName: string;
+  mimeType: string;
+  size: number;
+  driveFileId: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
