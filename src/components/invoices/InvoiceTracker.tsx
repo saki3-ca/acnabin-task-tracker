@@ -467,9 +467,10 @@ export const InvoiceTracker: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', padding: '0 2px 8px' }}>
+          <div style={{ position: 'relative' }}>
+            {/* the legend sits in the gap above the title bar, so the space between filter bar and table stays the same as Manpower */}
+            <div style={{ position: 'absolute', right: '2px', bottom: '100%', marginBottom: '7px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {GROUP_ORDER.map(g => (
                   <span
                     key={g}
