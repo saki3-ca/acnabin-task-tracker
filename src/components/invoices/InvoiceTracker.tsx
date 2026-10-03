@@ -48,17 +48,17 @@ const YesNo: React.FC<{ value: string; onChange: (v: string) => void }> = ({ val
 type Group = 'inv' | 'amt' | 'sub' | 'col' | 'vds' | 'tds' | 'note';
 // Soft tinted look (same family as the Profile counters): background, border, text and the header underline per group
 const GROUPS: Record<Group, { label: string; bg: string; border: string; fg: string; accent: string }> = {
-  inv: { label: 'Invoice', bg: '#EFF6FF', border: '#BFDBFE', fg: '#1E40AF', accent: '#2563EB' },
-  amt: { label: 'Amount', bg: '#F0FDF4', border: '#86EFAC', fg: '#166534', accent: '#16A34A' },
+  inv: { label: 'Invoice', bg: '#F0FDF4', border: '#86EFAC', fg: '#166534', accent: '#16A34A' },
+  amt: { label: 'Amount', bg: '#EFF6FF', border: '#BFDBFE', fg: '#1E40AF', accent: '#2563EB' },
   sub: { label: 'Submission', bg: '#FFFBEB', border: '#FDE68A', fg: '#92400E', accent: '#D97706' },
-  col: { label: 'Collection', bg: '#F0FDFA', border: '#99F6E4', fg: '#0F766E', accent: '#0D9488' },
+  col: { label: 'Collection', bg: '#FEF2F2', border: '#FECACA', fg: '#991B1B', accent: '#DC2626' },
   vds: { label: 'VDS', bg: '#FAF5FF', border: '#E9D5FF', fg: '#6B21A8', accent: '#7C3AED' },
-  tds: { label: 'TDS', bg: '#FEF2F2', border: '#FECACA', fg: '#991B1B', accent: '#DC2626' },
+  tds: { label: 'TDS', bg: '#F0FDFA', border: '#99F6E4', fg: '#0F766E', accent: '#0D9488' },
   note: { label: 'Notes', bg: '#F8FAFC', border: '#CBD5E1', fg: '#334155', accent: '#64748B' }
 };
 const TITLE_GREEN = '#146860';
 // Order of the column groups (the table and the legend follow it)
-const GROUP_ORDER: Group[] = ['amt', 'inv', 'sub', 'tds', 'vds', 'col', 'note'];
+const GROUP_ORDER: Group[] = ['inv', 'amt', 'sub', 'col', 'vds', 'tds', 'note'];
 interface Col {
   key: string;
   head: string;
@@ -675,43 +675,24 @@ export const InvoiceTracker: React.FC = () => {
             <div />
           </div>
           </FormCard>
-          <FormCard group="tds" title="TDS collection" hint="TDS status, date, challan copy and number.">
-          <div style={grid2}>
+          <FormCard group="col" title="Collection" hint="Payment received from the client.">
+          <div style={grid3}>
             <div className="form-field">
-              <label>TDS collection status</label>
-              <YesNo value={form.tdsCollected} onChange={v => set('tdsCollected', v)} />
+              <label>Collection status</label>
+              <YesNo value={form.collected} onChange={v => set('collected', v)} />
             </div>
             <div className="form-field">
-              <label>TDS collection date</label>
-              <input type="date" className="form-input" value={form.tdsDate} onChange={e => setForm(f => ({ ...f, tdsDate: e.target.value, tdsCollected: e.target.value ? 'Yes' : f.tdsCollected }))} />
-            </div>
-          </div>
-          <div style={grid2}>
-            <div className="form-field">
-              <label>Existing Drive link (old data)</label>
-              <input className="form-input" placeholder="https://drive.google.com/…" value={form.tdsChallanLink} onChange={e => set('tdsChallanLink', e.target.value)} />
+              <label>Collection date</label>
+              <input type="date" className="form-input" value={form.collectionDate} onChange={e => setForm(f => ({ ...f, collectionDate: e.target.value, collected: e.target.value ? 'Yes' : f.collected }))} />
             </div>
             <div className="form-field">
-              <label>TDS challan number</label>
-              <input className="form-input" placeholder="e.g. 2526-00485927061" value={form.tdsChallanNo} onChange={e => set('tdsChallanNo', e.target.value)} />
+              <label>Collection method</label>
+              <input className="form-input" list="inv-methods" value={form.collectionMethod} onChange={e => set('collectionMethod', e.target.value)} />
             </div>
           </div>
           <div className="form-field">
-            <label>Attach TDS challan files (saved to Drive after you save)</label>
-            <input type="file" multiple disabled={!driveUrl} onChange={e => { pickFiles('TDS', e.target.files); e.target.value = ''; }} />
-            {!driveUrl && <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '3px' }}>Admin has not set the Drive upload link yet.</div>}
-            {queued.TDS.length > 0 && (
-              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>
-                {queued.TDS.map((f, n) => (
-                  <div key={n}>
-                    {f.name} <a href="#rm" onClick={e => { e.preventDefault(); setQueued(q => ({ ...q, TDS: q.TDS.filter((_, k) => k !== n) })); }} style={{ color: '#B91C1C' }}>remove</a>
-                  </div>
-                ))}
-              </div>
-            )}
-            {editingId && filesOf(editingId, 'TDS').length > 0 && (
-              <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '3px' }}>{filesOf(editingId, 'TDS').length} file(s) already attached. Manage them from the Challan copy column.</div>
-            )}
+            <label>Cheque number / Transaction reference</label>
+            <input className="form-input" value={form.paymentRef} onChange={e => set('paymentRef', e.target.value)} />
           </div>
           </FormCard>
           <FormCard group="vds" title="VDS collection" hint="VDS status, date, challan copy and number.">
@@ -753,24 +734,43 @@ export const InvoiceTracker: React.FC = () => {
             )}
           </div>
           </FormCard>
-          <FormCard group="col" title="Collection" hint="Payment received from the client.">
-          <div style={grid3}>
+          <FormCard group="tds" title="TDS collection" hint="TDS status, date, challan copy and number.">
+          <div style={grid2}>
             <div className="form-field">
-              <label>Collection status</label>
-              <YesNo value={form.collected} onChange={v => set('collected', v)} />
+              <label>TDS collection status</label>
+              <YesNo value={form.tdsCollected} onChange={v => set('tdsCollected', v)} />
             </div>
             <div className="form-field">
-              <label>Collection date</label>
-              <input type="date" className="form-input" value={form.collectionDate} onChange={e => setForm(f => ({ ...f, collectionDate: e.target.value, collected: e.target.value ? 'Yes' : f.collected }))} />
+              <label>TDS collection date</label>
+              <input type="date" className="form-input" value={form.tdsDate} onChange={e => setForm(f => ({ ...f, tdsDate: e.target.value, tdsCollected: e.target.value ? 'Yes' : f.tdsCollected }))} />
+            </div>
+          </div>
+          <div style={grid2}>
+            <div className="form-field">
+              <label>Existing Drive link (old data)</label>
+              <input className="form-input" placeholder="https://drive.google.com/…" value={form.tdsChallanLink} onChange={e => set('tdsChallanLink', e.target.value)} />
             </div>
             <div className="form-field">
-              <label>Collection method</label>
-              <input className="form-input" list="inv-methods" value={form.collectionMethod} onChange={e => set('collectionMethod', e.target.value)} />
+              <label>TDS challan number</label>
+              <input className="form-input" placeholder="e.g. 2526-00485927061" value={form.tdsChallanNo} onChange={e => set('tdsChallanNo', e.target.value)} />
             </div>
           </div>
           <div className="form-field">
-            <label>Cheque number / Transaction reference</label>
-            <input className="form-input" value={form.paymentRef} onChange={e => set('paymentRef', e.target.value)} />
+            <label>Attach TDS challan files (saved to Drive after you save)</label>
+            <input type="file" multiple disabled={!driveUrl} onChange={e => { pickFiles('TDS', e.target.files); e.target.value = ''; }} />
+            {!driveUrl && <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '3px' }}>Admin has not set the Drive upload link yet.</div>}
+            {queued.TDS.length > 0 && (
+              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>
+                {queued.TDS.map((f, n) => (
+                  <div key={n}>
+                    {f.name} <a href="#rm" onClick={e => { e.preventDefault(); setQueued(q => ({ ...q, TDS: q.TDS.filter((_, k) => k !== n) })); }} style={{ color: '#B91C1C' }}>remove</a>
+                  </div>
+                ))}
+              </div>
+            )}
+            {editingId && filesOf(editingId, 'TDS').length > 0 && (
+              <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '3px' }}>{filesOf(editingId, 'TDS').length} file(s) already attached. Manage them from the Challan copy column.</div>
+            )}
           </div>
           </FormCard>
           <FormCard group="note" title="Notes" hint="Remarks and the ERP entry.">

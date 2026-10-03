@@ -17,7 +17,7 @@ type Col = { g: string; h: string; w: number; a: 'left' | 'center' | 'right'; ki
 const t = (v: string) => v || null;
 
 const GROUP_COLORS: Record<string, string> = {
-  inv: 'FF1E3A8A', amt: 'FF15803D', sub: 'FFB45309', col: 'FF0E7490', vds: 'FF6D28D9', tds: 'FF9F1239', note: 'FF475569'
+  inv: 'FF15803D', amt: 'FF1E3A8A', sub: 'FFB45309', col: 'FF9F1239', vds: 'FF6D28D9', tds: 'FF0E7490', note: 'FF475569'
 };
 
 const COLS: Col[] = [
