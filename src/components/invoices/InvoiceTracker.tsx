@@ -89,6 +89,7 @@ export const InvoiceTracker: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [attachments, setAttachments] = useState<InvoiceAttachment[]>([]);
   const [driveUrl, setDriveUrl] = useState('');
+  const [popup, setPopup] = useState<null | 'ALL' | 'COL' | 'OUT' | 'VDS' | 'TDS'>(null);
   const [filesFor, setFilesFor] = useState<{ id: string; kind: 'VDS' | 'TDS' } | null>(null);
   const [queued, setQueued] = useState<{ VDS: File[]; TDS: File[] }>({ VDS: [], TDS: [] });
   const [fileNote, setFileNote] = useState<string | null>(null);
@@ -158,6 +159,17 @@ export const InvoiceTracker: React.FC = () => {
     });
     return { collected, outstanding: invoices.length - collected, vdsPending, tdsPending };
   }, [invoices]);
+
+  const popupList = useMemo(() => {
+    switch (popup) {
+      case 'COL': return invoices.filter(i => isYes(i.collected));
+      case 'OUT': return invoices.filter(i => !isYes(i.collected));
+      case 'VDS': return invoices.filter(i => !isYes(i.vdsCollected) && toNum(i.vds) > 0);
+      case 'TDS': return invoices.filter(i => !isYes(i.tdsCollected) && toNum(i.tds) > 0);
+      case 'ALL': return invoices;
+      default: return [];
+    }
+  }, [popup, invoices]);
 
   const rows = useMemo(() => {
     const q = norm(search);
@@ -416,11 +428,11 @@ export const InvoiceTracker: React.FC = () => {
           <StatPills
             variant="maroon"
             items={[
-              { label: 'INVOICES', value: invoices.length },
-              { label: 'COLLECTED', value: stats.collected },
-              { label: 'OUTSTANDING', value: stats.outstanding, isOverdue: stats.outstanding > 0 },
-              { label: 'VDS PENDING', value: stats.vdsPending, isOverdue: stats.vdsPending > 0 },
-              { label: 'TDS PENDING', value: stats.tdsPending, isOverdue: stats.tdsPending > 0 }
+              { label: 'INVOICES', value: invoices.length, onClick: () => setPopup('ALL'), title: 'Click to see all invoices' },
+              { label: 'COLLECTED', value: stats.collected, onClick: () => setPopup('COL'), title: 'Click to see the collected invoices' },
+              { label: 'OUTSTANDING', value: stats.outstanding, isOverdue: stats.outstanding > 0, onClick: () => setPopup('OUT'), title: 'Click to see the invoices not collected yet' },
+              { label: 'VDS PENDING', value: stats.vdsPending, isOverdue: stats.vdsPending > 0, onClick: () => setPopup('VDS'), title: 'Click to see the invoices with VDS not collected' },
+              { label: 'TDS PENDING', value: stats.tdsPending, isOverdue: stats.tdsPending > 0, onClick: () => setPopup('TDS'), title: 'Click to see the invoices with TDS not collected' }
             ]}
           />
 
@@ -548,6 +560,66 @@ export const InvoiceTracker: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* The invoices behind a counter (like the Completed Tasks list) */}
+      <Modal
+        isOpen={popup !== null}
+        onClose={() => setPopup(null)}
+        title={`${{ ALL: 'All Invoices', COL: 'Collected Invoices', OUT: 'Outstanding Invoices (not collected)', VDS: 'VDS Pending', TDS: 'TDS Pending' }[popup || 'ALL']} (${popupList.length})`}
+        maxWidth="1100px"
+      >
+        <div style={{ padding: '0 0 6px' }}>
+          <div className="table-responsive" style={{ maxHeight: '60vh' }}>
+            <table className="data-table" style={{ minWidth: '900px' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'center', width: '44px' }}>SL</th>
+                  <th style={{ textAlign: 'left' }}>Client</th>
+                  <th style={{ textAlign: 'center' }}>Invoice No.</th>
+                  <th style={{ textAlign: 'center' }}>Invoice Date</th>
+                  <th style={{ textAlign: 'right' }}>Invoice Amount (৳)</th>
+                  {popup === 'VDS' && <th style={{ textAlign: 'right' }}>VDS (৳)</th>}
+                  {popup === 'TDS' && <th style={{ textAlign: 'right' }}>TDS (৳)</th>}
+                  <th style={{ textAlign: 'center' }}>Collection</th>
+                  <th style={{ textAlign: 'center' }}>Collection Date</th>
+                  <th style={{ width: '52px' }} />
+                </tr>
+              </thead>
+              <tbody>
+                {popupList.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '28px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>Nothing here.</td>
+                  </tr>
+                ) : (
+                  popupList.map((i, n) => (
+                    <tr key={i.id}>
+                      <td style={{ textAlign: 'center', fontWeight: 600 }}>{n + 1}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 600 }}>{i.client}</td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{i.invoiceNo}</td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtDate(i.invoiceDate)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{money(i.amount)}</td>
+                      {popup === 'VDS' && <td style={{ textAlign: 'right' }}>{money(i.vds)}</td>}
+                      {popup === 'TDS' && <td style={{ textAlign: 'right' }}>{money(i.tds)}</td>}
+                      <td style={{ textAlign: 'center' }}><Chip value={i.collected} /></td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtDate(i.collectionDate)}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        {rowBtn('Edit', () => { setPopup(null); openModal(i); }, <Pencil size={13} />)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {popupList.length > 0 && (
+            <div style={{ padding: '10px 14px 2px', fontSize: '12.5px', color: 'var(--ink-soft)', fontWeight: 600, textAlign: 'right' }}>
+              Total invoice amount: ৳ {fmtMoney(popupList.reduce((sum, i) => sum + toNum(i.amount), 0))}
+              {popup === 'VDS' && <> · Total VDS: ৳ {fmtMoney(popupList.reduce((sum, i) => sum + toNum(i.vds), 0))}</>}
+              {popup === 'TDS' && <> · Total TDS: ৳ {fmtMoney(popupList.reduce((sum, i) => sum + toNum(i.tds), 0))}</>}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <InvoiceFilesModal
         invoice={filesFor ? invoices.find(x => x.id === filesFor.id) || null : null}
