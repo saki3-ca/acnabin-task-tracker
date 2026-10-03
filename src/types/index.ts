@@ -327,6 +327,9 @@ export interface Invoice {
   amount: string;
   tds: string;
   vds: string;
+  /** Submitted to the client? (no money without this) */
+  clientSubmitted: string;
+  clientSubmitDate: string;
   signedSubmitted: string;
   mailDate: string;
   collected: string;

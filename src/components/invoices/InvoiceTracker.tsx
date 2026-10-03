@@ -17,7 +17,7 @@ import { InvoiceFilesModal } from './InvoiceFilesModal';
 type Form = Omit<Invoice, 'id' | 'createdAt'>;
 const EMPTY: Form = {
   forMonth: '', year: '', invoiceDate: '', client: '', jicName: '', jobNumber: '', purpose: '', invoiceNo: '', submissionNo: '',
-  amount: '', tds: '', vds: '', signedSubmitted: 'No', mailDate: '', collected: 'No', collectionDate: '', collectionMethod: '', paymentRef: '',
+  amount: '', tds: '', vds: '', clientSubmitted: 'No', clientSubmitDate: '', signedSubmitted: 'No', mailDate: '', collected: 'No', collectionDate: '', collectionMethod: '', paymentRef: '',
   vdsCollected: 'No', vdsDate: '', vdsChallanLink: '', vdsChallanNo: '', tdsCollected: 'No', tdsDate: '', tdsChallanLink: '', tdsChallanNo: '',
   remarks: '', erpNote: ''
 };
@@ -44,6 +44,28 @@ const YesNo: React.FC<{ value: string; onChange: (v: string) => void }> = ({ val
     <option value="Yes">Yes</option>
   </select>
 );
+
+type Group = 'inv' | 'amt' | 'sub' | 'col' | 'vds' | 'tds' | 'note';
+// Header colour per group of columns
+const GROUPS: Record<Group, { label: string; color: string }> = {
+  inv: { label: 'Invoice', color: '#1E3A8A' },
+  amt: { label: 'Amount', color: '#15803D' },
+  sub: { label: 'Submission', color: '#B45309' },
+  col: { label: 'Collection', color: '#0E7490' },
+  vds: { label: 'VDS', color: '#6D28D9' },
+  tds: { label: 'TDS', color: '#9F1239' },
+  note: { label: 'Notes', color: '#475569' }
+};
+interface Col {
+  key: string;
+  head: string;
+  w: number;
+  group: Group;
+  align: 'left' | 'center' | 'right';
+  sticky?: 'left' | 'right';
+  left?: number;
+  render: (i: Invoice, n: number) => React.ReactNode;
+}
 
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' };
 const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'end' };
@@ -114,18 +136,15 @@ export const InvoiceTracker: React.FC = () => {
   const filesOf = (id: string, kind: 'VDS' | 'TDS') => attachments.filter(a => a.invoiceId === id && a.kind === kind);
 
   const stats = useMemo(() => {
-    let invoiced = 0;
     let collected = 0;
     let vdsPending = 0;
     let tdsPending = 0;
     invoices.forEach(i => {
-      const a = toNum(i.amount);
-      invoiced += a;
-      if (isYes(i.collected)) collected += a;
+      if (isYes(i.collected)) collected += 1;
       if (!isYes(i.vdsCollected) && toNum(i.vds) > 0) vdsPending += 1;
       if (!isYes(i.tdsCollected) && toNum(i.tds) > 0) tdsPending += 1;
     });
-    return { invoiced, collected, outstanding: invoiced - collected, vdsPending, tdsPending };
+    return { collected, outstanding: invoices.length - collected, vdsPending, tdsPending };
   }, [invoices]);
 
   const rows = useMemo(() => {
@@ -266,7 +285,6 @@ export const InvoiceTracker: React.FC = () => {
   };
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm(f => ({ ...f, [k]: v }));
-  const th: React.CSSProperties = { textAlign: 'center' };
   const bannerBtn: React.CSSProperties = { height: '32px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '6px' };
   const money = (s: string) => (s && toNum(s) !== 0 ? fmtMoney(toNum(s)) : '—');
   const rowBtn = (title: string, onClick: () => void, icon: React.ReactNode, color?: string, ml = 0) => (
@@ -299,6 +317,66 @@ export const InvoiceTracker: React.FC = () => {
     );
   };
 
+  const cell = (v: string) => (v ? <span title={v}>{v}</span> : <span style={{ color: 'var(--ink-muted)' }}>—</span>);
+  const dateCell = (iso: string) => <span style={{ color: iso ? undefined : 'var(--ink-muted)' }}>{fmtDate(iso)}</span>;
+  const cols: Col[] = [
+    { key: 'sl', head: 'SL', w: 46, group: 'inv', align: 'center', sticky: 'left', left: 0, render: (_i, n) => <strong>{n + 1}</strong> },
+    {
+      key: 'client', head: 'Client Name', w: 250, group: 'inv', align: 'left', sticky: 'left', left: 46,
+      render: i => <span title={i.client} style={{ fontWeight: 600 }}>{i.client}</span>
+    },
+    { key: 'jic', head: 'JIC Name', w: 150, group: 'inv', align: 'left', render: i => cell(i.jicName) },
+    { key: 'month', head: 'For the Month', w: 130, group: 'inv', align: 'center', render: i => cell([i.forMonth, i.year].filter(Boolean).join(' ')) },
+    { key: 'idate', head: 'Invoice Date', w: 112, group: 'inv', align: 'center', render: i => dateCell(i.invoiceDate) },
+    { key: 'job', head: 'Job No.', w: 90, group: 'inv', align: 'center', render: i => cell(i.jobNumber) },
+    { key: 'purpose', head: 'Purpose', w: 160, group: 'inv', align: 'left', render: i => cell(i.purpose) },
+    { key: 'ino', head: 'Invoice No.', w: 190, group: 'inv', align: 'center', render: i => <strong style={{ fontSize: '12.5px' }}>{i.invoiceNo}</strong> },
+    { key: 'sno', head: 'Submission No.', w: 104, group: 'inv', align: 'center', render: i => cell(i.submissionNo) },
+
+    { key: 'amt', head: 'Invoice Amount (৳)', w: 124, group: 'amt', align: 'right', render: i => <strong>{money(i.amount)}</strong> },
+    { key: 'tds', head: 'TDS (৳)', w: 100, group: 'amt', align: 'right', render: i => money(i.tds) },
+    { key: 'vds', head: 'VDS (৳)', w: 100, group: 'amt', align: 'right', render: i => money(i.vds) },
+
+    { key: 'csub', head: 'Submitted to Client', w: 112, group: 'sub', align: 'center', render: i => <Chip value={i.clientSubmitted} /> },
+    { key: 'csubd', head: 'Client Submission Date', w: 118, group: 'sub', align: 'center', render: i => dateCell(i.clientSubmitDate) },
+    { key: 'signed', head: 'Signed Invoice to ACNABIN', w: 120, group: 'sub', align: 'center', render: i => <Chip value={i.signedSubmitted} /> },
+    { key: 'mail', head: 'Mail Date (to ACNABIN)', w: 120, group: 'sub', align: 'center', render: i => dateCell(i.mailDate) },
+
+    { key: 'cstat', head: 'Collection Status', w: 104, group: 'col', align: 'center', render: i => <Chip value={i.collected} /> },
+    { key: 'cdate', head: 'Collection Date', w: 112, group: 'col', align: 'center', render: i => dateCell(i.collectionDate) },
+    { key: 'cmeth', head: 'Collection Method', w: 120, group: 'col', align: 'center', render: i => cell(i.collectionMethod) },
+    { key: 'cref', head: 'Cheque / Transaction Ref.', w: 190, group: 'col', align: 'center', render: i => cell(i.paymentRef) },
+
+    { key: 'vstat', head: 'VDS Status', w: 92, group: 'vds', align: 'center', render: i => <Chip value={i.vdsCollected} /> },
+    { key: 'vdate', head: 'VDS Collection Date', w: 118, group: 'vds', align: 'center', render: i => dateCell(i.vdsDate) },
+    { key: 'vfile', head: 'VDS Challan Copy', w: 104, group: 'vds', align: 'center', render: i => challanCell(i, 'VDS') },
+    { key: 'vno', head: 'VDS Challan No.', w: 170, group: 'vds', align: 'center', render: i => cell(i.vdsChallanNo) },
+
+    { key: 'tstat', head: 'TDS Status', w: 92, group: 'tds', align: 'center', render: i => <Chip value={i.tdsCollected} /> },
+    { key: 'tdate', head: 'TDS Collection Date', w: 118, group: 'tds', align: 'center', render: i => dateCell(i.tdsDate) },
+    { key: 'tfile', head: 'TDS Challan Copy', w: 104, group: 'tds', align: 'center', render: i => challanCell(i, 'TDS') },
+    { key: 'tno', head: 'TDS Challan No.', w: 170, group: 'tds', align: 'center', render: i => cell(i.tdsChallanNo) },
+
+    { key: 'rem', head: 'Remarks', w: 230, group: 'note', align: 'left', render: i => cell(i.remarks) },
+    { key: 'erp', head: 'ERP Entry / Director Review', w: 190, group: 'note', align: 'left', render: i => cell(i.erpNote) },
+    {
+      key: 'act', head: '', w: 92, group: 'note', align: 'center', sticky: 'right',
+      render: i => (
+        <span style={{ whiteSpace: 'nowrap' }}>
+          {rowBtn('Edit', () => openModal(i), <Pencil size={13} />)}
+          {isAdmin && rowBtn('Delete (Admin)', () => void remove(i), <Trash2 size={13} />, '#B91C1C', 6)}
+        </span>
+      )
+    }
+  ];
+  const totalWidth = cols.reduce((sum, c) => sum + c.w, 0);
+  const stickyStyle = (c: Col, head: boolean): React.CSSProperties =>
+    c.sticky === 'left'
+      ? { position: 'sticky', left: c.left, zIndex: head ? 5 : 2, boxShadow: c.key === 'client' ? '2px 0 4px rgba(0,0,0,0.08)' : undefined }
+      : c.sticky === 'right'
+      ? { position: 'sticky', right: 0, zIndex: head ? 5 : 2, boxShadow: '-2px 0 4px rgba(0,0,0,0.08)' }
+      : {};
+
   return (
     <div className="tab-pane">
       {loadError ? (
@@ -311,9 +389,8 @@ export const InvoiceTracker: React.FC = () => {
             variant="maroon"
             items={[
               { label: 'INVOICES', value: invoices.length },
-              { label: 'INVOICED (৳)', value: fmtMoney(stats.invoiced) },
-              { label: 'COLLECTED (৳)', value: fmtMoney(stats.collected) },
-              { label: 'OUTSTANDING (৳)', value: fmtMoney(stats.outstanding), isOverdue: stats.outstanding > 0 },
+              { label: 'COLLECTED', value: stats.collected },
+              { label: 'OUTSTANDING', value: stats.outstanding, isOverdue: stats.outstanding > 0 },
               { label: 'VDS PENDING', value: stats.vdsPending, isOverdue: stats.vdsPending > 0 },
               { label: 'TDS PENDING', value: stats.tdsPending, isOverdue: stats.tdsPending > 0 }
             ]}
@@ -341,93 +418,46 @@ export const InvoiceTracker: React.FC = () => {
                 <option value="COL">Collected</option>
               </select>
               <span style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>{rows.length} shown</span>
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '11.5px', color: 'var(--ink-soft)' }}>
+                {(Object.keys(GROUPS) as Group[]).map(g => (
+                  <span key={g} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: GROUPS[g].color, display: 'inline-block' }} /> {GROUPS[g].label}
+                  </span>
+                ))}
+              </span>
             </div>
 
-            <div className="table-responsive">
-              <table className="data-table" style={{ minWidth: '1590px', tableLayout: 'fixed' }}>
+            <div className="table-responsive" style={{ maxHeight: '70vh' }}>
+              <table className="data-table" style={{ minWidth: `${totalWidth}px`, tableLayout: 'fixed', borderCollapse: 'separate', borderSpacing: 0 }}>
                 <colgroup>
-                  <col style={{ width: '44px' }} />
-                  <col style={{ width: '92px' }} />
-                  <col style={{ width: '104px' }} />
-                  <col style={{ width: '220px' }} />
-                  <col style={{ width: '82px' }} />
-                  <col style={{ width: '120px' }} />
-                  <col style={{ width: '176px' }} />
-                  <col style={{ width: '102px' }} />
-                  <col style={{ width: '86px' }} />
-                  <col style={{ width: '86px' }} />
-                  <col style={{ width: '86px' }} />
-                  <col style={{ width: '70px' }} />
-                  <col style={{ width: '70px' }} />
-                  <col style={{ width: '78px' }} />
-                  <col style={{ width: '78px' }} />
-                  <col style={{ width: '96px' }} />
+                  {cols.map(c => (
+                    <col key={c.key} style={{ width: `${c.w}px` }} />
+                  ))}
                 </colgroup>
                 <thead>
                   <tr>
-                    <th colSpan={8} style={{ border: 'none' }} />
-                    <th colSpan={3} style={{ textAlign: 'center', background: '#DCE6F4', color: '#1B2A6B' }}>Amount (৳)</th>
-                    <th colSpan={3} style={{ textAlign: 'center', background: '#DCE6F4', color: '#1B2A6B' }}>Collected?</th>
-                    <th colSpan={2} style={{ textAlign: 'center', background: '#DCE6F4', color: '#1B2A6B' }}>Challan copy</th>
-                    <th style={{ border: 'none' }} />
-                  </tr>
-                  <tr>
-                    <th style={th}>SL</th>
-                    <th style={th}>Month</th>
-                    <th style={th}>Invoice Date</th>
-                    <th style={th}>Client / JIC</th>
-                    <th style={th}>Job No.</th>
-                    <th style={th}>Purpose</th>
-                    <th style={th}>Invoice / Submission No.</th>
-                    <th style={th}>Invoice Amount</th>
-                    <th style={th}>TDS</th>
-                    <th style={th}>VDS</th>
-                    <th style={th}>Payment</th>
-                    <th style={th}>VDS</th>
-                    <th style={th}>TDS</th>
-                    <th style={th}>VDS</th>
-                    <th style={th}>TDS</th>
-                    <th />
+                    {cols.map(c => (
+                      <th key={c.key} title={c.head} style={{ ...stickyStyle(c, true), textAlign: 'center', background: GROUPS[c.group].color, color: '#fff', whiteSpace: 'normal', lineHeight: 1.25, padding: '8px 6px', fontSize: '11px', borderBottom: 'none', borderRight: '1px solid rgba(255,255,255,0.18)', position: 'sticky', top: 0, zIndex: c.sticky ? 4 : 3 }}>
+                        {c.head}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rows.length === 0 ? (
                     <tr>
-                      <td colSpan={16} style={{ textAlign: 'center', padding: '30px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
+                      <td colSpan={cols.length} style={{ textAlign: 'center', padding: '30px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
                         {invoices.length === 0 ? 'No invoices yet. Click “New Invoice” to add the first one.' : 'No invoices match.'}
                       </td>
                     </tr>
                   ) : (
                     rows.map((i, n) => (
                       <tr key={i.id}>
-                        <td style={{ textAlign: 'center', fontWeight: 600 }}>{n + 1}</td>
-                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`${i.forMonth} ${i.year}`}>
-                          {i.forMonth || '—'}
-                          <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>{i.year}</div>
-                        </td>
-                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap', fontSize: '13px' }}>{fmtDate(i.invoiceDate)}</td>
-                        <td style={{ textAlign: 'left', overflow: 'hidden' }} title={`${i.client}${i.jicName ? ' · ' + i.jicName : ''}`}>
-                          <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.client}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--ink-soft)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i.jicName || '—'}</div>
-                        </td>
-                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{i.jobNumber || '—'}</td>
-                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={i.purpose}>{i.purpose || '—'}</td>
-                        <td style={{ textAlign: 'center', overflow: 'hidden' }}>
-                          <div style={{ fontWeight: 600, fontSize: '12.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={i.invoiceNo}>{i.invoiceNo}</div>
-                          <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)' }}>{i.submissionNo || '—'}</div>
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600 }}>{money(i.amount)}</td>
-                        <td style={{ textAlign: 'right' }}>{money(i.tds)}</td>
-                        <td style={{ textAlign: 'right' }}>{money(i.vds)}</td>
-                        <td style={{ textAlign: 'center' }}><Chip value={i.collected} dateIso={i.collectionDate} /></td>
-                        <td style={{ textAlign: 'center' }}><Chip value={i.vdsCollected} dateIso={i.vdsDate} /></td>
-                        <td style={{ textAlign: 'center' }}><Chip value={i.tdsCollected} dateIso={i.tdsDate} /></td>
-                        <td style={{ textAlign: 'center' }}>{challanCell(i, 'VDS')}</td>
-                        <td style={{ textAlign: 'center' }}>{challanCell(i, 'TDS')}</td>
-                        <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
-                          {rowBtn('Edit', () => openModal(i), <Pencil size={13} />)}
-                          {isAdmin && rowBtn('Delete (Admin)', () => void remove(i), <Trash2 size={13} />, '#B91C1C', 6)}
-                        </td>
+                        {cols.map(c => (
+                          <td key={c.key} style={{ ...stickyStyle(c, false), textAlign: c.align, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', background: '#fff', borderBottom: '1px solid var(--line)', padding: '8px 8px' }}>
+                            {c.render(i, n)}
+                          </td>
+                        ))}
                       </tr>
                     ))
                   )}
@@ -540,14 +570,25 @@ export const InvoiceTracker: React.FC = () => {
             </div>
           </div>
 
-          <div style={sectionTitle}>Signed invoice &amp; collection</div>
+          <div style={sectionTitle}>Submission, signed invoice &amp; collection</div>
+          <div style={grid3}>
+            <div className="form-field">
+              <label>Submission status (Client)</label>
+              <YesNo value={form.clientSubmitted} onChange={v => set('clientSubmitted', v)} />
+            </div>
+            <div className="form-field">
+              <label>Client submission date</label>
+              <input type="date" className="form-input" value={form.clientSubmitDate} onChange={e => setForm(f => ({ ...f, clientSubmitDate: e.target.value, clientSubmitted: e.target.value ? 'Yes' : f.clientSubmitted }))} />
+            </div>
+            <div />
+          </div>
           <div style={grid3}>
             <div className="form-field">
               <label>Signed invoice submitted to ACNABIN</label>
               <YesNo value={form.signedSubmitted} onChange={v => set('signedSubmitted', v)} />
             </div>
             <div className="form-field">
-              <label>Mail date</label>
+              <label>Mail date (mailed to ACNABIN)</label>
               <input type="date" className="form-input" value={form.mailDate} onChange={e => setForm(f => ({ ...f, mailDate: e.target.value, signedSubmitted: e.target.value ? 'Yes' : f.signedSubmitted }))} />
             </div>
             <div />

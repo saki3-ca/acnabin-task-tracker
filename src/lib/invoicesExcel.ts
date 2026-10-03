@@ -13,49 +13,52 @@ const toDate = (iso?: string): Date | null => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-type Col = { h: string; w: number; a: 'left' | 'center' | 'right'; kind?: 'date' | 'money' | 'link'; get: (i: Invoice, n: number) => string | number | Date | null };
+type Col = { g: string; h: string; w: number; a: 'left' | 'center' | 'right'; kind?: 'date' | 'money' | 'link'; get: (i: Invoice, n: number) => string | number | Date | null };
 const t = (v: string) => v || null;
 
-const COLS: Col[] = [
-  { h: 'SL', w: 6, a: 'center', get: (_i, n) => n },
-  { h: 'For the month', w: 16, a: 'center', get: i => t(i.forMonth) },
-  { h: 'Year', w: 8, a: 'center', get: i => (i.year ? Number(i.year) : null) },
-  { h: 'Invoice Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.invoiceDate) },
-  { h: 'Client Name', w: 36, a: 'left', get: i => t(i.client) },
-  { h: 'JIC Name', w: 24, a: 'left', get: i => t(i.jicName) },
-  { h: 'Job Number', w: 12, a: 'center', get: i => t(i.jobNumber) },
-  { h: 'Purpose', w: 24, a: 'left', get: i => t(i.purpose) },
-  { h: 'Invoice Number', w: 22, a: 'center', get: i => t(i.invoiceNo) },
-  { h: 'Submission Number', w: 13, a: 'center', get: i => t(i.submissionNo) },
-  { h: 'Invoice Amount (Including VAT & TAX)', w: 18, a: 'right', kind: 'money', get: i => (i.amount ? toNum(i.amount) : null) },
-  { h: 'TDS', w: 13, a: 'right', kind: 'money', get: i => (i.tds ? toNum(i.tds) : null) },
-  { h: 'VDS', w: 13, a: 'right', kind: 'money', get: i => (i.vds ? toNum(i.vds) : null) },
-  { h: 'Signed invoice submitted to ACNABIN', w: 16, a: 'center', get: i => t(i.signedSubmitted) },
-  { h: 'Mail Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.mailDate) },
-  { h: 'Collection Status', w: 13, a: 'center', get: i => t(i.collected) },
-  { h: 'Collection Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.collectionDate) },
-  { h: 'Collection Method', w: 14, a: 'center', get: i => t(i.collectionMethod) },
-  { h: 'Cheque number / Transaction reference', w: 26, a: 'center', get: i => t(i.paymentRef) },
-  { h: 'VDS Collection Status', w: 13, a: 'center', get: i => t(i.vdsCollected) },
-  { h: 'VDS Collection Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.vdsDate) },
-  { h: 'VDS Challan Copy', w: 26, a: 'left', kind: 'link', get: i => t(i.vdsChallanLink) },
-  { h: 'VDS Challan Number', w: 20, a: 'center', get: i => t(i.vdsChallanNo) },
-  { h: 'TDS Collection Status', w: 13, a: 'center', get: i => t(i.tdsCollected) },
-  { h: 'TDS Collection Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.tdsDate) },
-  { h: 'TDS Challan Copy', w: 26, a: 'left', kind: 'link', get: i => t(i.tdsChallanLink) },
-  { h: 'TDS Challan Number', w: 20, a: 'center', get: i => t(i.tdsChallanNo) },
-  { h: 'Remarks', w: 40, a: 'left', get: i => t(i.remarks) },
-  { h: 'ERP entry completed and reviewed with Director', w: 30, a: 'left', get: i => t(i.erpNote) }
-];
+const GROUP_COLORS: Record<string, string> = {
+  inv: 'FF1E3A8A', amt: 'FF15803D', sub: 'FFB45309', col: 'FF0E7490', vds: 'FF6D28D9', tds: 'FF9F1239', note: 'FF475569'
+};
 
-// Group bands above the headers: [first column, last column, label] (1-based)
-const BANDS: [number, number, string][] = [[11, 13, 'Amount'], [16, 19, 'Collection Status'], [20, 23, 'VDS Collection Status'], [24, 27, 'TDS Collection Status']];
+const COLS: Col[] = [
+  { g: 'inv', h: 'SL', w: 6, a: 'center', get: (_i, n) => n },
+  { g: 'inv', h: 'For the month', w: 16, a: 'center', get: i => t(i.forMonth) },
+  { g: 'inv', h: 'Year', w: 8, a: 'center', get: i => (i.year ? Number(i.year) : null) },
+  { g: 'inv', h: 'Invoice Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.invoiceDate) },
+  { g: 'inv', h: 'Client Name', w: 36, a: 'left', get: i => t(i.client) },
+  { g: 'inv', h: 'JIC Name', w: 24, a: 'left', get: i => t(i.jicName) },
+  { g: 'inv', h: 'Job Number', w: 12, a: 'center', get: i => t(i.jobNumber) },
+  { g: 'inv', h: 'Purpose', w: 24, a: 'left', get: i => t(i.purpose) },
+  { g: 'inv', h: 'Invoice Number', w: 22, a: 'center', get: i => t(i.invoiceNo) },
+  { g: 'inv', h: 'Submission Number', w: 13, a: 'center', get: i => t(i.submissionNo) },
+  { g: 'amt', h: 'Invoice Amount (Including VAT & TAX)', w: 18, a: 'right', kind: 'money', get: i => (i.amount ? toNum(i.amount) : null) },
+  { g: 'amt', h: 'TDS', w: 13, a: 'right', kind: 'money', get: i => (i.tds ? toNum(i.tds) : null) },
+  { g: 'amt', h: 'VDS', w: 13, a: 'right', kind: 'money', get: i => (i.vds ? toNum(i.vds) : null) },
+  { g: 'sub', h: 'Submission Status (Client)', w: 15, a: 'center', get: i => t(i.clientSubmitted) },
+  { g: 'sub', h: 'Client Submission Date', w: 15, a: 'center', kind: 'date', get: i => toDate(i.clientSubmitDate) },
+  { g: 'sub', h: 'Signed invoice submitted to ACNABIN', w: 16, a: 'center', get: i => t(i.signedSubmitted) },
+  { g: 'sub', h: 'Mail Date (to ACNABIN)', w: 15, a: 'center', kind: 'date', get: i => toDate(i.mailDate) },
+  { g: 'col', h: 'Collection Status', w: 13, a: 'center', get: i => t(i.collected) },
+  { g: 'col', h: 'Collection Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.collectionDate) },
+  { g: 'col', h: 'Collection Method', w: 14, a: 'center', get: i => t(i.collectionMethod) },
+  { g: 'col', h: 'Cheque number / Transaction reference', w: 26, a: 'center', get: i => t(i.paymentRef) },
+  { g: 'vds', h: 'VDS Collection Status', w: 13, a: 'center', get: i => t(i.vdsCollected) },
+  { g: 'vds', h: 'VDS Collection Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.vdsDate) },
+  { g: 'vds', h: 'VDS Challan Copy', w: 26, a: 'left', kind: 'link', get: i => t(i.vdsChallanLink) },
+  { g: 'vds', h: 'VDS Challan Number', w: 20, a: 'center', get: i => t(i.vdsChallanNo) },
+  { g: 'tds', h: 'TDS Collection Status', w: 13, a: 'center', get: i => t(i.tdsCollected) },
+  { g: 'tds', h: 'TDS Collection Date', w: 14, a: 'center', kind: 'date', get: i => toDate(i.tdsDate) },
+  { g: 'tds', h: 'TDS Challan Copy', w: 26, a: 'left', kind: 'link', get: i => t(i.tdsChallanLink) },
+  { g: 'tds', h: 'TDS Challan Number', w: 20, a: 'center', get: i => t(i.tdsChallanNo) },
+  { g: 'note', h: 'Remarks', w: 40, a: 'left', get: i => t(i.remarks) },
+  { g: 'note', h: 'ERP entry completed and reviewed with Director', w: 30, a: 'left', get: i => t(i.erpNote) }
+];
 
 export async function downloadInvoicesExcel(rows: Invoice[], fileName: string): Promise<void> {
   const ExcelJS = (await import('exceljs')).default;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'ACNABIN Task Tracker';
-  const ws = wb.addWorksheet('Invoices', { views: [{ state: 'frozen', ySplit: 5, xSplit: 5, showGridLines: false }] });
+  const ws = wb.addWorksheet('Invoices', { views: [{ state: 'frozen', ySplit: 4, xSplit: 5, showGridLines: false }] });
   const n = COLS.length;
 
   ws.mergeCells(1, 1, 1, n);
@@ -71,24 +74,11 @@ export async function downloadInvoicesExcel(rows: Invoice[], fileName: string): 
   sub.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   ws.addRow([]);
 
-  // band row (row 4)
-  const bandRow = ws.addRow(new Array(n).fill(null));
-  bandRow.height = 22;
-  BANDS.forEach(([a, b, label]) => {
-    ws.mergeCells(4, a, 4, b);
-    const c = ws.getCell(4, a);
-    c.value = label;
-    c.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1B2A6B' } };
-    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F4' } };
-    c.alignment = { horizontal: 'center', vertical: 'middle' };
-    for (let col = a; col <= b; col++) ws.getCell(4, col).border = BORDER;
-  });
-
   const head = ws.addRow(COLS.map(c => c.h));
   head.height = 48;
-  head.eachCell(c => {
+  head.eachCell((c, col) => {
     c.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GROUP_COLORS[COLS[col - 1]?.g] || BLUE } };
     c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     c.border = BORDER;
   });
@@ -116,7 +106,7 @@ export async function downloadInvoicesExcel(rows: Invoice[], fileName: string): 
   const total = ws.addRow(COLS.map((_c, i) => (i === 4 ? 'TOTAL' : null)));
   [11, 12, 13].forEach(col => {
     const letter = ws.getColumn(col).letter;
-    total.getCell(col).value = { formula: `SUM(${letter}6:${letter}${5 + rows.length})`, result: rows.reduce((s, r) => s + toNum([r.amount, r.tds, r.vds][col - 11]), 0) };
+    total.getCell(col).value = { formula: `SUM(${letter}5:${letter}${4 + rows.length})`, result: rows.reduce((s, r) => s + toNum([r.amount, r.tds, r.vds][col - 11]), 0) };
     total.getCell(col).numFmt = '#,##0';
   });
   total.eachCell({ includeEmpty: true }, c => {
@@ -125,8 +115,8 @@ export async function downloadInvoicesExcel(rows: Invoice[], fileName: string): 
     c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F4' } };
   });
 
-  ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: n } };
-  ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '4:5' };
+  ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: 5, column: n } };
+  ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '4:4' };
 
   const buf = await wb.xlsx.writeBuffer();
   const a = document.createElement('a');

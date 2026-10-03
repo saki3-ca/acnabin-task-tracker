@@ -1,98 +1,14 @@
 -- ============================================================================
--- INVOICES tab
---  * Only Admin + people the Admin picks (Admin Panel -> Tab Access) can use it.
---  * Everyone with access can add and edit; only Admin can delete.
---  * The same invoice number can never be saved twice.
---  * The same submission number is allowed, but the app asks "are you sure?" first.
--- Run once in Supabase Dashboard -> SQL Editor (in 3 parts, in order).
+-- INVOICES v2: adds "Submission Status (Client)" + its date.
+-- Run once in Supabase SQL Editor if you already ran supabase_invoices.sql before.
+-- (Part A = new columns, Part B = list function, Part C = save function)
 -- ============================================================================
 
--- PART 1: tables
-CREATE TABLE IF NOT EXISTS public.invoice_access (
-  user_id TEXT PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
-  granted_by TEXT,
-  granted_at TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.invoice_access ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.invoice_access FROM anon, authenticated;
+-- PART A
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS client_submitted TEXT;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS client_submit_date DATE;
 
-CREATE TABLE IF NOT EXISTS public.invoices (
-  id TEXT PRIMARY KEY,
-  for_month TEXT,
-  year INT,
-  invoice_date DATE,
-  client TEXT NOT NULL,
-  jic_name TEXT,
-  job_number TEXT,
-  purpose TEXT,
-  invoice_no TEXT NOT NULL,
-  submission_no TEXT,
-  amount NUMERIC,
-  tds NUMERIC,
-  vds NUMERIC,
-  client_submitted TEXT,
-  client_submit_date DATE,
-  signed_submitted TEXT,
-  mail_date DATE,
-  collected TEXT,
-  collection_date DATE,
-  collection_method TEXT,
-  payment_ref TEXT,
-  vds_collected TEXT,
-  vds_date DATE,
-  vds_challan_link TEXT,
-  vds_challan_no TEXT,
-  tds_collected TEXT,
-  tds_date DATE,
-  tds_challan_link TEXT,
-  tds_challan_no TEXT,
-  remarks TEXT,
-  erp_note TEXT,
-  created_by TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.invoices FROM anon, authenticated;
-
--- The invoice number can never repeat (ignoring capitals and extra spaces)
-CREATE UNIQUE INDEX IF NOT EXISTS invoices_no_duplicate_number
-  ON public.invoices (lower(btrim(invoice_no)));
-
--- PART 2: who may use it, list, save, delete
-CREATE OR REPLACE FUNCTION public._invoice_caller(p_session TEXT)
-RETURNS public.users
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, extensions
-AS $$
-DECLARE
-  v_user public.users%ROWTYPE;
-BEGIN
-  SELECT u.* INTO v_user
-  FROM public.user_sessions s JOIN public.users u ON u.id = s.user_id
-  WHERE s.token_hash = encode(digest(COALESCE(p_session, ''), 'sha256'), 'hex')
-    AND s.expires_at > NOW() AND u.status = 'ACTIVE';
-  IF NOT FOUND THEN RETURN NULL; END IF;
-  IF v_user.role = 'ADMIN' OR EXISTS (SELECT 1 FROM public.invoice_access a WHERE a.user_id = v_user.id) THEN
-    RETURN v_user;
-  END IF;
-  RETURN NULL;
-END;
-$$;
-REVOKE ALL ON FUNCTION public._invoice_caller(TEXT) FROM PUBLIC, anon, authenticated;
-
-CREATE OR REPLACE FUNCTION public.app_invoice_has_access(p_session TEXT)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, extensions
-AS $$
-BEGIN
-  RETURN (SELECT (c).id IS NOT NULL FROM (SELECT public._invoice_caller(p_session) AS c) x);
-END;
-$$;
-
+-- PART B
 CREATE OR REPLACE FUNCTION public.app_invoice_list(p_session TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -140,6 +56,7 @@ BEGIN
 END;
 $$;
 
+-- PART C
 -- Add or edit one invoice. Returns OK | DUPLICATE | SUBMISSION_DUP | NO_ACCESS | INVALID_INPUT
 -- SUBMISSION_DUP: another invoice has the same submission number; send p_force = TRUE to save anyway.
 CREATE OR REPLACE FUNCTION public.app_invoice_save(p_session TEXT, p_fields JSONB, p_force BOOLEAN DEFAULT FALSE)
@@ -248,72 +165,3 @@ EXCEPTION
 END;
 $$;
 
--- Delete: Admin only. Returns OK | FORBIDDEN | INVALID_SESSION
-CREATE OR REPLACE FUNCTION public.app_invoice_delete(p_session TEXT, p_id TEXT)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, extensions
-AS $$
-DECLARE
-  v_user public.users%ROWTYPE;
-BEGIN
-  v_user := public._invoice_caller(p_session);
-  IF v_user.id IS NULL THEN RETURN 'INVALID_SESSION'; END IF;
-  IF v_user.role <> 'ADMIN' THEN RETURN 'FORBIDDEN'; END IF;
-  DELETE FROM public.invoices WHERE id = p_id;
-  RETURN 'OK';
-END;
-$$;
-
--- PART 3: Admin chooses who gets the tab
-CREATE OR REPLACE FUNCTION public.app_invoice_access_get(p_session TEXT)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, extensions
-AS $$
-DECLARE
-  v_user public.users%ROWTYPE;
-BEGIN
-  v_user := public._invoice_caller(p_session);
-  IF v_user.id IS NULL OR v_user.role <> 'ADMIN' THEN RETURN NULL; END IF;
-  RETURN COALESCE((SELECT jsonb_agg(user_id) FROM public.invoice_access), '[]'::jsonb);
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.app_invoice_access_set(p_session TEXT, p_user_ids JSONB)
-RETURNS TEXT
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, extensions
-AS $$
-DECLARE
-  v_user public.users%ROWTYPE;
-BEGIN
-  v_user := public._invoice_caller(p_session);
-  IF v_user.id IS NULL OR v_user.role <> 'ADMIN' THEN RETURN 'FORBIDDEN'; END IF;
-  IF p_user_ids IS NULL OR jsonb_typeof(p_user_ids) <> 'array' THEN RETURN 'FORBIDDEN'; END IF;
-
-  DELETE FROM public.invoice_access
-  WHERE user_id NOT IN (SELECT jsonb_array_elements_text(p_user_ids));
-  INSERT INTO public.invoice_access (user_id, granted_by)
-  SELECT u.id, v_user.id FROM public.users u
-  WHERE u.id IN (SELECT jsonb_array_elements_text(p_user_ids))
-  ON CONFLICT (user_id) DO NOTHING;
-  RETURN 'OK';
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.app_invoice_has_access(TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.app_invoice_list(TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.app_invoice_save(TEXT, JSONB, BOOLEAN) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.app_invoice_delete(TEXT, TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.app_invoice_access_get(TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.app_invoice_access_set(TEXT, JSONB) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.app_invoice_has_access(TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.app_invoice_list(TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.app_invoice_save(TEXT, JSONB, BOOLEAN) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.app_invoice_delete(TEXT, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.app_invoice_access_get(TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.app_invoice_access_set(TEXT, JSONB) TO anon, authenticated;
