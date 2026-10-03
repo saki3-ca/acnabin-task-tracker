@@ -39,7 +39,12 @@ var TABLES = [
   'proposals',
   'proposal_access',
   'proposal_attachments',
-  'proposal_settings'
+  'proposal_settings',
+  'manpower_access',
+  'invoices',
+  'invoice_access',
+  'invoice_attachments',
+  'invoice_settings'
 ];
 var PAGE_SIZE = 1000;
 var FOLDER_NAME = 'ACNABIN Task Tracker Backups';
