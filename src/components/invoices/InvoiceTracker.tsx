@@ -57,6 +57,8 @@ const GROUPS: Record<Group, { label: string; bg: string; border: string; fg: str
   note: { label: 'Notes', bg: '#F8FAFC', border: '#CBD5E1', fg: '#334155', accent: '#64748B' }
 };
 const TITLE_GREEN = '#146860';
+// Order of the column groups (the table and the legend follow it)
+const GROUP_ORDER: Group[] = ['amt', 'inv', 'sub', 'tds', 'vds', 'col', 'note'];
 interface Col {
   key: string;
   head: string;
@@ -330,7 +332,7 @@ export const InvoiceTracker: React.FC = () => {
 
   const cell = (v: string) => (v ? <span title={v}>{v}</span> : <span style={{ color: 'var(--ink-muted)' }}>—</span>);
   const dateCell = (iso: string) => <span style={{ color: iso ? undefined : 'var(--ink-muted)' }}>{fmtDate(iso)}</span>;
-  const cols: Col[] = [
+  const baseCols: Col[] = [
     { key: 'sl', head: 'SL', w: 46, group: 'inv', align: 'center', sticky: 'left', left: 0, render: (_i, n) => <strong>{n + 1}</strong> },
     {
       key: 'client', head: 'Client Name', w: 250, group: 'inv', align: 'left', sticky: 'left', left: 46,
@@ -383,6 +385,10 @@ export const InvoiceTracker: React.FC = () => {
       )
     }
   ];
+  const cols: Col[] = [...baseCols].sort((a, b) => {
+    const rank = (c: Col) => (c.key === 'sl' ? -2 : c.key === 'client' ? -1 : GROUP_ORDER.indexOf(c.group));
+    return rank(a) - rank(b);
+  });
   const totalWidth = cols.reduce((sum, c) => sum + c.w, 0);
   const stickyStyle = (c: Col, head: boolean): React.CSSProperties =>
     c.sticky === 'left'
@@ -453,7 +459,21 @@ export const InvoiceTracker: React.FC = () => {
             </div>
           </div>
 
-          <div className="table-card">
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', padding: '6px 10px', background: '#fff', border: '1px solid var(--line)', borderBottom: 'none', borderRadius: '8px 8px 0 0' }}>
+                {GROUP_ORDER.map(g => (
+                  <span
+                    key={g}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: GROUPS[g].bg, border: `1px solid ${GROUPS[g].border}`, color: GROUPS[g].fg, fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}
+                  >
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: GROUPS[g].accent, display: 'inline-block' }} />
+                    {GROUPS[g].label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          <div className="table-card" style={{ marginBottom: 0, borderTopRightRadius: 0 }}>
             <div className="banner-strip" style={{ justifyContent: 'center', padding: '0 16px', background: TITLE_GREEN, color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Receipt size={16} />
@@ -476,18 +496,6 @@ export const InvoiceTracker: React.FC = () => {
                   <Plus size={12} /> New Invoice
                 </button>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '10px 16px', borderBottom: '1px solid var(--line)', background: '#fff' }}>
-              {(Object.keys(GROUPS) as Group[]).map(g => (
-                <span
-                  key={g}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 12px', borderRadius: '8px', background: GROUPS[g].bg, border: `1px solid ${GROUPS[g].border}`, color: GROUPS[g].fg, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: GROUPS[g].accent, display: 'inline-block' }} />
-                  {GROUPS[g].label}
-                </span>
-              ))}
             </div>
 
             <div className="table-responsive" style={{ minHeight: '440px', maxHeight: '70vh' }}>
@@ -527,6 +535,7 @@ export const InvoiceTracker: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
           </div>
         </>
       )}
