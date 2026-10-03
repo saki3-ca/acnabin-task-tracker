@@ -72,7 +72,15 @@ interface Col {
 
 const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' };
 const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'end' };
-const sectionTitle: React.CSSProperties = { fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: 'var(--navy)', margin: '16px 0 8px', paddingBottom: '4px', borderBottom: '1px solid var(--line)' };
+
+/** One tinted mini card of the New Invoice form; its colour matches the column group in the table legend. */
+const FormCard: React.FC<{ group: Group; title: string; hint?: string; children: React.ReactNode }> = ({ group, title, hint, children }) => (
+  <div style={{ background: GROUPS[group].bg, border: `1px solid ${GROUPS[group].border}`, borderLeft: `4px solid ${GROUPS[group].accent}`, borderRadius: '10px', padding: '12px 16px 6px', marginBottom: '12px' }}>
+    <div style={{ fontSize: '13.5px', fontWeight: 700, color: GROUPS[group].fg }}>{title}</div>
+    {hint && <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginBottom: '8px' }}>{hint}</div>}
+    {children}
+  </div>
+);
 
 export const InvoiceTracker: React.FC = () => {
   const { currentUser, allClients, allUsers } = useAuth();
@@ -461,7 +469,7 @@ export const InvoiceTracker: React.FC = () => {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', padding: '6px 10px', background: '#fff', border: '1px solid var(--line)', borderBottom: 'none', borderRadius: '8px 8px 0 0' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', padding: '0 2px 8px' }}>
                 {GROUP_ORDER.map(g => (
                   <span
                     key={g}
@@ -473,7 +481,7 @@ export const InvoiceTracker: React.FC = () => {
                 ))}
               </div>
             </div>
-          <div className="table-card" style={{ marginBottom: 0, borderTopRightRadius: 0 }}>
+          <div className="table-card" style={{ marginBottom: 0 }}>
             <div className="banner-strip" style={{ justifyContent: 'center', padding: '0 16px', background: TITLE_GREEN, color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Receipt size={16} />
@@ -558,7 +566,7 @@ export const InvoiceTracker: React.FC = () => {
           <datalist id="inv-months">{MONTHS.map(c => <option key={c} value={c} />)}</datalist>
           <datalist id="inv-methods">{COLLECTION_METHODS.map(c => <option key={c} value={c} />)}</datalist>
 
-          <div style={{ ...sectionTitle, marginTop: 0 }}>Invoice</div>
+          <FormCard group="inv" title="Invoice" hint="Who it is for, and the invoice and submission numbers.">
           <div style={grid3}>
             <div className="form-field">
               <label>Invoice date</label>
@@ -605,8 +613,8 @@ export const InvoiceTracker: React.FC = () => {
               <input className="form-input" value={form.submissionNo} onChange={e => set('submissionNo', e.target.value)} />
             </div>
           </div>
-
-          <div style={sectionTitle}>Amount (suggested automatically, you can change it)</div>
+          </FormCard>
+          <FormCard group="amt" title="Amount" hint="Suggested automatically from the invoice amount. You can change any figure.">
           <div style={grid3}>
             <div className="form-field">
               <label>Invoice amount ৳ (incl. VAT)</label>
@@ -641,8 +649,8 @@ export const InvoiceTracker: React.FC = () => {
               <input className="form-input" inputMode="decimal" value={form.vds} onChange={e => { setTouched(t => ({ ...t, vds: true })); set('vds', e.target.value.replace(/[^0-9.]/g, '')); }} />
             </div>
           </div>
-
-          <div style={sectionTitle}>Submission, signed invoice &amp; collection</div>
+          </FormCard>
+          <FormCard group="sub" title="Submission" hint="Submitted to the client, and the signed invoice mailed to ACNABIN.">
           <div style={grid3}>
             <div className="form-field">
               <label>Submission status (Client)</label>
@@ -665,65 +673,8 @@ export const InvoiceTracker: React.FC = () => {
             </div>
             <div />
           </div>
-          <div style={grid3}>
-            <div className="form-field">
-              <label>Collection status</label>
-              <YesNo value={form.collected} onChange={v => set('collected', v)} />
-            </div>
-            <div className="form-field">
-              <label>Collection date</label>
-              <input type="date" className="form-input" value={form.collectionDate} onChange={e => setForm(f => ({ ...f, collectionDate: e.target.value, collected: e.target.value ? 'Yes' : f.collected }))} />
-            </div>
-            <div className="form-field">
-              <label>Collection method</label>
-              <input className="form-input" list="inv-methods" value={form.collectionMethod} onChange={e => set('collectionMethod', e.target.value)} />
-            </div>
-          </div>
-          <div className="form-field">
-            <label>Cheque number / Transaction reference</label>
-            <input className="form-input" value={form.paymentRef} onChange={e => set('paymentRef', e.target.value)} />
-          </div>
-
-          <div style={sectionTitle}>VDS collection</div>
-          <div style={grid2}>
-            <div className="form-field">
-              <label>VDS collection status</label>
-              <YesNo value={form.vdsCollected} onChange={v => set('vdsCollected', v)} />
-            </div>
-            <div className="form-field">
-              <label>VDS collection date</label>
-              <input type="date" className="form-input" value={form.vdsDate} onChange={e => setForm(f => ({ ...f, vdsDate: e.target.value, vdsCollected: e.target.value ? 'Yes' : f.vdsCollected }))} />
-            </div>
-          </div>
-          <div style={grid2}>
-            <div className="form-field">
-              <label>Existing Drive link (old data)</label>
-              <input className="form-input" placeholder="https://drive.google.com/…" value={form.vdsChallanLink} onChange={e => set('vdsChallanLink', e.target.value)} />
-            </div>
-            <div className="form-field">
-              <label>VDS challan number</label>
-              <input className="form-input" placeholder="e.g. 2526-00224626851" value={form.vdsChallanNo} onChange={e => set('vdsChallanNo', e.target.value)} />
-            </div>
-          </div>
-          <div className="form-field">
-            <label>Attach VDS challan files (saved to Drive after you save)</label>
-            <input type="file" multiple disabled={!driveUrl} onChange={e => { pickFiles('VDS', e.target.files); e.target.value = ''; }} />
-            {!driveUrl && <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '3px' }}>Admin has not set the Drive upload link yet.</div>}
-            {queued.VDS.length > 0 && (
-              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>
-                {queued.VDS.map((f, n) => (
-                  <div key={n}>
-                    {f.name} <a href="#rm" onClick={e => { e.preventDefault(); setQueued(q => ({ ...q, VDS: q.VDS.filter((_, k) => k !== n) })); }} style={{ color: '#B91C1C' }}>remove</a>
-                  </div>
-                ))}
-              </div>
-            )}
-            {editingId && filesOf(editingId, 'VDS').length > 0 && (
-              <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '3px' }}>{filesOf(editingId, 'VDS').length} file(s) already attached. Manage them from the Challan copy column.</div>
-            )}
-          </div>
-
-          <div style={sectionTitle}>TDS collection</div>
+          </FormCard>
+          <FormCard group="tds" title="TDS collection" hint="TDS status, date, challan copy and number.">
           <div style={grid2}>
             <div className="form-field">
               <label>TDS collection status</label>
@@ -761,8 +712,67 @@ export const InvoiceTracker: React.FC = () => {
               <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '3px' }}>{filesOf(editingId, 'TDS').length} file(s) already attached. Manage them from the Challan copy column.</div>
             )}
           </div>
-
-          <div style={sectionTitle}>Notes</div>
+          </FormCard>
+          <FormCard group="vds" title="VDS collection" hint="VDS status, date, challan copy and number.">
+          <div style={grid2}>
+            <div className="form-field">
+              <label>VDS collection status</label>
+              <YesNo value={form.vdsCollected} onChange={v => set('vdsCollected', v)} />
+            </div>
+            <div className="form-field">
+              <label>VDS collection date</label>
+              <input type="date" className="form-input" value={form.vdsDate} onChange={e => setForm(f => ({ ...f, vdsDate: e.target.value, vdsCollected: e.target.value ? 'Yes' : f.vdsCollected }))} />
+            </div>
+          </div>
+          <div style={grid2}>
+            <div className="form-field">
+              <label>Existing Drive link (old data)</label>
+              <input className="form-input" placeholder="https://drive.google.com/…" value={form.vdsChallanLink} onChange={e => set('vdsChallanLink', e.target.value)} />
+            </div>
+            <div className="form-field">
+              <label>VDS challan number</label>
+              <input className="form-input" placeholder="e.g. 2526-00224626851" value={form.vdsChallanNo} onChange={e => set('vdsChallanNo', e.target.value)} />
+            </div>
+          </div>
+          <div className="form-field">
+            <label>Attach VDS challan files (saved to Drive after you save)</label>
+            <input type="file" multiple disabled={!driveUrl} onChange={e => { pickFiles('VDS', e.target.files); e.target.value = ''; }} />
+            {!driveUrl && <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '3px' }}>Admin has not set the Drive upload link yet.</div>}
+            {queued.VDS.length > 0 && (
+              <div style={{ fontSize: '12.5px', marginTop: '4px' }}>
+                {queued.VDS.map((f, n) => (
+                  <div key={n}>
+                    {f.name} <a href="#rm" onClick={e => { e.preventDefault(); setQueued(q => ({ ...q, VDS: q.VDS.filter((_, k) => k !== n) })); }} style={{ color: '#B91C1C' }}>remove</a>
+                  </div>
+                ))}
+              </div>
+            )}
+            {editingId && filesOf(editingId, 'VDS').length > 0 && (
+              <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '3px' }}>{filesOf(editingId, 'VDS').length} file(s) already attached. Manage them from the Challan copy column.</div>
+            )}
+          </div>
+          </FormCard>
+          <FormCard group="col" title="Collection" hint="Payment received from the client.">
+          <div style={grid3}>
+            <div className="form-field">
+              <label>Collection status</label>
+              <YesNo value={form.collected} onChange={v => set('collected', v)} />
+            </div>
+            <div className="form-field">
+              <label>Collection date</label>
+              <input type="date" className="form-input" value={form.collectionDate} onChange={e => setForm(f => ({ ...f, collectionDate: e.target.value, collected: e.target.value ? 'Yes' : f.collected }))} />
+            </div>
+            <div className="form-field">
+              <label>Collection method</label>
+              <input className="form-input" list="inv-methods" value={form.collectionMethod} onChange={e => set('collectionMethod', e.target.value)} />
+            </div>
+          </div>
+          <div className="form-field">
+            <label>Cheque number / Transaction reference</label>
+            <input className="form-input" value={form.paymentRef} onChange={e => set('paymentRef', e.target.value)} />
+          </div>
+          </FormCard>
+          <FormCard group="note" title="Notes" hint="Remarks and the ERP entry.">
           <div className="form-field">
             <label>Remarks</label>
             <textarea className="form-input" rows={2} value={form.remarks} onChange={e => set('remarks', e.target.value)} style={{ resize: 'vertical' }} />
@@ -771,7 +781,7 @@ export const InvoiceTracker: React.FC = () => {
             <label>ERP entry completed and reviewed with Director (with date)</label>
             <input className="form-input" value={form.erpNote} onChange={e => set('erpNote', e.target.value)} />
           </div>
-
+          </FormCard>
           {fileNote && <div style={{ fontSize: '12.5px', color: 'var(--ink-soft)', marginTop: '8px' }}>{fileNote}</div>}
           {formError && <div className="auth-alert-error" style={{ marginTop: '10px' }}>{formError}</div>}
         </div>
