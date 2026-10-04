@@ -53,7 +53,9 @@ const stickyLeft = (i: number): React.CSSProperties | undefined =>
 export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
   const [viewMode, setViewMode] = useState<'details' | 'summary'>('details');
   const [search, setSearch] = useState('');
-  const [client, setClient] = useState('');
+  // One client assigned: show its name by default; several: start with all of them
+  const onlyClient = data.clients.length === 1 ? data.clients[0].id : '';
+  const [client, setClient] = useState(onlyClient);
   const [designation, setDesignation] = useState('');
   const [sortKey, setSortKey] = useState('empId');
   const [sortAsc, setSortAsc] = useState(true);
@@ -101,8 +103,8 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
     else { setSortKey(key); setSortAsc(true); }
   };
 
-  const hasFilters = Boolean(search || client || designation);
-  const reset = () => { setSearch(''); setClient(''); setDesignation(''); };
+  const hasFilters = Boolean(search || client !== onlyClient || designation);
+  const reset = () => { setSearch(''); setClient(onlyClient); setDesignation(''); };
 
   const exportExcel = async () => {
     try {
@@ -157,10 +159,6 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
         </div>
       </div>
 
-      <div style={{ fontSize: '12.5px', color: 'var(--ink-soft)', background: '#fff', border: '1px solid var(--line)', borderRadius: '8px', padding: '8px 14px' }}>
-        Showing staff on your clients: <strong>{data.clients.length ? data.clients.map(c => clientText(c.name, c.jobNumber)).join(', ') : 'none assigned to you yet'}</strong>
-      </div>
-
       <div className="filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--line)' }}>
         <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 240px' }}>
           <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-soft)' }} />
@@ -168,7 +166,7 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
             placeholder="Search name, ID, client, mobile, email…" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select className="form-select" style={{ height: '36px', fontSize: '12.5px', minWidth: '180px', flex: '1 1 180px' }} value={client} onChange={e => setClient(e.target.value)}>
-          <option value="">All my clients</option>
+          {!onlyClient && <option value="">All my clients</option>}
           {data.clients.map(c => <option key={c.id} value={c.id}>{clientText(c.name, c.jobNumber)}</option>)}
         </select>
         {viewMode === 'details' && (
