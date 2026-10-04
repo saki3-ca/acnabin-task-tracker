@@ -25,7 +25,7 @@ So Admin's existing picker is the one switch for "this person sees the whole dir
 ```
 ┌ MANPOWER ─────────────────────────── [Details | Summary]  [Export Excel] ┐
 │ Showing staff on your clients: Client A, Client B                        │
-│ [Headcount 12]   [Clients 2]                                             │
+│ [Manpower 12] [My clients 2] [Students 9] [Managers & above 3] [Details|Summary] │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ Search [________]  Client [All my clients ▾]  Designation [All ▾]        │
 ├────────┬──────────────┬────────────┬─────────────┬──────────┬───────────┤
@@ -33,8 +33,19 @@ So Admin's existing picker is the one switch for "this person sees the whole dir
 └────────┴──────────────┴────────────┴─────────────┴──────────┴───────────┘
 ```
 
-- Summary view: Client | Headcount | Remarks (view only).
-- No money columns, no money pills, no edit pencil.
+- **Top pills (same 5 slots as today).** The three money pills (Total Monthly Salary, Total Conveyance, Grand Total Cost) have nothing to show without financial access, so they are **replaced by headcount pills** that keep the row the same size:
+
+  | Slot | Picked / AD+ / Admin (today) | Below AD, not picked |
+  |---|---|---|
+  | 1 | Active Manpower (count) | Active Manpower (count of people they can see) |
+  | 2 | Total Monthly Salary | **My Clients** (number of their clients) |
+  | 3 | Total Conveyance | **Students** (Student, Trainee, In Charge, Supervisor) |
+  | 4 | Grand Total Cost | **Managers & above** (Senior Assistant Manager and up) |
+  | 5 | Details / Summary switch | same |
+
+  The counts follow the Client filter, as the money pills do today.
+- Summary view: Client | Headcount | Remarks (view only). The Total Salary, Total Conveyance and Total Cost columns and the grand-total row are removed (not just empty).
+- No money columns, no money pills (replaced as above), no edit pencil.
 - Export Excel has no money columns.
 
 ## 3. Rules
