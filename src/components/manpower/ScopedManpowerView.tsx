@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Building, Download, Filter, RotateCcw,
 import { academicYearFromStart, employmentYearFromJoining, isEmployeeProfile, principalDisplay } from '../../lib/academicYear';
 import { downloadScopedManpowerExcel } from '../../lib/manpowerScopedExcel';
 import { isStudentLevelDesignation } from '../../lib/permissions';
+import { formatPeriodDate } from '../../lib/staffSheet';
 import { clientText } from '../ui/ClientLabel';
 import { ScopedManpower, ScopedManpowerRow } from '../../types';
 
@@ -16,7 +17,7 @@ interface Row extends ScopedManpowerRow {
   clientsText: string;
 }
 
-type Col = { key: string; label: string; width: number; get: (r: Row) => string; center?: boolean };
+type Col = { key: string; label: string; width: number; get: (r: Row) => string; center?: boolean; sort?: (r: Row) => string };
 
 const COLS: Col[] = [
   { key: 'empId', label: 'STD/EMP ID', width: 110, get: r => r.empId, center: true },
@@ -25,10 +26,10 @@ const COLS: Col[] = [
   { key: 'department', label: 'Department', width: 120, get: r => r.department },
   { key: 'clientsText', label: 'Client Name(s)', width: 230, get: r => r.clientsText },
   { key: 'year', label: 'Academic / Employment Year', width: 150, get: r => r.year, center: true },
-  { key: 'joiningDate', label: 'Joining Date', width: 105, get: r => r.joiningDate, center: true },
+  { key: 'joiningDate', label: 'Joining Date', width: 105, get: r => formatPeriodDate(r.joiningDate) || r.joiningDate, sort: r => r.joiningDate, center: true },
   { key: 'articleshipPeriod', label: 'Articleship Period', width: 170, get: r => r.articleshipPeriod },
-  { key: 'articleshipStart', label: 'Articleship Start', width: 110, get: r => r.articleshipStart, center: true },
-  { key: 'articleshipEnd', label: 'Articleship End', width: 110, get: r => r.articleshipEnd, center: true },
+  { key: 'articleshipStart', label: 'Articleship Start', width: 110, get: r => formatPeriodDate(r.articleshipStart) || r.articleshipStart, sort: r => r.articleshipStart, center: true },
+  { key: 'articleshipEnd', label: 'Articleship End', width: 110, get: r => formatPeriodDate(r.articleshipEnd) || r.articleshipEnd, sort: r => r.articleshipEnd, center: true },
   { key: 'principalName', label: 'Principal', width: 190, get: r => principalDisplay(r.principalName) },
   { key: 'mobile', label: 'Mobile', width: 120, get: r => r.mobile },
   { key: 'email', label: 'Email', width: 220, get: r => r.email },
@@ -84,8 +85,8 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
     });
     const col = COLS.find(c => c.key === sortKey) || COLS[0];
     list.sort((a, b) => {
-      const x = col.get(a).toLowerCase();
-      const y = col.get(b).toLowerCase();
+      const x = (col.sort || col.get)(a).toLowerCase();
+      const y = (col.sort || col.get)(b).toLowerCase();
       return sortAsc ? x.localeCompare(y, undefined, { numeric: true }) : y.localeCompare(x, undefined, { numeric: true });
     });
     return list;
@@ -110,8 +111,8 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
     try {
       await downloadScopedManpowerExcel(shown.map(r => ({
         empId: r.empId, name: r.name, designation: r.designation, department: r.department, clients: r.clientsText, year: r.year,
-        joiningDate: r.joiningDate, articleshipPeriod: r.articleshipPeriod, articleshipStart: r.articleshipStart,
-        articleshipEnd: r.articleshipEnd, principal: r.principalName, mobile: r.mobile, email: r.email, bloodGroup: r.bloodGroup,
+        joiningDate: formatPeriodDate(r.joiningDate) || r.joiningDate, articleshipPeriod: r.articleshipPeriod,
+        articleshipStart: formatPeriodDate(r.articleshipStart) || r.articleshipStart, articleshipEnd: formatPeriodDate(r.articleshipEnd) || r.articleshipEnd, principal: r.principalName, mobile: r.mobile, email: r.email, bloodGroup: r.bloodGroup,
         presentAddress: r.presentAddress, emergencyName: r.emergencyName, relationship: r.emergencyRelationship,
         emergencyPhone: r.emergencyPhone, laptopAvailable: r.laptopAvailable, laptopOwnership: r.laptopOwnership,
         laptopId: r.laptopId, remarks: r.remarks
