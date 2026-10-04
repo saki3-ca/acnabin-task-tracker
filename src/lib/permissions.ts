@@ -142,6 +142,12 @@ export function canViewManpower(user: User | null): boolean {
   return user.role === 'ADMIN' || isAssistantDirectorOrAbove(user.designation);
 }
 
+/** In Charge to Manager (below Assistant Director): the Manpower tab, limited to their own clients and with no money. */
+export function canViewManpowerScoped(user: User | null): boolean {
+  if (!user || user.role === 'ADMIN') return false;
+  return ['In Charge', 'Supervisor', 'Senior Assistant Manager', 'Deputy Manager', 'Manager'].includes(user.designation);
+}
+
 export function canViewAllClients(user: User | null): boolean {
   if (!user) return false;
   return user.role === 'ADMIN' || isAssistantDirectorOrAbove(user.designation);

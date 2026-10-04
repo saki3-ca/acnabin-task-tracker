@@ -1,9 +1,14 @@
 import { api } from './api';
-import { ManpowerRecord, StaffLookupResult } from '../types';
+import { ManpowerRecord, ScopedManpower, StaffLookupResult } from '../types';
 
 export const manpowerService = {
   async getManpower(options?: { includeAll?: boolean }): Promise<ManpowerRecord[]> {
     return api.callBackend<ManpowerRecord[]>('getManpower', { includeAll: options?.includeAll || false });
+  },
+
+  /** Below Assistant Director: only the people on their own clients, no money. null = use the full directory instead. */
+  async getScoped(): Promise<ScopedManpower | null> {
+    return api.callBackend<ScopedManpower | null>('getManpowerScoped', {});
   },
 
   async getSalaries(): Promise<{ empId: string; salary: number; conveyance: number }[]> {

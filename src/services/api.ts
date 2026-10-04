@@ -29,7 +29,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
-  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete',
+  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete',
   'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -1466,6 +1466,32 @@ export const api = {
           empId: s(r.emp_id).toUpperCase(), articleshipStart: s(r.articleship_start), articleshipEnd: s(r.articleship_end),
           joiningDate: s(r.joining_date), academicYear: s(r.academic_year)
         })) as T;
+      }
+
+      case 'getManpowerScoped': {
+        // Below Assistant Director: only the people on their own clients, no money. null = not this kind of user.
+        const session = readSession();
+        if (!session) return null as T;
+        const { data, error } = await supabase.rpc('app_manpower_scoped', { p_session: session.token });
+        if (error) {
+          console.error('app_manpower_scoped failed:', error);
+          throw new Error(isMissingFunction(error) ? 'The Manpower database update has not been run yet (supabase_manpower_scoped.sql). Please tell Admin.' : 'Could not load Manpower. (' + error.message + ')');
+        }
+        if (data === null || data === undefined) return null as T;
+        const d: any = data;
+        const s = (v: any) => (v === null || v === undefined ? '' : String(v));
+        return {
+          clients: (d.clients || []).map((c: any) => ({ id: s(c.id), name: s(c.name), jobNumber: s(c.jobNumber), remarks: s(c.remarks) })),
+          rows: (d.rows || []).map((r: any) => ({
+            empId: s(r.emp_id).toUpperCase(), name: s(r.name), department: s(r.department), designation: s(r.designation),
+            academicYear: s(r.academic_year), clientIds: (r.client_ids || []).map(s), articleshipPeriod: s(r.articleship_period),
+            articleshipStart: s(r.articleship_start), articleshipEnd: s(r.articleship_end), principalName: s(r.principal_name),
+            mobile: s(r.mobile), email: s(r.email), joiningDate: s(r.joining_date), bloodGroup: s(r.blood_group),
+            emergencyName: s(r.emergency_name), emergencyRelationship: s(r.emergency_relationship),
+            emergencyPhone: s(r.emergency_phone), presentAddress: s(r.present_address), laptopAvailable: s(r.laptop_available),
+            laptopOwnership: s(r.laptop_ownership), laptopId: s(r.laptop_id), remarks: s(r.remarks)
+          }))
+        } as T;
       }
 
       case 'getStaffAll': {

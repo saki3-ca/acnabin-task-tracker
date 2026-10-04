@@ -137,6 +137,17 @@ export interface MyStaff {
   remarks: string;
 }
 
+/** One person in the Manpower tab of a below-AD user: staff-sheet details, no money. */
+export interface ScopedManpowerRow extends Omit<MyStaff, 'clientNames'> {
+  /** only the clients shared with the viewer */
+  clientIds: string[];
+}
+
+export interface ScopedManpower {
+  clients: { id: string; name: string; jobNumber: string; remarks: string }[];
+  rows: ScopedManpowerRow[];
+}
+
 export interface StaffDates {
   empId: string;
   articleshipStart: string;
