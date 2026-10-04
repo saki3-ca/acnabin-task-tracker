@@ -75,12 +75,27 @@ export function parseSheetDate(raw: string): string {
     const y = Number(m[3]);
     return mo ? iso(y < 100 ? 2000 + y : y, mo, Number(m[1])) : '';
   }
-  m = s.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{2,4})$/);
+  m = s.match(/^(\d{1,2})[-./ ]+(\d{1,2})[-./ ]+(\d{2,4})$/);
   if (m) {
     const y = Number(m[3]);
     return iso(y < 100 ? 2000 + y : y, Number(m[2]), Number(m[1]));
   }
   return '';
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "2023-06-09" -> "09 Jun 2023" ('' when it is not an ISO date) */
+export function formatPeriodDate(isoDate: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate || '');
+  return m && MONTH_NAMES[Number(m[2]) - 1] ? `${m[3]} ${MONTH_NAMES[Number(m[2]) - 1]} ${m[1]}` : '';
+}
+
+/** The one format used for every articleship period: "09 Jun 2023 to 08 Jun 2027" */
+export function formatPeriod(startIso: string, endIso: string): string {
+  const a = formatPeriodDate(startIso);
+  const b = formatPeriodDate(endIso);
+  return a && b ? `${a} to ${b}` : '';
 }
 
 /** "09-12-2024 to 08-12-2027" -> start/end */
@@ -208,7 +223,8 @@ export function normalizeStaffSheet(table: string[][]): { rows: StaffRow[]; warn
       if (rec.articleship_period && !/^n\/?a$/i.test(rec.articleship_period)) {
         const { start, end } = parsePeriod(rec.articleship_period);
         if (!start) warnings.push(`${empId}: articleship period "${rec.articleship_period}" not understood, dates left blank.`);
-        set('articleship_period', strip(rec.articleship_period));
+        // saved in one format, whatever way the sheet wrote it; unreadable text is kept as typed
+        set('articleship_period', formatPeriod(start, end) || strip(rec.articleship_period));
         set('articleship_start', start);
         set('articleship_end', end);
       }
