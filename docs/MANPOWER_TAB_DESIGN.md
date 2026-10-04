@@ -23,15 +23,26 @@ So Admin's existing picker is the one switch for "this person sees the whole dir
 ## 2. Screen (below AD, not picked)
 
 ```
-┌ MANPOWER ─────────────────────────── [Details | Summary]  [Export Excel] ┐
-│ Showing staff on your clients: Client A, Client B                        │
-│ [Manpower 12] [My clients 2] [Students 9] [Managers & above 3] [Details|Summary] │
-├──────────────────────────────────────────────────────────────────────────┤
-│ Search [________]  Client [All my clients ▾]  Designation [All ▾]        │
-├────────┬──────────────┬────────────┬─────────────┬──────────┬───────────┤
-│ ID     │ Name         │ Client     │ Designation │ Year     │ Contact   │
-└────────┴──────────────┴────────────┴─────────────┴──────────┴───────────┘
+┌ MANPOWER ───────────────────────────────────────────────────────────────────────────┐
+│ Showing staff on your clients: Client A, Client B                                   │
+│ [Manpower 12] [My clients 2] [Students 9] [Managers & above 3] [Details | Summary]  │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│ Search [________]  Client [All my clients ▾]  Designation [All ▾]                   │
+├────┬────────┬──────┬───────────┬──────┬─────────┬──────┬──────┬ ... ► scroll sideways
+│ SL │STD/EMP │ Name │Designation│ Dept │ Clients │ Year │Joined│
+└────┴────────┴──────┴───────────┴──────┴─────────┴──────┴──────┴──────────────────────┘
 ```
+
+**Details table columns (same as the staff sheet / Excel, in this order):**
+
+SL · STD/EMP ID · Name · Designation · Department · Client Name(s) · Academic / Employment Year · Joining Date · Articleship Period · Articleship Start · Articleship End · Principal · Mobile · Email · Blood Group · Present Address · Emergency Contact Name · Relationship · Emergency Mobile · Laptop Available · Laptop Ownership · Laptop ID · Remarks
+
+- Wide table: SL, ID and Name stay frozen on the left; the rest scrolls sideways.
+- **Client Name(s)** shows only the clients shared with the viewer (Q2).
+- Empty values show "-".
+- Search looks in name, ID, client, designation, department, mobile and email.
+- Money is **not** a column here: the sheet has none. Salary, Conveyance and Total are never sent to this user.
+
 
 - **Top pills (same 5 slots as today).** The three money pills (Total Monthly Salary, Total Conveyance, Grand Total Cost) have nothing to show without financial access, so they are **replaced by headcount pills** that keep the row the same size:
 
@@ -46,7 +57,7 @@ So Admin's existing picker is the one switch for "this person sees the whole dir
   The counts follow the Client filter, as the money pills do today.
 - Summary view: Client | Headcount | Remarks (view only). The Total Salary, Total Conveyance and Total Cost columns and the grand-total row are removed (not just empty).
 - No money columns, no money pills (replaced as above), no edit pencil.
-- Export Excel has no money columns.
+- Export Excel has the same columns as the table (it never had money in the staff sheet) but only the rows they can see.
 
 ## 3. Rules
 
@@ -56,9 +67,13 @@ So Admin's existing picker is the one switch for "this person sees the whole dir
 4. People above the viewer on the same client (their Manager or an AD) are listed too (Q4).
 5. A below-AD user who is **not** in the Manpower picker never receives salary figures.
 
+## 3b. Where the columns come from
+
+All 23 columns already exist. They are in `staff_records` (the imported staff sheet), with blood group and emergency contact taken from the person's own profile when filled (`user_personal_info`). AD+ already reads them with `app_get_staff_all` for the full Excel. Below AD gets the same data, filtered. Daily conveyance in `user_personal_info` is **not** included.
+
 ## 4. Server-side enforcement (not just hidden in the page)
 
-- **`app_manpower_scoped(p_session)`** (new). Checks the session. If the caller is below AD and **not** in `manpower_access`, it returns the staff list already filtered to the caller's clients, with **no money fields**. For Admin, AD+ and picked users it returns nothing, and they use today's path.
+- **`app_manpower_scoped(p_session)`** (new). Checks the session. If the caller is below AD and **not** in `manpower_access`, it returns the full staff-sheet columns (section 3b) already filtered to the caller's clients, with **no money fields**. For Admin, AD+ and picked users it returns nothing, and they use today's path.
 - **`app_get_manpower_salaries`**: **no change**. It already gives money only to Admin, AD+ and `manpower_access` members.
 - **App code:** `ManpowerView` gets a `scopedMode` for below-AD users who are not picked. It loads from `app_manpower_scoped`, banner and my-clients filter on, money and edit off.
 
@@ -84,6 +99,7 @@ Four accounts: Admin, an AD, an In Charge **not** picked, the same In Charge **p
 
 ## 7. Questions (recommended answer first)
 
+- **Q6.** Blood group, present address, emergency contact name, relationship and emergency mobile are personal. Showing them to every In Charge, Supervisor and Manager on the client team is what you asked for. Keep them, or hide those 5 columns for below-AD and show only the work columns? *Your decision. The doc assumes all columns are shown.*
 - **Q2.** Person works on 3 clients, viewer shares 1. Show only the shared one, or all 3? *Only the shared one.*
 - **Q4.** List people above the viewer on the same client? *Yes.*
 - **Q3.** Remarks view-only for them? *Yes.*
