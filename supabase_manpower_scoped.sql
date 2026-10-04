@@ -9,7 +9,9 @@
 -- Tab Access -> Manpower (they keep the full directory), and everyone else.
 -- Otherwise returns {clients:[{id,name,jobNumber,remarks}], rows:[...]}.
 -- ============================================================================
-CREATE OR REPLACE FUNCTION public.app_manpower_scoped(p_session TEXT)
+-- p_as_user_id: only an Admin using "Switch User" may pass it, to preview what that person sees.
+DROP FUNCTION IF EXISTS public.app_manpower_scoped(TEXT);
+CREATE OR REPLACE FUNCTION public.app_manpower_scoped(p_session TEXT, p_as_user_id TEXT DEFAULT NULL)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -24,6 +26,11 @@ BEGIN
   WHERE s.token_hash = encode(digest(COALESCE(p_session, ''), 'sha256'), 'hex')
     AND s.expires_at > NOW() AND u.status = 'ACTIVE';
   IF NOT FOUND THEN RETURN NULL; END IF;
+  -- Admin "Switch User": answer for the person being viewed, so the preview matches what they really see
+  IF v_user.role = 'ADMIN' AND NULLIF(btrim(COALESCE(p_as_user_id, '')), '') IS NOT NULL THEN
+    SELECT u.* INTO v_user FROM public.users u WHERE u.id = btrim(p_as_user_id) AND u.status = 'ACTIVE';
+    IF NOT FOUND THEN RETURN NULL; END IF;
+  END IF;
   IF v_user.role = 'ADMIN'
      OR v_user.designation NOT IN ('In Charge', 'Supervisor', 'Senior Assistant Manager', 'Deputy Manager', 'Manager') THEN
     RETURN NULL;
@@ -95,5 +102,5 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.app_manpower_scoped(TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.app_manpower_scoped(TEXT) TO anon, authenticated;
+REVOKE ALL ON FUNCTION public.app_manpower_scoped(TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.app_manpower_scoped(TEXT, TEXT) TO anon, authenticated;

@@ -1472,7 +1472,9 @@ export const api = {
         // Below Assistant Director: only the people on their own clients, no money. null = not this kind of user.
         const session = readSession();
         if (!session) return null as T;
-        const { data, error } = await supabase.rpc('app_manpower_scoped', { p_session: session.token });
+        // Admin using Switch User: ask for what the viewed person sees (the server only allows this for an Admin)
+        const asUserId = this.isViewingAsAnother() ? (await this.getCurrentUser())?.id : undefined;
+        const { data, error } = await supabase.rpc('app_manpower_scoped', { p_session: session.token, p_as_user_id: asUserId || null });
         if (error) {
           console.error('app_manpower_scoped failed:', error);
           throw new Error(isMissingFunction(error) ? 'The Manpower database update has not been run yet (supabase_manpower_scoped.sql). Please tell Admin.' : 'Could not load Manpower. (' + error.message + ')');
