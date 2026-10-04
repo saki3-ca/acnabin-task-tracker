@@ -27,7 +27,8 @@ const COLS: Col[] = [
   { key: 'clientsText', label: 'Client Name(s)', width: 230, get: r => r.clientsText },
   { key: 'year', label: 'Academic / Employment Year', width: 150, get: r => r.year, center: true },
   { key: 'joiningDate', label: 'Joining Date', width: 105, get: r => formatPeriodDate(r.joiningDate) || r.joiningDate, sort: r => r.joiningDate, center: true },
-  { key: 'articleshipPeriod', label: 'Articleship Period', width: 235, get: r => r.articleshipPeriod },
+  // two lines: "29 Sep 2022 to" then "28 Sep 2026"
+  { key: 'articleshipPeriod', label: 'Articleship Period', width: 140, get: r => r.articleshipPeriod.replace(/\s+to\s+/i, ' to\n'), center: true },
   { key: 'articleshipStart', label: 'Articleship Start', width: 110, get: r => formatPeriodDate(r.articleshipStart) || r.articleshipStart, sort: r => r.articleshipStart, center: true },
   { key: 'articleshipEnd', label: 'Articleship End', width: 110, get: r => formatPeriodDate(r.articleshipEnd) || r.articleshipEnd, sort: r => r.articleshipEnd, center: true },
   { key: 'principalName', label: 'Principal', width: 190, get: r => principalDisplay(r.principalName) },
@@ -111,7 +112,7 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
     try {
       await downloadScopedManpowerExcel(shown.map(r => ({
         empId: r.empId, name: r.name, designation: r.designation, department: r.department, clients: r.clientsText, year: r.year,
-        joiningDate: formatPeriodDate(r.joiningDate) || r.joiningDate, articleshipPeriod: r.articleshipPeriod,
+        joiningDate: formatPeriodDate(r.joiningDate) || r.joiningDate, articleshipPeriod: r.articleshipPeriod.replace(/\s+to\s+/i, ' to\n'),
         articleshipStart: formatPeriodDate(r.articleshipStart) || r.articleshipStart, articleshipEnd: formatPeriodDate(r.articleshipEnd) || r.articleshipEnd, principal: r.principalName, mobile: r.mobile, email: r.email, bloodGroup: r.bloodGroup,
         presentAddress: r.presentAddress, emergencyName: r.emergencyName, relationship: r.emergencyRelationship,
         emergencyPhone: r.emergencyPhone, laptopAvailable: r.laptopAvailable, laptopOwnership: r.laptopOwnership,
@@ -239,7 +240,7 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
                           key={c.key}
                           style={{
                             textAlign: c.center ? 'center' : 'left', fontSize: '12.5px', maxWidth: c.width + 120,
-                            ...(c.key === 'articleshipPeriod' ? { whiteSpace: 'nowrap' } : {}),
+                            ...(c.key === 'articleshipPeriod' ? { whiteSpace: 'pre-line' } : {}),
                             ...(i === 0 ? { fontFamily: 'monospace', fontWeight: 700, color: 'var(--navy)' } : {}),
                             ...(i === 1 ? { fontWeight: 600 } : {}),
                             ...stickyLeft(i)

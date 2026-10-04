@@ -33,8 +33,10 @@ export async function downloadScopedManpowerExcel(lines: ScopedExcelLine[], file
       l.emergencyName, l.relationship, l.emergencyPhone, l.laptopAvailable, l.laptopOwnership, l.laptopId, l.remarks
     ]);
   });
-  const widths = [6, 13, 26, 18, 16, 36, 18, 13, 22, 13, 13, 26, 14, 28, 9, 36, 22, 14, 14, 11, 13, 14, 30];
+  const widths = [6, 13, 26, 18, 16, 36, 18, 13, 16, 13, 13, 26, 14, 28, 9, 36, 22, 14, 14, 11, 13, 14, 30];
   widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  // the period is on two lines: "29 Sep 2022 to" / "28 Sep 2026"
+  ws.getColumn(9).alignment = { wrapText: true, vertical: 'middle' };
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
   const a = document.createElement('a');
