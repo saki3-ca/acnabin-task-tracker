@@ -349,6 +349,19 @@ export interface Invoice {
   createdAt?: string;
 }
 
+/** One row of the invoice CSV import: same fields as an invoice, without id. */
+export type InvoiceImportRow = Omit<Invoice, 'id' | 'createdAt'>;
+
+export interface InvoiceImportResult {
+  status: string;
+  dryRun?: boolean;
+  total?: number;
+  added?: number;
+  skipped?: number;
+  errors?: number;
+  rows?: { invoiceNo: string; client: string; result: 'NEW' | 'DUPLICATE' | 'ERROR'; error?: string }[];
+}
+
 export interface InvoiceAttachment {
   id: string;
   invoiceId: string;

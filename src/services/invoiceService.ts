@@ -1,4 +1,4 @@
-import { Invoice, InvoiceAttachment } from '../types';
+import { Invoice, InvoiceAttachment, InvoiceImportResult, InvoiceImportRow } from '../types';
 import { api } from './api';
 
 export const invoiceService = {
@@ -14,6 +14,11 @@ export const invoiceService = {
    *  Throws an error with code 'SUBMISSION_DUP' when the submission number is used by another invoice (retry with force). */
   async save(fields: Partial<Invoice>, force = false): Promise<void> {
     await api.callBackend('invoiceSave', { fields, force });
+  },
+
+  /** Admin only: copies old invoices from a CSV. Invoice numbers that already exist are skipped. dryRun only reports. */
+  async importRows(rows: InvoiceImportRow[], dryRun: boolean): Promise<InvoiceImportResult> {
+    return api.callBackend('invoiceImport', { rows, dryRun });
   },
 
   /** Admin only */

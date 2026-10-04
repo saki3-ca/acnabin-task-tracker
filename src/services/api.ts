@@ -29,7 +29,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
-  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete',
+  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete',
   'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -1512,6 +1512,25 @@ export const api = {
         }
         if (data === null) throw new Error('You do not have access to Invoices.');
         return data as T;
+      }
+
+      case 'invoiceImport': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        const { data, error } = await supabase.rpc('app_invoice_import', {
+          p_session: session.token,
+          p_rows: payload.rows,
+          p_dry_run: Boolean(payload.dryRun)
+        });
+        if (error) {
+          console.error('app_invoice_import failed:', error);
+          throw new Error(isMissingFunction(error) ? 'The invoice import database update has not been run yet (supabase_invoice_import.sql). Please tell Admin.' : 'Import failed. (' + error.message + ')');
+        }
+        const res: any = data;
+        if (res?.status === 'FORBIDDEN') throw new Error('Only Admin can import invoices.');
+        if (res?.status === 'NO_ACCESS') throw new Error('Your login has expired. Please log out and log in again.');
+        if (res?.status !== 'OK') throw new Error('The file has no valid rows (at most 1000 rows at a time).');
+        return res as T;
       }
 
       case 'invoiceSave': {
