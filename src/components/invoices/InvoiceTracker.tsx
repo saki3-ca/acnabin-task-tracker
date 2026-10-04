@@ -6,6 +6,7 @@ import {
   COLLECTION_METHODS, DEFAULT_TDS_PCT, DEFAULT_VAT_PCT, fmtDate, fmtMoney, isYes, MONTHS, norm, suggestPeriod, suggestTaxes, toNum
 } from '../../lib/invoices';
 import { MAX_FILE_BYTES } from '../../lib/driveFiles';
+import { isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { uploadQueue } from '../../lib/uploadQueue';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { invoiceService } from '../../services/invoiceService';
@@ -86,6 +87,8 @@ const FormCard: React.FC<{ group: Group; title: string; hint?: string; children:
 export const InvoiceTracker: React.FC = () => {
   const { currentUser, allClients, allUsers } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
+  // Only Admin and Assistant Director and above may download the invoice list
+  const canExport = isAdmin || isAssistantDirectorOrAbove(currentUser?.designation);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [attachments, setAttachments] = useState<InvoiceAttachment[]>([]);
@@ -312,6 +315,7 @@ export const InvoiceTracker: React.FC = () => {
   };
 
   const exportExcel = async () => {
+    if (!canExport) return;
     try {
       await downloadInvoicesExcel(rows, `ACNABIN_Invoices_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch {
@@ -513,14 +517,16 @@ export const InvoiceTracker: React.FC = () => {
                     <FileUp size={12} /> Import CSV
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={exportExcel}
-                  style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                  title="Export to Excel"
-                >
-                  <Download size={12} /> Export Excel
-                </button>
+                {canExport && (
+                  <button
+                    type="button"
+                    onClick={exportExcel}
+                    style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                    title="Export to Excel"
+                  >
+                    <Download size={12} /> Export Excel
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => openModal()}
