@@ -27,7 +27,7 @@ const COLS: Col[] = [
   { key: 'clientsText', label: 'Client Name(s)', width: 230, get: r => r.clientsText },
   { key: 'year', label: 'Academic / Employment Year', width: 150, get: r => r.year, center: true },
   { key: 'joiningDate', label: 'Joining Date', width: 105, get: r => formatPeriodDate(r.joiningDate) || r.joiningDate, sort: r => r.joiningDate, center: true },
-  { key: 'articleshipPeriod', label: 'Articleship Period', width: 170, get: r => r.articleshipPeriod },
+  { key: 'articleshipPeriod', label: 'Articleship Period', width: 235, get: r => r.articleshipPeriod },
   { key: 'articleshipStart', label: 'Articleship Start', width: 110, get: r => formatPeriodDate(r.articleshipStart) || r.articleshipStart, sort: r => r.articleshipStart, center: true },
   { key: 'articleshipEnd', label: 'Articleship End', width: 110, get: r => formatPeriodDate(r.articleshipEnd) || r.articleshipEnd, sort: r => r.articleshipEnd, center: true },
   { key: 'principalName', label: 'Principal', width: 190, get: r => principalDisplay(r.principalName) },
@@ -239,6 +239,7 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
                           key={c.key}
                           style={{
                             textAlign: c.center ? 'center' : 'left', fontSize: '12.5px', maxWidth: c.width + 120,
+                            ...(c.key === 'articleshipPeriod' ? { whiteSpace: 'nowrap' } : {}),
                             ...(i === 0 ? { fontFamily: 'monospace', fontWeight: 700, color: 'var(--navy)' } : {}),
                             ...(i === 1 ? { fontWeight: 600 } : {}),
                             ...stickyLeft(i)
