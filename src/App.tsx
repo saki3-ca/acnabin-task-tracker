@@ -66,6 +66,7 @@ const MainApp: React.FC = () => {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
   const [completedModalScope, setCompletedModalScope] = useState<'own' | 'team'>('own');
+  const [overdueModalScope, setOverdueModalScope] = useState<null | 'own' | 'team'>(null);
 
   // Filter active tasks (completed tasks are archived and shown via Completed modal/profile)
   const activeMyTasks = useMemo(
@@ -93,6 +94,10 @@ const MainApp: React.FC = () => {
       [t.particular, t.clientName, t.assignedToName].some(v => (v || '').toLowerCase().includes(q))
     );
   }, [teamTasks, teamFilters.status, teamFilters.searchTerm]);
+
+  // The tasks behind the OVERDUE counter (same rule as the counter itself)
+  const overdueMyTasks = useMemo(() => myTasks.filter(t => isOverdue(t.deadline, t.status)), [myTasks]);
+  const overdueTeamTasks = useMemo(() => teamTasks.filter(t => isOverdue(t.deadline, t.status)), [teamTasks]);
 
   const completedTeamTasks = useMemo(
     () => teamTasks.filter(t => t.status === 'Completed'),
@@ -182,6 +187,8 @@ const MainApp: React.FC = () => {
               if (pill === 'COMPLETED') {
                 setCompletedModalScope('own');
                 setIsCompletedModalOpen(true);
+              } else if (pill === 'OVERDUE') {
+                setOverdueModalScope('own');
               }
             }}
           />
@@ -222,6 +229,8 @@ const MainApp: React.FC = () => {
               if (pill === 'COMPLETED') {
                 setCompletedModalScope('team');
                 setIsCompletedModalOpen(true);
+              } else if (pill === 'OVERDUE') {
+                setOverdueModalScope('team');
               }
             }}
           />
@@ -309,6 +318,17 @@ const MainApp: React.FC = () => {
         tasks={completedModalScope === 'team' ? completedTeamTasks : completedMyTasks}
         title={completedModalScope === 'team' ? 'Completed Team Tasks Archive' : 'My Completed Tasks Archive'}
         showTeamColumns={completedModalScope === 'team'}
+        onEditTask={handleEditTask}
+        onOpenComment={handleOpenComment}
+      />
+
+      <CompletedTasksModal
+        isOpen={overdueModalScope !== null}
+        onClose={() => setOverdueModalScope(null)}
+        tasks={overdueModalScope === 'team' ? overdueTeamTasks : overdueMyTasks}
+        title={overdueModalScope === 'team' ? 'Overdue Team Tasks' : 'My Overdue Tasks'}
+        variant="overdue"
+        showTeamColumns={overdueModalScope === 'team'}
         onEditTask={handleEditTask}
         onOpenComment={handleOpenComment}
       />

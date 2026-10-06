@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
-import { fmtDate } from '../../lib/dateUtils';
+import { daysUntilDeadline, fmtDate } from '../../lib/dateUtils';
 import { canCommentOnTask, canDeleteTask, canEditTask } from '../../lib/permissions';
 import { Task, TaskStatus } from '../../types';
 import { Modal } from '../ui/Modal';
@@ -26,6 +26,8 @@ interface CompletedTasksModalProps {
   onClose: () => void;
   tasks: Task[];
   title?: string;
+  /** 'overdue' reuses this list for tasks past their deadline that are not completed yet */
+  variant?: 'completed' | 'overdue';
   showTeamColumns?: boolean;
   onEditTask?: (task: Task) => void;
   onOpenComment?: (task: Task) => void;
@@ -36,10 +38,13 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   onClose,
   tasks,
   title = 'Completed Tasks Archive',
+  variant = 'completed',
   showTeamColumns = false,
   onEditTask,
   onOpenComment
 }) => {
+  const isOverdueView = variant === 'overdue';
+  const noun = isOverdueView ? 'overdue' : 'completed';
   const { currentUser, allClients } = useAuth();
   const { updateTask, deleteTask } = useTasks();
 
@@ -83,7 +88,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   };
 
   const handleDelete = async (task: Task) => {
-    if (window.confirm(`Are you sure you want to delete completed task "${task.particular}"?`)) {
+    if (window.confirm(`Are you sure you want to delete ${noun} task "${task.particular}"?`)) {
       await deleteTask(task.id);
     }
   };
@@ -99,10 +104,10 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            background: '#F0FDF4',
+            background: isOverdueView ? '#FEF2F2' : '#F0FDF4',
             padding: '12px 16px',
             borderRadius: '8px',
-            border: '1px solid #BBF7D0'
+            border: isOverdueView ? '1px solid #FECACA' : '1px solid #BBF7D0'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -111,21 +116,21 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                background: '#DCFCE7',
-                color: '#166534',
+                background: isOverdueView ? '#FEE2E2' : '#DCFCE7',
+                color: isOverdueView ? '#991B1B' : '#166534',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
             >
-              <CheckCircle2 size={18} />
+              {isOverdueView ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
             </div>
             <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#166534' }}>
-                {tasks.length} Completed {tasks.length === 1 ? 'Task' : 'Tasks'}
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: isOverdueView ? '#991B1B' : '#166534' }}>
+                {tasks.length} {isOverdueView ? 'Overdue' : 'Completed'} {tasks.length === 1 ? 'Task' : 'Tasks'}
               </div>
-              <div style={{ fontSize: '11.5px', color: '#15803D' }}>
-                Archived completed assignments and engagements
+              <div style={{ fontSize: '11.5px', color: isOverdueView ? '#B91C1C' : '#15803D' }}>
+                {isOverdueView ? 'Past their deadline and not completed yet' : 'Archived completed assignments and engagements'}
               </div>
             </div>
           </div>
@@ -146,7 +151,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
               />
               <input
                 type="text"
-                placeholder="Search completed tasks..."
+                placeholder={`Search ${noun} tasks...`}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="form-input"
@@ -237,13 +242,13 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
               {filteredTasks.length === 0 ? (
                 <tr>
                   <td colSpan={showTeamColumns ? 8 : 7} className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
-                    <CheckCircle2 size={32} style={{ color: '#166534', opacity: 0.4, marginBottom: '8px' }} />
+                    {isOverdueView ? <AlertCircle size={32} style={{ color: '#991B1B', opacity: 0.4, marginBottom: '8px' }} /> : <CheckCircle2 size={32} style={{ color: '#166534', opacity: 0.4, marginBottom: '8px' }} />}
                     <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
-                      {tasks.length === 0 ? 'No completed tasks found' : 'No completed tasks match your search'}
+                      {tasks.length === 0 ? `No ${noun} tasks found` : `No ${noun} tasks match your search`}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '4px' }}>
                       {tasks.length === 0
-                        ? 'When tasks are marked as "Completed", they will be safely archived here.'
+                        ? (isOverdueView ? 'Nothing is past its deadline. Well done!' : 'When tasks are marked as "Completed", they will be safely archived here.')
                         : 'Try clearing your search query or client filter.'}
                     </div>
                   </td>
@@ -303,15 +308,20 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                       {/* Deadline */}
                       <td style={{ whiteSpace: 'nowrap', textAlign: 'center', fontSize: '12px', color: 'var(--ink-soft)' }}>
                         {fmtDate(task.deadline)}
+                        {isOverdueView && (
+                          <div style={{ color: '#C53030', fontWeight: 700, fontSize: '11px', marginTop: '2px' }}>
+                            Overdue by {Math.abs(daysUntilDeadline(task.deadline) || 0)}d
+                          </div>
+                        )}
                       </td>
 
-                      {/* Status / Reopen Dropdown */}
+                      {/* Status / Reopen Dropdown (overdue list: change the status, or complete it) */}
                       <td style={{ textAlign: 'center' }}>
                         {canEdit ? (
                           <select
                             value={task.status}
                             onChange={e => handleStatusChange(task, e.target.value as TaskStatus)}
-                            className="status-pill completed"
+                            className={isOverdueView ? 'status-pill overdue' : 'status-pill completed'}
                             style={{
                               cursor: 'pointer',
                               border: 'none',
@@ -319,14 +329,24 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                               fontSize: '11px',
                               fontWeight: 700
                             }}
-                            title="Change status to reopen task"
+                            title={isOverdueView ? 'Change the status (Completed removes it from this list)' : 'Change status to reopen task'}
                           >
-                            <option value="Completed">Completed</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Pending">Pending</option>
+                            {isOverdueView ? (
+                              <>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Completed">Completed</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Pending">Pending</option>
+                              </>
+                            )}
                           </select>
                         ) : (
-                          <span className="status-pill completed">Completed</span>
+                          <span className={isOverdueView ? 'status-pill overdue' : 'status-pill completed'}>{isOverdueView ? task.status : 'Completed'}</span>
                         )}
                       </td>
 
@@ -342,7 +362,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                       {/* Action */}
                       <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          {canEdit && (
+                          {canEdit && !isOverdueView && (
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleReopen(task)}
@@ -376,7 +396,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Close Archive
+            {isOverdueView ? 'Close' : 'Close Archive'}
           </button>
         </div>
       </div>

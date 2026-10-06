@@ -88,8 +88,10 @@ export const StatPills: React.FC<StatPillsProps> = ({ stats, items, variant = 'm
       </div>
 
       <div
-        className={`stat-pill ${borderClass}`}
+        className={`stat-pill ${borderClass} ${onPillClick ? 'clickable' : ''}`}
         onClick={() => onPillClick?.('OVERDUE')}
+        style={onPillClick ? { cursor: 'pointer' } : undefined}
+        title={onPillClick ? 'Click to view overdue tasks' : undefined}
       >
         <span className="stat-pill-label">OVERDUE</span>
         <span className="stat-pill-value overdue">{pad(s.overdue)}</span>
