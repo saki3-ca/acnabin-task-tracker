@@ -66,7 +66,8 @@ const MainApp: React.FC = () => {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isCompletedModalOpen, setIsCompletedModalOpen] = useState(false);
   const [completedModalScope, setCompletedModalScope] = useState<'own' | 'team'>('own');
-  const [overdueModalScope, setOverdueModalScope] = useState<null | 'own' | 'team'>(null);
+  // The list opened by clicking a counter (Total, Pending, In Progress, Overdue)
+  const [listModal, setListModal] = useState<null | { scope: 'own' | 'team'; kind: 'overdue' | 'pending' | 'inprogress' | 'active' }>(null);
 
   // Filter active tasks (completed tasks are archived and shown via Completed modal/profile)
   const activeMyTasks = useMemo(
@@ -96,8 +97,16 @@ const MainApp: React.FC = () => {
   }, [teamTasks, teamFilters.status, teamFilters.searchTerm]);
 
   // The tasks behind the OVERDUE counter (same rule as the counter itself)
-  const overdueMyTasks = useMemo(() => myTasks.filter(t => isOverdue(t.deadline, t.status)), [myTasks]);
-  const overdueTeamTasks = useMemo(() => teamTasks.filter(t => isOverdue(t.deadline, t.status)), [teamTasks]);
+  const listModalTasks = useMemo(() => {
+    if (!listModal) return [];
+    const source = listModal.scope === 'team' ? teamTasks : myTasks;
+    switch (listModal.kind) {
+      case 'overdue': return source.filter(t => isOverdue(t.deadline, t.status));
+      case 'pending': return source.filter(t => t.status === 'Pending');
+      case 'inprogress': return source.filter(t => t.status === 'In Progress');
+      default: return source.filter(t => t.status !== 'Completed');
+    }
+  }, [listModal, myTasks, teamTasks]);
 
   const completedTeamTasks = useMemo(
     () => teamTasks.filter(t => t.status === 'Completed'),
@@ -188,7 +197,13 @@ const MainApp: React.FC = () => {
                 setCompletedModalScope('own');
                 setIsCompletedModalOpen(true);
               } else if (pill === 'OVERDUE') {
-                setOverdueModalScope('own');
+                setListModal({ scope: 'own', kind: 'overdue' });
+              } else if (pill === 'PENDING') {
+                setListModal({ scope: 'own', kind: 'pending' });
+              } else if (pill === 'IN PROGRESS') {
+                setListModal({ scope: 'own', kind: 'inprogress' });
+              } else if (pill === 'TOTAL') {
+                setListModal({ scope: 'own', kind: 'active' });
               }
             }}
           />
@@ -230,7 +245,13 @@ const MainApp: React.FC = () => {
                 setCompletedModalScope('team');
                 setIsCompletedModalOpen(true);
               } else if (pill === 'OVERDUE') {
-                setOverdueModalScope('team');
+                setListModal({ scope: 'team', kind: 'overdue' });
+              } else if (pill === 'PENDING') {
+                setListModal({ scope: 'team', kind: 'pending' });
+              } else if (pill === 'IN PROGRESS') {
+                setListModal({ scope: 'team', kind: 'inprogress' });
+              } else if (pill === 'TOTAL') {
+                setListModal({ scope: 'team', kind: 'active' });
               }
             }}
           />
@@ -323,12 +344,12 @@ const MainApp: React.FC = () => {
       />
 
       <CompletedTasksModal
-        isOpen={overdueModalScope !== null}
-        onClose={() => setOverdueModalScope(null)}
-        tasks={overdueModalScope === 'team' ? overdueTeamTasks : overdueMyTasks}
-        title={overdueModalScope === 'team' ? 'Overdue Team Tasks' : 'My Overdue Tasks'}
-        variant="overdue"
-        showTeamColumns={overdueModalScope === 'team'}
+        isOpen={listModal !== null}
+        onClose={() => setListModal(null)}
+        tasks={listModalTasks}
+        title={`${listModal?.scope === 'team' ? 'Team' : 'My'} ${{ overdue: 'Overdue Tasks', pending: 'Pending Tasks', inprogress: 'In-Progress Tasks', active: 'Active Tasks' }[listModal?.kind || 'active']}`}
+        variant={listModal?.kind || 'active'}
+        showTeamColumns={listModal?.scope === 'team'}
         onEditTask={handleEditTask}
         onOpenComment={handleOpenComment}
       />

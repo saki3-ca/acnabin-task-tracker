@@ -54,24 +54,30 @@ export const StatPills: React.FC<StatPillsProps> = ({ stats, items, variant = 'm
   return (
     <div className="stat-pills">
       <div
-        className={`stat-pill ${borderClass}`}
+        className={`stat-pill ${borderClass} ${onPillClick ? 'clickable' : ''}`}
         onClick={() => onPillClick?.('TOTAL')}
+        style={onPillClick ? { cursor: 'pointer' } : undefined}
+        title={onPillClick ? 'Click to view all active tasks' : undefined}
       >
         <span className="stat-pill-label">TOTAL</span>
         <span className="stat-pill-value">{pad(s.total)}</span>
       </div>
 
       <div
-        className={`stat-pill ${borderClass}`}
+        className={`stat-pill ${borderClass} ${onPillClick ? 'clickable' : ''}`}
         onClick={() => onPillClick?.('PENDING')}
+        style={onPillClick ? { cursor: 'pointer' } : undefined}
+        title={onPillClick ? 'Click to view pending tasks' : undefined}
       >
         <span className="stat-pill-label">PENDING</span>
         <span className="stat-pill-value">{pad(s.pending)}</span>
       </div>
 
       <div
-        className={`stat-pill ${borderClass}`}
+        className={`stat-pill ${borderClass} ${onPillClick ? 'clickable' : ''}`}
         onClick={() => onPillClick?.('IN PROGRESS')}
+        style={onPillClick ? { cursor: 'pointer' } : undefined}
+        title={onPillClick ? 'Click to view tasks in progress' : undefined}
       >
         <span className="stat-pill-label">IN PROGRESS</span>
         <span className="stat-pill-value">{pad(s.inProgress)}</span>

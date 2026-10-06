@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
-import { daysUntilDeadline, fmtDate } from '../../lib/dateUtils';
+import { daysUntilDeadline, fmtDate, isOverdue } from '../../lib/dateUtils';
 import { canCommentOnTask, canDeleteTask, canEditTask } from '../../lib/permissions';
 import { Task, TaskStatus } from '../../types';
 import { Modal } from '../ui/Modal';
@@ -26,8 +26,8 @@ interface CompletedTasksModalProps {
   onClose: () => void;
   tasks: Task[];
   title?: string;
-  /** 'overdue' reuses this list for tasks past their deadline that are not completed yet */
-  variant?: 'completed' | 'overdue';
+  /** Which counter this list belongs to. 'completed' is the archive; the others are live lists you can act on. */
+  variant?: 'completed' | 'overdue' | 'pending' | 'inprogress' | 'active';
   showTeamColumns?: boolean;
   onEditTask?: (task: Task) => void;
   onOpenComment?: (task: Task) => void;
@@ -43,8 +43,16 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   onEditTask,
   onOpenComment
 }) => {
-  const isOverdueView = variant === 'overdue';
-  const noun = isOverdueView ? 'overdue' : 'completed';
+  const isArchive = variant === 'completed';
+  const cfg = {
+    completed: { noun: 'completed', label: 'Completed', sub: 'Archived completed assignments and engagements', bg: '#F0FDF4', border: '#BBF7D0', circle: '#DCFCE7', fg: '#166534', fg2: '#15803D' },
+    overdue: { noun: 'overdue', label: 'Overdue', sub: 'Past their deadline and not completed yet', bg: '#FEF2F2', border: '#FECACA', circle: '#FEE2E2', fg: '#991B1B', fg2: '#B91C1C' },
+    pending: { noun: 'pending', label: 'Pending', sub: 'Assigned and not started yet', bg: '#FFFBEB', border: '#FDE68A', circle: '#FEF3C7', fg: '#92400E', fg2: '#B45309' },
+    inprogress: { noun: 'in-progress', label: 'In Progress', sub: 'Work has started and is not completed yet', bg: '#EFF6FF', border: '#BFDBFE', circle: '#DBEAFE', fg: '#1E40AF', fg2: '#1D4ED8' },
+    active: { noun: 'active', label: 'Active', sub: 'Pending and in-progress tasks', bg: '#F8FAFC', border: '#CBD5E1', circle: '#E2E8F0', fg: '#1A304D', fg2: '#334155' }
+  }[variant];
+  const noun = cfg.noun;
+  const emptyHint = { completed: 'When tasks are marked as "Completed", they will be safely archived here.', overdue: 'Nothing is past its deadline. Well done!', pending: 'No task is waiting to be started.', inprogress: 'No task is in progress right now.', active: 'There are no active tasks.' }[variant];
   const { currentUser, allClients } = useAuth();
   const { updateTask, deleteTask } = useTasks();
 
@@ -94,7 +102,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="960px">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="1100px">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '78vh' }}>
         {/* Header Summary & Filter Bar */}
         <div
@@ -104,10 +112,10 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px',
-            background: isOverdueView ? '#FEF2F2' : '#F0FDF4',
+            background: cfg.bg,
             padding: '12px 16px',
             borderRadius: '8px',
-            border: isOverdueView ? '1px solid #FECACA' : '1px solid #BBF7D0'
+            border: `1px solid ${cfg.border}`
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -116,21 +124,21 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                 width: '32px',
                 height: '32px',
                 borderRadius: '50%',
-                background: isOverdueView ? '#FEE2E2' : '#DCFCE7',
-                color: isOverdueView ? '#991B1B' : '#166534',
+                background: cfg.circle,
+                color: cfg.fg,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}
             >
-              {isOverdueView ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+              {isArchive ? <CheckCircle2 size={18} /> : variant === 'overdue' ? <AlertCircle size={18} /> : <Clock size={18} />}
             </div>
             <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: isOverdueView ? '#991B1B' : '#166534' }}>
-                {tasks.length} {isOverdueView ? 'Overdue' : 'Completed'} {tasks.length === 1 ? 'Task' : 'Tasks'}
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: cfg.fg }}>
+                {tasks.length} {cfg.label} {tasks.length === 1 ? 'Task' : 'Tasks'}
               </div>
-              <div style={{ fontSize: '11.5px', color: isOverdueView ? '#B91C1C' : '#15803D' }}>
-                {isOverdueView ? 'Past their deadline and not completed yet' : 'Archived completed assignments and engagements'}
+              <div style={{ fontSize: '11.5px', color: cfg.fg2 }}>
+                {cfg.sub}
               </div>
             </div>
           </div>
@@ -228,27 +236,27 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
               <tr>
                 <th style={{ width: '45px', textAlign: 'center' }}>SL.</th>
                 {showTeamColumns && (
-                  <th style={{ width: '130px', textAlign: 'center' }}>Assigned To</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Assigned To</th>
                 )}
                 <th style={{ minWidth: '200px', textAlign: 'left' }}>Particulars</th>
                 <th style={{ width: '150px', textAlign: 'left' }}>Client</th>
                 <th style={{ width: '105px', textAlign: 'center' }}>Deadline</th>
                 <th style={{ width: '115px', textAlign: 'center' }}>Status</th>
-                <th style={{ minWidth: '160px', textAlign: 'left' }}>Remarks</th>
-                <th style={{ width: '90px', textAlign: 'center' }}>Action</th>
+                <th style={{ minWidth: '120px', textAlign: 'left' }}>Remarks</th>
+                <th style={{ width: '124px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {filteredTasks.length === 0 ? (
                 <tr>
                   <td colSpan={showTeamColumns ? 8 : 7} className="empty-state" style={{ padding: '36px 16px', textAlign: 'center' }}>
-                    {isOverdueView ? <AlertCircle size={32} style={{ color: '#991B1B', opacity: 0.4, marginBottom: '8px' }} /> : <CheckCircle2 size={32} style={{ color: '#166534', opacity: 0.4, marginBottom: '8px' }} />}
+                    {isArchive ? <CheckCircle2 size={32} style={{ color: cfg.fg, opacity: 0.4, marginBottom: '8px' }} /> : <AlertCircle size={32} style={{ color: cfg.fg, opacity: 0.4, marginBottom: '8px' }} />}
                     <div style={{ fontWeight: 600, fontSize: '13.5px', color: 'var(--ink)' }}>
                       {tasks.length === 0 ? `No ${noun} tasks found` : `No ${noun} tasks match your search`}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--ink-muted)', marginTop: '4px' }}>
                       {tasks.length === 0
-                        ? (isOverdueView ? 'Nothing is past its deadline. Well done!' : 'When tasks are marked as "Completed", they will be safely archived here.')
+                        ? emptyHint
                         : 'Try clearing your search query or client filter.'}
                     </div>
                   </td>
@@ -308,7 +316,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                       {/* Deadline */}
                       <td style={{ whiteSpace: 'nowrap', textAlign: 'center', fontSize: '12px', color: 'var(--ink-soft)' }}>
                         {fmtDate(task.deadline)}
-                        {isOverdueView && (
+                        {!isArchive && isOverdue(task.deadline, task.status) && (
                           <div style={{ color: '#C53030', fontWeight: 700, fontSize: '11px', marginTop: '2px' }}>
                             Overdue by {Math.abs(daysUntilDeadline(task.deadline) || 0)}d
                           </div>
@@ -321,7 +329,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                           <select
                             value={task.status}
                             onChange={e => handleStatusChange(task, e.target.value as TaskStatus)}
-                            className={isOverdueView ? 'status-pill overdue' : 'status-pill completed'}
+                            className={isArchive ? 'status-pill completed' : isOverdue(task.deadline, task.status) ? 'status-pill overdue' : task.status === 'In Progress' ? 'status-pill in-progress' : 'status-pill pending'}
                             style={{
                               cursor: 'pointer',
                               border: 'none',
@@ -329,9 +337,9 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                               fontSize: '11px',
                               fontWeight: 700
                             }}
-                            title={isOverdueView ? 'Change the status (Completed removes it from this list)' : 'Change status to reopen task'}
+                            title={isArchive ? 'Change status to reopen task' : 'Change the status (a change can move the task to another list)'}
                           >
-                            {isOverdueView ? (
+                            {!isArchive ? (
                               <>
                                 <option value="Pending">Pending</option>
                                 <option value="In Progress">In Progress</option>
@@ -346,7 +354,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                             )}
                           </select>
                         ) : (
-                          <span className={isOverdueView ? 'status-pill overdue' : 'status-pill completed'}>{isOverdueView ? task.status : 'Completed'}</span>
+                          <span className={isArchive ? 'status-pill completed' : isOverdue(task.deadline, task.status) ? 'status-pill overdue' : 'status-pill pending'}>{isArchive ? 'Completed' : task.status}</span>
                         )}
                       </td>
 
@@ -362,7 +370,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                       {/* Action */}
                       <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                          {canEdit && !isOverdueView && (
+                          {isArchive && canEdit && (
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => handleReopen(task)}
@@ -370,6 +378,28 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                               style={{ padding: '5px 7px', color: '#166534', borderColor: '#BBF7D0' }}
                             >
                               <RotateCcw size={12} />
+                            </button>
+                          )}
+
+                          {/* Live lists: the same Edit / Comment buttons as the main task table */}
+                          {!isArchive && canEdit && onEditTask && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => { onClose(); onEditTask(task); }}
+                              title="Edit Task"
+                              style={{ padding: '5px 8px' }}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                          )}
+                          {!isArchive && canCommentOnTask(currentUser, task) && onOpenComment && (
+                            <button
+                              className="btn btn-teal btn-sm"
+                              onClick={() => { onClose(); onOpenComment(task); }}
+                              title="Add / Edit Comment"
+                              style={{ padding: '5px 8px' }}
+                            >
+                              <MessageSquare size={13} />
                             </button>
                           )}
 
@@ -396,7 +426,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
         {/* Footer */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>
-            {isOverdueView ? 'Close' : 'Close Archive'}
+            {isArchive ? 'Close Archive' : 'Close'}
           </button>
         </div>
       </div>
