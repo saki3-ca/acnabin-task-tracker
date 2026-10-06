@@ -101,6 +101,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     return list;
   }, [currentUser, allUsers, activeClientId, mode, taskToEdit]);
 
+  // "Assign to ALL" never includes Assistant Director and above (they can still be picked one by one)
+  const bulkRecipients = useMemo(
+    () => assignableUsers.filter(u => !isAssistantDirectorOrAbove(u.designation)),
+    [assignableUsers]
+  );
+
   useEffect(() => {
     if (taskToEdit) {
       const editClient = (!canSeeAll && availableClients.length === 1)
@@ -138,7 +144,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   useEffect(() => {
     if (mode === 'team' && !taskToEdit) {
       if (firmWideBulk) {
-        setAssignedToId(assignableUsers.length > 0 ? 'ALL_MEMBERS' : '');
+        setAssignedToId(bulkRecipients.length > 0 ? 'ALL_MEMBERS' : '');
       } else if (assignableUsers.length > 0) {
         if (!assignedToId || (assignedToId !== 'ALL_MEMBERS' && !assignableUsers.some(u => u.id === assignedToId))) {
           setAssignedToId(assignableUsers[0].id);
@@ -147,7 +153,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         setAssignedToId('');
       }
     }
-  }, [assignableUsers, mode, taskToEdit, assignedToId, firmWideBulk]);
+  }, [assignableUsers, bulkRecipients, mode, taskToEdit, assignedToId, firmWideBulk]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,7 +231,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           managerComment
         });
       } else if (mode === 'team' && assignedToId === 'ALL_MEMBERS') {
-        const tasksToCreate = assignableUsers.map(u => {
+        const tasksToCreate = bulkRecipients.map(u => {
           const clientInfo = resolveClientForUser(u);
           return {
             clientId: clientInfo.id,
@@ -347,12 +353,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     ? 'No eligible subordinates found'
                     : 'Select team member…'}
                 </option>
-                {isADPlus && !isEditing && assignableUsers.length > 0 && (
+                {isADPlus && !isEditing && bulkRecipients.length > 0 && (
                   <option
                     value="ALL_MEMBERS"
                     style={{ fontWeight: 700, color: '#1E40AF', background: '#EFF6FF' }}
                   >
-                    👥 Assign to ALL Below Members ({assignableUsers.length} members)
+                    👥 Assign to ALL below Assistant Director ({bulkRecipients.length} members)
                   </option>
                 )}
                 {assignableUsers.length > 0 && !firmWideBulk && (
@@ -378,7 +384,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     lineHeight: '1.4'
                   }}
                 >
-                  ⚡ <strong>Bulk Assignment Active:</strong> This task will be simultaneously created and assigned to all <strong>{assignableUsers.length}</strong> subordinate team members ({clientId === 'ALL_CLIENTS' ? 'firm-wide' : 'assigned to this client'}).
+                  ⚡ <strong>Bulk Assignment Active:</strong> This task will be simultaneously created and assigned to all <strong>{bulkRecipients.length}</strong> team members below Assistant Director ({clientId === 'ALL_CLIENTS' ? 'firm-wide' : 'assigned to this client'}). Assistant Director and above are not included.
                 </div>
               )}
             </div>
@@ -491,7 +497,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               ? 'Save Changes'
               : mode === 'team'
               ? assignedToId === 'ALL_MEMBERS'
-                ? `Assign to All (${assignableUsers.length}) Members`
+                ? `Assign to All (${bulkRecipients.length}) Members`
                 : 'Assign Task'
               : 'Create Task'}
           </button>
