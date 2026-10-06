@@ -16,13 +16,14 @@ import {
 import { downloadManpowerWorkbook } from '../../lib/manpowerExcel';
 import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
-import { isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib/permissions';
+import { canViewManpowerScoped, isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { ClientLabel, clientText } from '../ui/ClientLabel';
 import { staffService } from '../../services/staffService';
 import { academicYearFromStart, employmentYearFromJoining, isEmployeeProfile } from '../../lib/academicYear';
 import { manpowerService } from '../../services/manpowerService';
-import { ClientManpowerSummaryItem, ManpowerRecord } from '../../types';
+import { ClientManpowerSummaryItem, ManpowerRecord, ScopedManpower } from '../../types';
+import { ScopedManpowerView } from './ScopedManpowerView';
 
 function formatBDT(amount: number): string {
   return `৳ ${Math.round(amount).toLocaleString('en-IN')}`;
@@ -62,7 +63,7 @@ function withAllClients(r: ManpowerRecord): ManpowerRecord {
 type DetailSortField = 'empId' | 'name' | 'assignedClient' | 'designation' | 'academicYear' | 'salary' | 'conveyance' | 'total';
 type SummarySortField = 'clientName' | 'manpowerCount' | 'totalSalary' | 'totalConveyance' | 'totalCost';
 
-export const ManpowerView: React.FC = () => {
+const FullManpowerView: React.FC = () => {
   const { currentUser, refreshContextData, allUsers, allClients } = useAuth();
   const [viewMode, setViewMode] = useState<'details' | 'summary'>('details');
 
@@ -1840,4 +1841,29 @@ export const ManpowerView: React.FC = () => {
       )}
     </div>
   );
+};
+
+/**
+ * In Charge to Manager (below Assistant Director) get a view limited to their own clients, with no money.
+ * If the Admin picked them in Tab Access -> Manpower, the server answers "null" and they get the full directory.
+ */
+export const ManpowerView: React.FC = () => {
+  const { currentUser } = useAuth();
+  const probe = canViewManpowerScoped(currentUser);
+  const [state, setState] = useState<{ status: 'loading' | 'full' | 'scoped' | 'error'; data?: ScopedManpower; message?: string }>({ status: probe ? 'loading' : 'full' });
+
+  useEffect(() => {
+    if (!probe) return;
+    let on = true;
+    manpowerService.getScoped()
+      .then(d => { if (on) setState(d ? { status: 'scoped', data: d } : { status: 'full' }); })
+      .catch((e: any) => { if (on) setState({ status: 'error', message: e?.message || 'Could not load Manpower.' }); });
+    return () => { on = false; };
+  }, [probe, currentUser?.id]);
+
+  if (state.status === 'loading') return <div className="tab-pane"><div className="loading-indicator">Loading manpower records…</div></div>;
+  // Never fall back to the full directory for a below-AD user when the limited one fails
+  if (state.status === 'error') return <div className="tab-pane"><div className="auth-alert-error">{state.message}</div></div>;
+  if (state.status === 'scoped' && state.data) return <ScopedManpowerView data={state.data} />;
+  return <FullManpowerView />;
 };

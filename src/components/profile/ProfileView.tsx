@@ -1,3 +1,4 @@
+import { formatPeriod } from '../../lib/staffSheet';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   Briefcase,
@@ -445,11 +446,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       staffFields.articleship_end = editArtEnd;
       staffFields.principal_name = editPrincipal;
       if (editArtStart && editArtEnd) {
-        const f = (iso: string) => {
-          const d = new Date(iso + 'T00:00:00');
-          return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-        };
-        staffFields.articleship_period = `${f(editArtStart)} to ${f(editArtEnd)}`;
+        staffFields.articleship_period = formatPeriod(editArtStart, editArtEnd);
       }
     }
     const st = staffSnap;

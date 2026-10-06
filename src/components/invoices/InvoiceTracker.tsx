@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, ExternalLink, Paperclip, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { Download, ExternalLink, FileUp, Paperclip, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { downloadInvoicesExcel } from '../../lib/invoicesExcel';
 import {
   COLLECTION_METHODS, DEFAULT_TDS_PCT, DEFAULT_VAT_PCT, fmtDate, fmtMoney, isYes, MONTHS, norm, suggestPeriod, suggestTaxes, toNum
 } from '../../lib/invoices';
 import { MAX_FILE_BYTES } from '../../lib/driveFiles';
+import { isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { uploadQueue } from '../../lib/uploadQueue';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { invoiceService } from '../../services/invoiceService';
@@ -13,6 +14,7 @@ import { Invoice, InvoiceAttachment } from '../../types';
 import { StatPills } from '../dashboard/StatPills';
 import { Modal } from '../ui/Modal';
 import { InvoiceFilesModal } from './InvoiceFilesModal';
+import { InvoiceImport } from './InvoiceImport';
 
 type Form = Omit<Invoice, 'id' | 'createdAt'>;
 const EMPTY: Form = {
@@ -85,6 +87,8 @@ const FormCard: React.FC<{ group: Group; title: string; hint?: string; children:
 export const InvoiceTracker: React.FC = () => {
   const { currentUser, allClients, allUsers } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
+  // Only Admin and Assistant Director and above may download the invoice list
+  const canExport = isAdmin || isAssistantDirectorOrAbove(currentUser?.designation);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [attachments, setAttachments] = useState<InvoiceAttachment[]>([]);
@@ -93,6 +97,7 @@ export const InvoiceTracker: React.FC = () => {
   const [filesFor, setFilesFor] = useState<{ id: string; kind: 'VDS' | 'TDS' } | null>(null);
   const [queued, setQueued] = useState<{ VDS: File[]; TDS: File[] }>({ VDS: [], TDS: [] });
   const [fileNote, setFileNote] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -137,7 +142,7 @@ export const InvoiceTracker: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load, currentUser?.id]);
-  useLivePolling(() => load(), 30000, !modalOpen);
+  useLivePolling(() => load(), 30000, !modalOpen && !importOpen);
 
   // A background upload finished: refresh the file counts
   useEffect(() => {
@@ -310,6 +315,7 @@ export const InvoiceTracker: React.FC = () => {
   };
 
   const exportExcel = async () => {
+    if (!canExport) return;
     try {
       await downloadInvoicesExcel(rows, `ACNABIN_Invoices_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch {
@@ -501,14 +507,26 @@ export const InvoiceTracker: React.FC = () => {
                 <span>INVOICES</span>
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'absolute', right: '16px' }}>
-                <button
-                  type="button"
-                  onClick={exportExcel}
-                  style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                  title="Export to Excel"
-                >
-                  <Download size={12} /> Export Excel
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setImportOpen(true)}
+                    style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                    title="Import old invoices from a CSV (Admin)"
+                  >
+                    <FileUp size={12} /> Import CSV
+                  </button>
+                )}
+                {canExport && (
+                  <button
+                    type="button"
+                    onClick={exportExcel}
+                    style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                    title="Export to Excel"
+                  >
+                    <Download size={12} /> Export Excel
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => openModal()}
@@ -620,6 +638,8 @@ export const InvoiceTracker: React.FC = () => {
           )}
         </div>
       </Modal>
+
+      <InvoiceImport isOpen={importOpen} onClose={() => setImportOpen(false)} onDone={() => void load()} />
 
       <InvoiceFilesModal
         invoice={filesFor ? invoices.find(x => x.id === filesFor.id) || null : null}

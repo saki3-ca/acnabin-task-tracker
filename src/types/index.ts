@@ -137,6 +137,17 @@ export interface MyStaff {
   remarks: string;
 }
 
+/** One person in the Manpower tab of a below-AD user: staff-sheet details, no money. */
+export interface ScopedManpowerRow extends Omit<MyStaff, 'clientNames'> {
+  /** only the clients shared with the viewer */
+  clientIds: string[];
+}
+
+export interface ScopedManpower {
+  clients: { id: string; name: string; jobNumber: string; remarks: string }[];
+  rows: ScopedManpowerRow[];
+}
+
 export interface StaffDates {
   empId: string;
   articleshipStart: string;
@@ -347,6 +358,19 @@ export interface Invoice {
   remarks: string;
   erpNote: string;
   createdAt?: string;
+}
+
+/** One row of the invoice CSV import: same fields as an invoice, without id. */
+export type InvoiceImportRow = Omit<Invoice, 'id' | 'createdAt'>;
+
+export interface InvoiceImportResult {
+  status: string;
+  dryRun?: boolean;
+  total?: number;
+  added?: number;
+  skipped?: number;
+  errors?: number;
+  rows?: { invoiceNo: string; client: string; result: 'NEW' | 'DUPLICATE' | 'ERROR'; error?: string }[];
 }
 
 export interface InvoiceAttachment {

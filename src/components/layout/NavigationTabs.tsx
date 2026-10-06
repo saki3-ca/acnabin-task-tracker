@@ -3,7 +3,7 @@ import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, Receipt, Shield,
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLivePolling } from '../../lib/useLivePolling';
-import { canViewManpower, canViewTeamTasks } from '../../lib/permissions';
+import { canViewManpower, canViewManpowerScoped, canViewTeamTasks } from '../../lib/permissions';
 import { api } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
 import { manpowerAccessService } from '../../services/manpowerAccessService';
@@ -78,8 +78,8 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   // Team Tasks: In Charge and above (not Students)
   const showTeamTasksTab = canViewTeamTasks(currentUser);
 
-  // Manpower: Admin or Assistant Director and above
-  const showManpowerTab = canViewManpower(currentUser) || manpowerGranted;
+  // Manpower: Admin, Assistant Director and above, In Charge to Manager (own clients only) or anyone the Admin added
+  const showManpowerTab = canViewManpower(currentUser) || canViewManpowerScoped(currentUser) || manpowerGranted;
 
   // Task Requests, Notifications & My Profile: available for all practice users
   const showRequestsTab = currentUser.role !== 'ADMIN';
