@@ -254,10 +254,12 @@ export function getUserAssignedClientIds(user?: User | null): string[] {
 }
 
 /**
- * Returns the list of team members a user is permitted to assign tasks to:
- * 1. Must be strictly below the current user in the hierarchy (targetRank < currentRank).
- * 2. If current user is Assistant Director or above (or Admin), they can assign to any subordinate across the firm for the selected client.
- * 3. If current user is below Assistant Director (Manager, SAM, Supervisor, In Charge), they can ONLY assign to subordinates who are assigned to the selected client.
+ * Who a task can be assigned to (the "Assign Task" list):
+ * - Only people BELOW Assistant Director (Manager, SAM, Supervisor, In Charge, Student, Trainee).
+ *   Assistant Director, Deputy Director, Director and Partner are never in this list.
+ *   (Task Requests are different: see getEligibleTaskRequestRecipients.)
+ * - Admin and Assistant Director and above can assign to those people firm-wide, whatever the client.
+ * - Everyone below Assistant Director can only assign to subordinates who are assigned to the selected client.
  */
 export function getAssignableUsers(
   currentUser: User | null,
@@ -267,34 +269,26 @@ export function getAssignableUsers(
   if (!currentUser || !canAssignTasks(currentUser)) return [];
 
   const currentRank = getUserRank(currentUser);
+  const isADPlusUser = isAssistantDirectorOrAbove(currentUser.designation) || currentUser.role === 'ADMIN';
 
-  // Subordinates strictly below current user in hierarchy (excluding Admin)
+  // Subordinates strictly below the current user (excluding Admin), and never Assistant Director or above
   const subordinates = allUsers.filter(
     u => u.id !== currentUser.id &&
          u.role !== 'ADMIN' &&
          u.designation !== 'Admin' &&
+         !isAssistantDirectorOrAbove(u.designation) &&
          getUserRank(u) < currentRank
   );
 
-  // If "ALL_CLIENTS" or "ALL" or no client selected yet:
-  if (!selectedClientId || selectedClientId === 'ALL_CLIENTS' || selectedClientId === 'ALL') {
-    // If user is AD or above (or Admin), they can assign to ANY subordinate firm-wide across all clients!
-    if (isAssistantDirectorOrAbove(currentUser.designation) || currentUser.role === 'ADMIN') {
-      return subordinates;
-    }
-    return subordinates.filter(u => isAssistantDirectorOrAbove(u.designation));
+  if (isADPlusUser) {
+    // Firm-wide for "all clients" (or nothing chosen yet); otherwise only people on the selected client
+    if (!selectedClientId || selectedClientId === 'ALL_CLIENTS' || selectedClientId === 'ALL') return subordinates;
+    return subordinates.filter(u => getUserAssignedClientIds(u).includes(selectedClientId));
   }
 
-  // Filter subordinates for selectedClientId:
-  // 1. AD to above (Assistant Director, Deputy Director, Director, Partner): ALWAYS eligible for any client!
-  // 2. Subordinates below AD (Manager, SAM, Supervisor, In Charge, Student): MUST be assigned to selectedClientId!
-  return subordinates.filter(u => {
-    if (isAssistantDirectorOrAbove(u.designation)) {
-      return true;
-    }
-    const userClients = getUserAssignedClientIds(u);
-    return userClients.includes(selectedClientId);
-  });
+  // Below Assistant Director: only people on the selected client
+  if (!selectedClientId || selectedClientId === 'ALL_CLIENTS' || selectedClientId === 'ALL') return [];
+  return subordinates.filter(u => getUserAssignedClientIds(u).includes(selectedClientId));
 }
 
 /**
