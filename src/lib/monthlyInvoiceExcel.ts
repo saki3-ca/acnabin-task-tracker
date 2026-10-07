@@ -150,7 +150,9 @@ export async function downloadMonthlyInvoicesExcel(
     for (let c = 1; c <= 14; c++) {
       const cell = row.getCell(c);
       cell.font = (r === 6 && c === 8) ? fontHeaderH6 : fontHeader;
-      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.alignment = r === 7
+        ? { horizontal: 'center', vertical: 'middle', shrinkToFit: true }
+        : { horizontal: 'center', vertical: 'middle', wrapText: true };
       cell.border = thinBorder;
       cell.fill = headerFill;
     }
