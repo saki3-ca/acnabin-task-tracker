@@ -275,7 +275,7 @@ export async function downloadMonthlyInvoicesExcel(
     views: [{ state: 'frozen', ySplit: 6, xSplit: 0, showGridLines: false }]
   });
 
-  const colWidths2 = [5.5, 28.0, 8.5, 16.80, 14.0, 12.5, 13.5, 12.0, 17.5, 16.0, 16.5];
+  const colWidths2 = [5.5, 28.0, 8.5, 18, 14.0, 12.5, 13.5, 12.0, 17.5, 16.0, 16.5];
   wsInv.columns = colWidths2.map(w => ({ width: w }));
   colWidths2.forEach((w, i) => {
     wsInv.getColumn(i + 1).width = w;
