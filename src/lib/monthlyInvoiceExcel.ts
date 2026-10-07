@@ -64,6 +64,13 @@ export async function downloadMonthlyInvoicesExcel(
   const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF2F2F2' } };
   const totalFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF2F2F2' } };
 
+  // Row height that grows when the client name wraps (Tahoma 10, ~1 char per width unit)
+  const clientNameWidth = 33;
+  const dataRowHeight = (name?: string): number => {
+    const lines = Math.max(1, Math.ceil((name || '').length / (clientNameWidth - 2)));
+    return Math.max(19, lines * 13.5 + 5);
+  };
+
   // =========================================================================
   // SHEET 1: Details of collection
   // =========================================================================
@@ -73,7 +80,7 @@ export async function downloadMonthlyInvoicesExcel(
   });
 
   // Explicit column widths
-  const colWidths1 = [5.5, 32.5, 8.5, 16.5, 13.0, 16.5, 13.0, 25.56, 15.89, 13.5, 17.5, 16.0, 16.0, 16.5];
+  const colWidths1 = [5.5, 33, 8.5, 16.5, 13.0, 16.5, 13.0, 25.56, 15.89, 13.5, 17.5, 16.0, 16.0, 16.5];
   wsCol.columns = colWidths1.map(w => ({ width: w }));
   colWidths1.forEach((w, i) => {
     wsCol.getColumn(i + 1).width = w;
@@ -177,7 +184,7 @@ export async function downloadMonthlyInvoicesExcel(
     const net = amt - vds - tds;
 
     const row = wsCol.getRow(curRow);
-    row.height = 19;
+    row.height = dataRowHeight(inv.client);
 
     row.getCell(1).value = idx + 1;
     row.getCell(1).font = fontData;
@@ -288,7 +295,7 @@ export async function downloadMonthlyInvoicesExcel(
     views: [{ state: 'frozen', ySplit: 6, xSplit: 0, showGridLines: false }]
   });
 
-  const colWidths2 = [5.5, 28.0, 8.5, 18, 14.0, 12.5, 13.5, 12.0, 17.5, 16.0, 16.5];
+  const colWidths2 = [5.5, 33, 8.5, 18, 14.0, 12.5, 13.5, 12.0, 17.5, 16.0, 16.5];
   wsInv.columns = colWidths2.map(w => ({ width: w }));
   colWidths2.forEach((w, i) => {
     wsInv.getColumn(i + 1).width = w;
@@ -357,7 +364,7 @@ export async function downloadMonthlyInvoicesExcel(
     const controlNo = inv.submissionNo ? (Number(inv.submissionNo) || inv.submissionNo) : null;
 
     const row = wsInv.getRow(curInvRow);
-    row.height = 19;
+    row.height = dataRowHeight(inv.client);
 
     row.getCell(1).value = idx + 1;
     row.getCell(1).font = fontData;
