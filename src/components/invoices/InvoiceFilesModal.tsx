@@ -4,6 +4,7 @@ import { deleteFromDrive, downloadFromDrive, fmtSize, MAX_FILE_BYTES } from '../
 import { uploadQueue } from '../../lib/uploadQueue';
 import { invoiceService } from '../../services/invoiceService';
 import { Invoice, InvoiceAttachment } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -20,6 +21,7 @@ const isLink = (s: string) => /^https?:\/\//i.test((s || '').trim());
 
 /** The challan files of one invoice (VDS or TDS). Old data keeps its Drive link at the top. */
 export const InvoiceFilesModal: React.FC<Props> = ({ invoice, kind, files, driveUrl, isAdmin, onClose, onChanged }) => {
+  const { currentUser } = useAuth();
   const [working, setWorking] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -96,8 +98,8 @@ export const InvoiceFilesModal: React.FC<Props> = ({ invoice, kind, files, drive
             <button className="btn btn-secondary btn-sm" disabled={working !== null} onClick={() => download(a)} title="Download">
               {working === a.id ? `${Math.round(progress * 100)}%` : <Download size={14} />}
             </button>
-            {isAdmin && (
-              <button className="btn btn-secondary btn-sm" disabled={working !== null} onClick={() => remove(a)} title="Delete (Admin)" style={{ color: '#B91C1C' }}>
+            {(isAdmin || (a.uploadedById && a.uploadedById === currentUser?.id)) && (
+              <button className="btn btn-secondary btn-sm" disabled={working !== null} onClick={() => remove(a)} title={isAdmin ? 'Delete (Admin)' : 'Delete the file you uploaded'} style={{ color: '#B91C1C' }}>
                 <Trash2 size={14} />
               </button>
             )}

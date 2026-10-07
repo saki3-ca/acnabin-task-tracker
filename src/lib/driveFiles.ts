@@ -59,16 +59,42 @@ export async function uploadToDrive(
   const mime = file.type || 'application/octet-stream';
 
   const started = await call(driveUrl, { action: 'start', client, ...extra, fileName: file.name, mime, size: file.size });
+  const finished = (res: Json): UploadedFile => ({ driveFileId: res.fileId, name: res.name || started.name, clientFolder: started.clientFolder });
   let sent = 0;
-  while (sent < file.size) {
+  let stalls = 0;
+  for (;;) {
+    if (sent >= file.size) {
+      // Every byte was offered but Drive has not said "done": ask Drive how far it got, and send what is missing.
+      let st: Json | null = null;
+      try {
+        st = await call(driveUrl, { action: 'status', sessionUrl: started.sessionUrl, total: file.size, mime });
+      } catch {
+        st = null; // an older script without "status"
+      }
+      if (st?.done) return finished(st);
+      const got = typeof st?.received === 'number' ? st.received : null;
+      if (got !== null && got < file.size && stalls < 3) {
+        stalls += 1;
+        sent = got;
+        continue;
+      }
+      throw new Error(
+        `"${file.name}" did not finish uploading` +
+          (got !== null ? ` (Google Drive received ${fmtSize(got)} of ${fmtSize(file.size)}).` : '.') +
+          ' Please try again.'
+      );
+    }
     const end = Math.min(sent + UP_CHUNK, file.size);
     const data = await toBase64(file.slice(sent, end));
     const res = await call(driveUrl, { action: 'chunk', sessionUrl: started.sessionUrl, start: sent, total: file.size, mime, data });
-    sent = end;
+    if (res.done) return finished(res);
+    // Drive may keep less than it was sent: carry on from where it really is
+    const got = typeof res.received === 'number' ? res.received : end;
+    if (got < end) stalls += 1;
+    if (stalls > 5) throw new Error(`"${file.name}" stopped uploading at ${fmtSize(got)} of ${fmtSize(file.size)}. Please try again.`);
+    sent = got > sent ? Math.min(got, end) : end;
     onProgress?.(sent / file.size);
-    if (res.done) return { driveFileId: res.fileId, name: res.name || started.name, clientFolder: started.clientFolder };
   }
-  throw new Error(`"${file.name}" did not finish uploading.`);
 }
 
 /** Fetches the file from Drive piece by piece and hands it to the browser as a download. */

@@ -1790,7 +1790,7 @@ export const api = {
         await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_proposal_attachment_delete', { p_session: session.token, p_id: payload.id });
         if (error) throw new Error('Could not remove the file record.');
-        if (data === 'FORBIDDEN') throw new Error('Only Admin can delete attachments.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin or the person who uploaded the file can delete it.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }
@@ -1847,7 +1847,7 @@ export const api = {
         await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_invoice_attachment_delete', { p_session: session.token, p_id: payload.id });
         if (error) throw new Error('Could not remove the file record.');
-        if (data === 'FORBIDDEN') throw new Error('Only Admin can delete attachments.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin or the person who uploaded the file can delete it.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }

@@ -320,6 +320,8 @@ export interface ProposalAttachment {
   size: number;
   driveFileId: string;
   uploadedBy: string;
+  /** id of the account that uploaded it (that person can delete it too) */
+  uploadedById?: string;
   uploadedAt: string;
 }
 
@@ -382,5 +384,7 @@ export interface InvoiceAttachment {
   size: number;
   driveFileId: string;
   uploadedBy: string;
+  /** id of the account that uploaded it (that person can delete it too) */
+  uploadedById?: string;
   uploadedAt: string;
 }

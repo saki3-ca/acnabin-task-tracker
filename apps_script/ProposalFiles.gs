@@ -7,7 +7,7 @@
  *      Attachment  >  <Client name>  >  <File>
  *
  * Every request is checked against the task tracker login first (Supabase), so only people the Admin gave the
- * Proposal Tracker tab to can upload or download, and only the Admin can delete.
+ * Proposal Tracker tab to can upload or download, and only the Admin (or the person who uploaded a file) can delete it.
  *
  * SETUP (once)
  *  1. Go to script.google.com > New project. Name it "Proposal Files".
@@ -40,6 +40,7 @@ function doPost(e) {
     switch (req.action) {
       case 'start':    return out_(start_(req));
       case 'chunk':    return out_(chunk_(req));
+      case 'status':   return out_(status_(req));
       case 'info':     return out_(info_(req));
       case 'read':     return out_(read_(req));
       case 'delete':   return out_(delete_(req));
@@ -178,12 +179,42 @@ function chunk_(req) {
     muteHttpExceptions: true
   });
   const code = res.getResponseCode();
-  if (code === 308) return { ok: true, done: false };
+  if (code === 308) return { ok: true, done: false, received: received_(res) };
   if (code === 200 || code === 201) {
     const file = JSON.parse(res.getContentText());
     return { ok: true, done: true, fileId: file.id, name: file.name };
   }
   throw new Error('Upload failed (' + code + ').');
+}
+
+/** How many bytes Google Drive has stored so far (from its "Range: bytes=0-N" answer). */
+function received_(res) {
+  const headers = res.getAllHeaders();
+  let range = '';
+  Object.keys(headers).forEach(function (k) { if (k.toLowerCase() === 'range') range = String(headers[k]); });
+  const m = /bytes=0-(\d+)/.exec(range);
+  return m ? Number(m[1]) + 1 : 0;
+}
+
+/** Asks Google Drive how far an upload got (so the app can send what is missing). */
+function status_(req) {
+  auth_(req.token, false);
+  if (String(req.sessionUrl).indexOf(UPLOAD_URL_START) !== 0) throw new Error('Bad upload link.');
+  const res = UrlFetchApp.fetch(req.sessionUrl, {
+    method: 'put',
+    contentType: req.mime || 'application/octet-stream',
+    headers: { 'Content-Range': 'bytes */' + Number(req.total) },
+    payload: '',
+    followRedirects: false,
+    muteHttpExceptions: true
+  });
+  const code = res.getResponseCode();
+  if (code === 200 || code === 201) {
+    const file = JSON.parse(res.getContentText());
+    return { ok: true, done: true, fileId: file.id, name: file.name };
+  }
+  if (code === 308) return { ok: true, done: false, received: received_(res) };
+  throw new Error('Could not check the upload (' + code + ').');
 }
 
 // ---------------------------------------------------------------- download (in pieces)
@@ -208,9 +239,22 @@ function read_(req) {
   return { ok: true, data: Utilities.base64Encode(res.getContent()) };
 }
 
-// ---------------------------------------------------------------- delete (Admin only)
+// ---------------------------------------------------------------- delete (Admin, or the person who uploaded the file)
+function canDelete_(token, fileId) {
+  if (!token) throw new Error('Please log in again.');
+  const res = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/rpc/app_proposal_file_can_delete', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { apikey: SUPABASE_KEY },
+    payload: JSON.stringify({ p_session: token, p_drive_file_id: String(fileId || '') }),
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() !== 200) throw new Error('Could not check your login. Has supabase_attachment_delete_own.sql been run?');
+  if (JSON.parse(res.getContentText()) !== true) throw new Error('Only Admin or the person who uploaded this file can delete it.');
+}
+
 function delete_(req) {
-  auth_(req.token, true);
+  canDelete_(req.token, req.fileId);
   checkedFile_(req.fileId).setTrashed(true);
   return { ok: true };
 }
