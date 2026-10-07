@@ -15,7 +15,7 @@ const YESNO_KEYS: Key[] = ['clientSubmitted', 'signedSubmitted', 'collected', 'v
 const HEADER_KEYS: Record<string, Key> = {
   forthemonth: 'forMonth', month: 'forMonth', formonth: 'forMonth',
   year: 'year',
-  invoicedate: 'invoiceDate',
+  invoicedate: 'invoiceDate', invoicedateddmmyy: 'invoiceDate',
   clientname: 'client', client: 'client',
   jobincharge: 'jicName', jicname: 'jicName', jic: 'jicName',
   jobnumber: 'jobNumber', jobno: 'jobNumber',
@@ -25,23 +25,28 @@ const HEADER_KEYS: Record<string, Key> = {
   invoiceamountincludingvattax: 'amount', invoiceamount: 'amount', amount: 'amount',
   tds: 'tds', vds: 'vds',
   submissionstatusclient: 'clientSubmitted',
+  submissionstatusofsignedinvoicetoacnabin: 'signedSubmitted',
+  submittedtoclient: 'clientSubmitted',
   clientsubmissiondate: 'clientSubmitDate',
   signedinvoicemailtoacnabin: 'mailDate',
+  maildate: 'mailDate', maildateddmmyy: 'mailDate',
   collectionstatus: 'collected',
-  collectiondate: 'collectionDate',
+  collectiondate: 'collectionDate', collectiondateddmmyy: 'collectionDate',
   collectionmethod: 'collectionMethod',
   chequenumbertransactionreference: 'paymentRef', paymentref: 'paymentRef',
-  vdscollectionstatus: 'vdsCollected',
-  vdscollectiondate: 'vdsDate',
-  vdschallancopy: 'vdsChallanLink',
-  vdschallannumber: 'vdsChallanNo',
-  tdscollectionstatus: 'tdsCollected',
-  tdscollectiondate: 'tdsDate',
-  tdschallancopy: 'tdsChallanLink',
-  tdschallannumber: 'tdsChallanNo',
+  vdscollectionstatus: 'vdsCollected', vdsstatus: 'vdsCollected',
+  vdscollectiondate: 'vdsDate', vdscollectiondateddmmyy: 'vdsDate', vdsdate: 'vdsDate',
+  vdschallancopy: 'vdsChallanLink', vdschallanlink: 'vdsChallanLink', vdslink: 'vdsChallanLink',
+  vdschallannumber: 'vdsChallanNo', vdschallanno: 'vdsChallanNo',
+  tdscollectionstatus: 'tdsCollected', tdsstatus: 'tdsCollected',
+  tdscollectiondate: 'tdsDate', tdscollectiondateddmmyy: 'tdsDate', tdsdate: 'tdsDate',
+  tdschallancopy: 'tdsChallanLink', tdschallanlink: 'tdsChallanLink', tdslink: 'tdsChallanLink',
+  tdschallannumber: 'tdsChallanNo', tdschallanno: 'tdsChallanNo',
   remarks: 'remarks', remark: 'remarks',
   erpentrycompletedandrevieweddwithdirector: 'erpNote',
-  erpentrycompletedandreviewedwithdirector: 'erpNote', erpnote: 'erpNote'
+  erpentrycompletedandreviewedwithdirector: 'erpNote',
+  erpentrycompletedandreviewedwithdirectorwithdate: 'erpNote',
+  erpnote: 'erpNote'
 };
 
 export interface ParsedInvoiceSheet {
@@ -68,7 +73,22 @@ export function parseInvoiceSheet(text: string, forcedOrder?: DateOrder): Parsed
   }
   const header = table[hi].map(norm);
   const col: Partial<Record<Key, number>> = {};
+  let seenChallanNo = 0;
   header.forEach((h, i) => {
+    if ((h.includes('vds') && (h.includes('copy') || h.includes('location') || h.includes('link') || h.includes('drive'))) && col.vdsChallanLink === undefined) {
+      col.vdsChallanLink = i;
+      return;
+    }
+    if ((h.includes('tds') && (h.includes('copy') || h.includes('location') || h.includes('link') || h.includes('drive'))) && col.tdsChallanLink === undefined) {
+      col.tdsChallanLink = i;
+      return;
+    }
+    if ((h === 'challannumber' || h === 'challanno')) {
+      seenChallanNo++;
+      if (seenChallanNo === 1 && col.vdsChallanNo === undefined) col.vdsChallanNo = i;
+      else if (col.tdsChallanNo === undefined) col.tdsChallanNo = i;
+      return;
+    }
     const k = HEADER_KEYS[h];
     if (k && col[k] === undefined) col[k] = i;
   });

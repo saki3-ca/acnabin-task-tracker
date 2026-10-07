@@ -31,3 +31,6 @@ sheets_dump.json
 *.csv
 backups/
 manpower_salary_seed.sql
+*_seed.sql
+# Audit screenshots (local only)
+audit-screenshots/

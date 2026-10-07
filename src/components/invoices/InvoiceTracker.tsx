@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, ExternalLink, FileUp, Paperclip, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from 'lucide-react';
+import { Download, ExternalLink, FileSpreadsheet, FileUp, Paperclip, Pencil, Plus, Receipt, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { downloadInvoicesExcel } from '../../lib/invoicesExcel';
+import { downloadMonthlyInvoicesExcel } from '../../lib/monthlyInvoiceExcel';
+import { isAssistantDirectorOrAbove } from '../../lib/permissions';
 import {
   COLLECTION_METHODS, DEFAULT_TDS_PCT, DEFAULT_VAT_PCT, fmtDate, fmtMoney, isYes, MONTHS, norm, suggestPeriod, suggestTaxes, toNum
 } from '../../lib/invoices';
 import { MAX_FILE_BYTES } from '../../lib/driveFiles';
-import { isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { uploadQueue } from '../../lib/uploadQueue';
 import { useLivePolling } from '../../lib/useLivePolling';
 import { invoiceService } from '../../services/invoiceService';
@@ -87,7 +88,7 @@ const FormCard: React.FC<{ group: Group; title: string; hint?: string; children:
 export const InvoiceTracker: React.FC = () => {
   const { currentUser, allClients, allUsers } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
-  // Only Admin and Assistant Director and above may download the invoice list
+  // Only Admin and Assistant Director and above may download Excel reports
   const canExport = isAdmin || isAssistantDirectorOrAbove(currentUser?.designation);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -103,6 +104,11 @@ export const InvoiceTracker: React.FC = () => {
   const [search, setSearch] = useState('');
   const [show, setShow] = useState<'ALL' | 'NOSUB' | 'OUT' | 'COL'>('ALL');
   const [clientFilter, setClientFilter] = useState('');
+
+  const [monthlyOpen, setMonthlyOpen] = useState(false);
+  const [monthlyMonth, setMonthlyMonth] = useState('September');
+  const [monthlyYear, setMonthlyYear] = useState('2026');
+  const [downloadingMonthly, setDownloadingMonthly] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -323,6 +329,52 @@ export const InvoiceTracker: React.FC = () => {
     }
   };
 
+  const monthlyStats = useMemo(() => {
+    const monthIdx = MONTHS.findIndex(m => m.toLowerCase() === monthlyMonth.toLowerCase());
+    const mm = String((monthIdx >= 0 ? monthIdx : 8) + 1).padStart(2, '0');
+    const targetYearMonth = `${monthlyYear}-${mm}`;
+
+    const colList = invoices.filter(inv => {
+      if (inv.collectionDate && inv.collectionDate.startsWith(targetYearMonth)) return true;
+      if (inv.collected === 'Yes' && (!inv.collectionDate || !/^\d{4}-\d{2}/.test(inv.collectionDate))) {
+        return inv.forMonth?.toLowerCase() === monthlyMonth.toLowerCase() && String(inv.year) === String(monthlyYear);
+      }
+      return false;
+    });
+
+    const invList = invoices.filter(inv => {
+      if (inv.forMonth?.toLowerCase() === monthlyMonth.toLowerCase() && String(inv.year) === String(monthlyYear)) return true;
+      if (inv.invoiceDate && inv.invoiceDate.startsWith(targetYearMonth)) return true;
+      return false;
+    });
+
+    const colAmt = colList.reduce((s, i) => s + toNum(i.amount), 0);
+    const invAmt = invList.reduce((s, i) => s + toNum(i.amount), 0);
+
+    return {
+      colCount: colList.length,
+      colAmt,
+      invCount: invList.length,
+      invAmt
+    };
+  }, [invoices, monthlyMonth, monthlyYear]);
+
+  const exportMonthlyExcel = async () => {
+    setDownloadingMonthly(true);
+    try {
+      await downloadMonthlyInvoicesExcel(invoices, {
+        month: monthlyMonth,
+        year: monthlyYear
+      });
+      showToast(`Downloaded ${monthlyMonth} ${monthlyYear} Excel report`);
+      setMonthlyOpen(false);
+    } catch (err: any) {
+      window.alert('Could not download monthly Excel report: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setDownloadingMonthly(false);
+    }
+  };
+
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm(f => ({ ...f, [k]: v }));
   const bannerBtn: React.CSSProperties = { height: '32px', padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', borderRadius: '6px' };
   const money = (s: string) => (s && toNum(s) !== 0 ? fmtMoney(toNum(s)) : '—');
@@ -518,14 +570,24 @@ export const InvoiceTracker: React.FC = () => {
                   </button>
                 )}
                 {canExport && (
-                  <button
-                    type="button"
-                    onClick={exportExcel}
-                    style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                    title="Export to Excel"
-                  >
-                    <Download size={12} /> Export Excel
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setMonthlyOpen(true)}
+                      style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                      title="Download official 2-sheet monthly report (Collection & Invoicing)"
+                    >
+                      <FileSpreadsheet size={12} /> Monthly Excel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={exportExcel}
+                      style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                      title="Export to Excel"
+                    >
+                      <Download size={12} /> Export Excel
+                    </button>
+                  </>
                 )}
                 <button
                   type="button"
@@ -636,6 +698,91 @@ export const InvoiceTracker: React.FC = () => {
               {popup === 'TDS' && <> · Total TDS: ৳ {fmtMoney(popupList.reduce((sum, i) => sum + toNum(i.tds), 0))}</>}
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Monthly Report Modal */}
+      <Modal
+        isOpen={monthlyOpen}
+        onClose={() => !downloadingMonthly && setMonthlyOpen(false)}
+        title="Download Monthly Invoice Excel"
+        maxWidth="560px"
+      >
+        <div style={{ padding: '4px 0 10px' }}>
+          <div style={{ fontSize: '13px', color: 'var(--ink-soft)', marginBottom: '16px', lineHeight: 1.4 }}>
+            Generates the official ACNABIN 2-sheet monthly report (<strong>Details of collection</strong> &amp; <strong>Details of invoicing</strong>) with formulas and matching the firm's required Excel format.
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '14px', marginBottom: '16px' }}>
+            <div className="form-field">
+              <label style={{ fontWeight: 600, fontSize: '12px', marginBottom: '4px', display: 'block' }}>Month</label>
+              <select
+                className="form-select"
+                value={monthlyMonth}
+                onChange={e => setMonthlyMonth(e.target.value)}
+                style={{ width: '100%', height: '36px' }}
+              >
+                {MONTHS.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-field">
+              <label style={{ fontWeight: 600, fontSize: '12px', marginBottom: '4px', display: 'block' }}>Year</label>
+              <select
+                className="form-select"
+                value={monthlyYear}
+                onChange={e => setMonthlyYear(e.target.value)}
+                style={{ width: '100%', height: '36px' }}
+              >
+                {['2024', '2025', '2026', '2027', '2028', '2029', '2030'].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>
+              Summary for {monthlyMonth} {monthlyYear}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '8px 12px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Collections (Sheet 1)</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>{monthlyStats.colCount} items</div>
+                <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)' }}>৳ {fmtMoney(monthlyStats.colAmt)}</div>
+              </div>
+              <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '8px 12px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Invoices Raised (Sheet 2)</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1E40AF' }}>{monthlyStats.invCount} items</div>
+                <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)' }}>৳ {fmtMoney(monthlyStats.invAmt)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: '12px', color: '#64748B', background: '#F1F5F9', padding: '8px 12px', borderRadius: '6px', marginBottom: '18px' }}>
+            <strong>ERP Header:</strong> Mr. Abdullah - Al - Mamun, FCA (ERP ID : EMP-000644)
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setMonthlyOpen(false)}
+              disabled={downloadingMonthly}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={exportMonthlyExcel}
+              disabled={downloadingMonthly}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: TITLE_GREEN }}
+            >
+              <Download size={14} /> {downloadingMonthly ? 'Generating…' : 'Download Excel (.xlsx)'}
+            </button>
+          </div>
         </div>
       </Modal>
 
