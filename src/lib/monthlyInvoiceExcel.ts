@@ -55,6 +55,15 @@ export async function downloadMonthlyInvoicesExcel(
     right: { style: 'thin' as const, color: { argb: 'FF000000' } }
   };
 
+  const totalBorder = {
+    top: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    left: { style: 'thin' as const, color: { argb: 'FF000000' } },
+    bottom: { style: 'double' as const, color: { argb: 'FF000000' } },
+    right: { style: 'thin' as const, color: { argb: 'FF000000' } }
+  };
+  const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF2F2F2' } };
+  const totalFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFF2F2F2' } };
+
   // =========================================================================
   // SHEET 1: Details of collection
   // =========================================================================
@@ -137,12 +146,13 @@ export async function downloadMonthlyInvoicesExcel(
 
   for (let r = 6; r <= 8; r++) {
     const row = wsCol.getRow(r);
-    row.height = r === 6 ? 40.1 : 20;
+    row.height = r === 6 ? 53 : 20;
     for (let c = 1; c <= 14; c++) {
       const cell = row.getCell(c);
       cell.font = (r === 6 && c === 8) ? fontHeaderH6 : fontHeader;
       cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
       cell.border = thinBorder;
+      cell.fill = headerFill;
     }
   }
 
@@ -259,7 +269,8 @@ export async function downloadMonthlyInvoicesExcel(
   });
 
   for (let c = 1; c <= 14; c++) {
-    tot1.getCell(c).border = thinBorder;
+    tot1.getCell(c).border = totalBorder;
+    tot1.getCell(c).fill = totalFill;
   }
 
   // Lock column widths for Sheet 1
@@ -322,6 +333,7 @@ export async function downloadMonthlyInvoicesExcel(
     cell.font = fontHeader;
     cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = thinBorder;
+    cell.fill = headerFill;
   });
 
   const invoicedRows = invoices.filter(inv => {
@@ -421,13 +433,18 @@ export async function downloadMonthlyInvoicesExcel(
   });
 
   for (let c = 1; c <= 11; c++) {
-    tot2.getCell(c).border = thinBorder;
+    tot2.getCell(c).border = totalBorder;
+    tot2.getCell(c).fill = totalFill;
   }
 
   // Lock column widths for Sheet 2
   colWidths2.forEach((w, i) => {
     wsInv.getColumn(i + 1).width = w;
   });
+
+  // Print setup: landscape, one page wide, header rows repeated
+  wsCol.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '6:8' };
+  wsInv.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: '6:6' };
 
   const filename = `Final Invoices information as on ${lastDay}.${mm}.${yearNum} (${monthName}-${yearNum}).xlsx`;
   const buf = await wb.xlsx.writeBuffer();
