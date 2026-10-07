@@ -73,7 +73,7 @@ export async function downloadMonthlyInvoicesExcel(
   });
 
   // Explicit column widths
-  const colWidths1 = [5.5, 32.5, 8.5, 16.5, 13.0, 16.5, 13.0, 25.56, 15.89, 13.5, 17.5, 16.0, 16.0, 16.5];
+  const colWidths1 = [5.5, 32.5, 8.5, 16.5, 13.0, 16.5, 13.0, 26.34, 16.67, 13.5, 17.5, 16.0, 16.0, 16.5];
   wsCol.columns = colWidths1.map(w => ({ width: w }));
   colWidths1.forEach((w, i) => {
     wsCol.getColumn(i + 1).width = w;
