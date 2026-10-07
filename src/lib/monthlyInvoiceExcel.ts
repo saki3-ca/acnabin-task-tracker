@@ -73,7 +73,7 @@ export async function downloadMonthlyInvoicesExcel(
   });
 
   // Explicit column widths
-  const colWidths1 = [5.5, 32.5, 8.5, 16.5, 13.0, 16.5, 13.0, 26.34, 16.67, 13.5, 17.5, 16.0, 16.0, 16.5];
+  const colWidths1 = [5.5, 32.5, 8.5, 16.5, 13.0, 16.5, 13.0, 25.56, 15.89, 13.5, 17.5, 16.0, 16.0, 16.5];
   wsCol.columns = colWidths1.map(w => ({ width: w }));
   colWidths1.forEach((w, i) => {
     wsCol.getColumn(i + 1).width = w;
@@ -116,7 +116,7 @@ export async function downloadMonthlyInvoicesExcel(
   r6.getCell(5).value = 'Invoice date';
   r6.getCell(6).value = 'Invoice amount (Fee+VAT)';
   r6.getCell(7).value = 'VAT deducted at source';
-  r6.getCell(8).value = 'VAT received with payment\n(i.e. if not deducted at source,\nif any)';
+  r6.getCell(8).value = 'VAT received with payment\n(i.e. if not deducted at source, if any)';
   r6.getCell(9).value = 'Revenue';
   r6.getCell(10).value = 'Income tax deducted by client';
   r6.getCell(11).value = 'Net amount paid by client';
