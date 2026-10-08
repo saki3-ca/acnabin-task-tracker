@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, Receipt, Shield, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, Receipt, Search, Shield, User as UserIcon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLivePolling } from '../../lib/useLivePolling';
@@ -8,8 +8,9 @@ import { api } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
 import { manpowerAccessService } from '../../services/manpowerAccessService';
 import { proposalService } from '../../services/proposalService';
+import { tenderAgentService } from '../../services/tenderAgentService';
 
-export type TabKey = 'own' | 'team' | 'manpower' | 'invoices' | 'proposals' | 'requests' | 'notifications' | 'profile' | 'admin';
+export type TabKey = 'own' | 'team' | 'manpower' | 'invoices' | 'proposals' | 'tenders' | 'requests' | 'notifications' | 'profile' | 'admin';
 
 interface NavigationTabsProps {
   activeTab: TabKey;
@@ -56,6 +57,22 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     void checkInvoiceAccess();
   }, [checkInvoiceAccess]);
   useLivePolling(() => checkInvoiceAccess(), 60000, Boolean(currentUser));
+
+  // Tender Agent: Admin plus the people the Admin chose
+  const [tenderAccess, setTenderAccess] = useState(false);
+  const checkTenderAccess = useCallback(async () => {
+    if (!currentUser) return;
+    if (isAdminUser) return setTenderAccess(true);
+    if (api.isViewingAsAnother()) {
+      const ids = await tenderAgentService.getAccess().catch(() => [] as string[]);
+      return setTenderAccess(ids.includes(currentUser.id));
+    }
+    setTenderAccess(await tenderAgentService.hasAccess().catch(() => false));
+  }, [currentUser?.id, isAdminUser]);
+  useEffect(() => {
+    void checkTenderAccess();
+  }, [checkTenderAccess]);
+  useLivePolling(() => checkTenderAccess(), 60000, Boolean(currentUser));
 
   // Manpower is for Assistant Director and above, plus anyone the Admin added
   const [manpowerGranted, setManpowerGranted] = useState(false);
@@ -191,6 +208,17 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
         >
           <ClipboardList size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           Proposal Tracker
+        </button>
+      )}
+
+      {/* Tender Agent: only for people the Admin chose */}
+      {tenderAccess && (
+        <button
+          className={`tab-btn ${activeTab === 'tenders' ? 'active' : ''}`}
+          onClick={() => onSelectTab('tenders')}
+        >
+          <Search size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Tender Agent
         </button>
       )}
 

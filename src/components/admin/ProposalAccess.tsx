@@ -1,12 +1,13 @@
 import React from 'react';
-import { FileText, Receipt, Users } from 'lucide-react';
+import { FileText, Receipt, Search, Users } from 'lucide-react';
 import { invoiceService } from '../../services/invoiceService';
 import { manpowerAccessService } from '../../services/manpowerAccessService';
 import { proposalService } from '../../services/proposalService';
+import { tenderAgentService } from '../../services/tenderAgentService';
 import { DriveLinkBox } from './DriveLinkBox';
 import { TabAccessCard } from './TabAccessCard';
 
-/** Admin only: who gets the Proposal Tracker, Manpower and Invoices tabs. Admin always has all of them. */
+/** Admin only: who gets the Proposal Tracker, Manpower, Invoices and Tender Agent tabs. Admin always has all of them. */
 export const ProposalAccess: React.FC = () => (
   <>
     <TabAccessCard
@@ -44,5 +45,12 @@ export const ProposalAccess: React.FC = () => (
         save={url => invoiceService.setDriveUrl(url)}
       />
     </TabAccessCard>
+    <TabAccessCard
+      title="Tender Agent Access"
+      icon={<Search size={18} />}
+      description="Search and add anyone who should see the Tender Agent tab (bank, NGO and IT tender monitoring). Only people added here, and Admin, can open it."
+      load={() => tenderAgentService.getAccess()}
+      save={ids => tenderAgentService.setAccess(ids)}
+    />
   </>
 );

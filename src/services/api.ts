@@ -29,7 +29,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
-  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete',
+  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet',
   'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -1606,6 +1606,35 @@ export const api = {
         await this.assertSessionIsCurrentUser(session);
         const { data, error } = await supabase.rpc('app_invoice_access_set', { p_session: session.token, p_user_ids: payload.userIds });
         if (error) throw new Error('Could not save. Has supabase_invoices.sql been run?');
+        if (data !== 'OK') throw new Error('Only Admin can change who has access.');
+        return { success: true } as T;
+      }
+
+      case 'tenderAgentHasAccess': {
+        const session = readSession();
+        if (!session) return false as T;
+        const { data, error } = await supabase.rpc('app_tender_agent_has_access', { p_session: session.token });
+        if (error) {
+          console.warn('[tenderAgentHasAccess] failed (run supabase_tender_agent.sql?):', error.message);
+          return false as T;
+        }
+        return Boolean(data) as T;
+      }
+
+      case 'tenderAgentAccessGet': {
+        const session = readSession();
+        if (!session) return [] as T;
+        const { data, error } = await supabase.rpc('app_tender_agent_access_get', { p_session: session.token });
+        if (error) throw new Error('Could not load the Tender Agent access list. Has supabase_tender_agent.sql been run?');
+        return ((data as string[]) || []) as T;
+      }
+
+      case 'tenderAgentAccessSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_tender_agent_access_set', { p_session: session.token, p_user_ids: payload.userIds });
+        if (error) throw new Error('Could not save. Has supabase_tender_agent.sql been run?');
         if (data !== 'OK') throw new Error('Only Admin can change who has access.');
         return { success: true } as T;
       }

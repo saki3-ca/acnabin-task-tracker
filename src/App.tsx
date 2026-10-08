@@ -25,6 +25,7 @@ import { NotificationsView } from './components/notifications/NotificationsView'
 import { NotificationProvider } from './context/NotificationContext';
 import { CompletedTasksModal } from './components/tasks/CompletedTasksModal';
 import { ManpowerView } from './components/manpower/ManpowerView';
+import { TenderAgentView } from './components/tenders/TenderAgentView';
 import { InvoiceTracker } from './components/invoices/InvoiceTracker';
 import { ProposalTracker } from './components/proposals/ProposalTracker';
 import { UploadPanel } from './components/proposals/UploadPanel';
@@ -303,6 +304,8 @@ const MainApp: React.FC = () => {
       {activeTab === 'invoices' && <InvoiceTracker />}
 
       {activeTab === 'proposals' && <ProposalTracker />}
+
+      {activeTab === 'tenders' && <TenderAgentView />}
 
       {/* Pane 7: Admin Panel */}
       {activeTab === 'admin' && (
