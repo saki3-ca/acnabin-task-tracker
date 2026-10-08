@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 // Deployed Tender Agent dashboard (Cloudflare Pages). Override per environment with VITE_TENDER_AGENT_URL.
 const TENDER_AGENT_URL: string =
@@ -11,19 +12,32 @@ const TENDER_AGENT_ORIGIN = new URL(TENDER_AGENT_URL).origin;
 /** Tender Agent tab: the tender monitoring dashboard shown inside the portal. Access is decided by the Admin (Tab Access).
  *  The dashboard reports its own height, so the frame has no scrollbar and the page scrolls once, like the other tabs. */
 export const TenderAgentView: React.FC = () => {
+  const { currentUser } = useAuth();
+  // The dashboard's Admin section is shown only to Task Tracker admins (not while an Admin is using Switch User)
+  const isAdmin = currentUser?.role === 'ADMIN';
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [height, setHeight] = useState(640);
 
+  const sendRole = useCallback(() => {
+    frameRef.current?.contentWindow?.postMessage({ type: 'tender-agent-role', admin: isAdmin }, TENDER_AGENT_ORIGIN);
+  }, [isAdmin]);
+
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== TENDER_AGENT_ORIGIN || e.source !== frameRef.current?.contentWindow) return;
+      if (e.data?.type === 'tender-agent-hello') return sendRole();
       const h = Number(e.data?.type === 'tender-agent-height' ? e.data.height : 0);
       if (h > 0 && h < 100000) setHeight(h);
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, []);
+  }, [sendRole]);
+
+  // the role can change while the tab is open (Switch User)
+  useEffect(() => {
+    if (loaded) sendRole();
+  }, [loaded, sendRole]);
 
   return (
     <div className="tab-pane">
