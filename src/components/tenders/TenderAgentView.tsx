@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { tenderAgentService } from '../../services/tenderAgentService';
 
 // Deployed Tender Agent dashboard (Cloudflare Pages). Override per environment with VITE_TENDER_AGENT_URL.
 const TENDER_AGENT_URL: string =
@@ -19,14 +20,20 @@ export const TenderAgentView: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   const [height, setHeight] = useState(640);
 
-  const sendRole = useCallback(() => {
-    frameRef.current?.contentWindow?.postMessage({ type: 'tender-agent-role', admin: isAdmin }, TENDER_AGENT_ORIGIN);
+  // Tells the dashboard who is looking. An Admin also gets a short-lived token so the dashboard's Admin
+  // section can edit sources without a second sign-in (the Tender Agent database checks it with this portal).
+  const sendRole = useCallback(async () => {
+    const token = isAdmin ? await tenderAgentService.bridgeToken().catch(() => null) : null;
+    frameRef.current?.contentWindow?.postMessage(
+      { type: 'tender-agent-role', admin: isAdmin && Boolean(token), token },
+      TENDER_AGENT_ORIGIN
+    );
   }, [isAdmin]);
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== TENDER_AGENT_ORIGIN || e.source !== frameRef.current?.contentWindow) return;
-      if (e.data?.type === 'tender-agent-hello') return sendRole();
+      if (e.data?.type === 'tender-agent-hello') return void sendRole();
       const h = Number(e.data?.type === 'tender-agent-height' ? e.data.height : 0);
       if (h > 0 && h < 100000) setHeight(h);
     };
@@ -36,7 +43,7 @@ export const TenderAgentView: React.FC = () => {
 
   // the role can change while the tab is open (Switch User)
   useEffect(() => {
-    if (loaded) sendRole();
+    if (loaded) void sendRole();
   }, [loaded, sendRole]);
 
   return (

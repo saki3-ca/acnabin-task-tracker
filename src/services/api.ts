@@ -29,7 +29,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'createTask', 'updateTask', 'deleteTask', 'addManagerComment', 'createTaskRequest', 'respondTaskRequest',
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
-  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet',
+  'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet', 'tenderAgentBridgeToken',
   'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -1637,6 +1637,17 @@ export const api = {
         if (error) throw new Error('Could not save. Has supabase_tender_agent.sql been run?');
         if (data !== 'OK') throw new Error('Only Admin can change who has access.');
         return { success: true } as T;
+      }
+
+      case 'tenderAgentBridgeToken': {
+        const session = readSession();
+        if (!session) return null as T;
+        const { data, error } = await supabase.rpc('app_tender_agent_bridge_issue', { p_session: session.token });
+        if (error) {
+          console.warn('[tenderAgentBridgeToken] failed (run supabase_tender_agent_bridge.sql?):', error.message);
+          return null as T;
+        }
+        return (data || null) as T;
       }
 
       case 'manpowerHasAccess': {
