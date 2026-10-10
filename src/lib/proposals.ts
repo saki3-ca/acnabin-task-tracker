@@ -18,10 +18,16 @@ export const isClosedStatus = (status: string) => status === 'Rejected';
  *  "Under Review" is NOT here: it is the team's own review before the proposal is sent, so it is still ongoing. */
 export const isSubmittedGroup = (status: string) => status === 'Submitted' || status === 'Approved';
 
+/** Order of the Active list: the work being done first. (The status dropdown keeps PROPOSAL_STATUSES order.) */
+const ACTIVE_ORDER = ['In Progress', 'Under Review', 'Draft', 'Not Started', 'On Hold', 'Assigned To Other Team'];
+
 export const statusRank = (status: string) => {
-  const i = PROPOSAL_STATUSES.indexOf(status);
-  return i === -1 ? PROPOSAL_STATUSES.length : i;
+  const i = ACTIVE_ORDER.indexOf(status);
+  return i === -1 ? ACTIVE_ORDER.length : i;
 };
+
+/** Nearest deadline first; proposals without a deadline go last. */
+export const compareDeadline = (a: string, b: string) => (a || '9999-99-99').localeCompare(b || '9999-99-99');
 
 /** Whole days from today to the date (negative = overdue); null when there is no date. */
 export function daysLeft(iso: string): number | null {

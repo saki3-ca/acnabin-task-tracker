@@ -3,7 +3,7 @@ import { Download, FileUp, Paperclip, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext';
 import { downloadProposalsExcel } from '../../lib/proposalsExcel';
 import {
-  daysLeft, isClosedStatus, isSubmittedGroup, PROPOSAL_STATUSES, PROPOSAL_TYPES, shortPerson, shortStatus, shortText, splitLinks, statusRank, STATUS_COLORS
+  compareDeadline, daysLeft, isClosedStatus, isSubmittedGroup, PROPOSAL_STATUSES, PROPOSAL_TYPES, shortPerson, shortStatus, shortText, splitLinks, statusRank, STATUS_COLORS
 } from '../../lib/proposals';
 import { uploadQueue } from '../../lib/uploadQueue';
 import { deleteFromDrive, MAX_FILE_BYTES, fmtSize } from '../../lib/driveFiles';
@@ -109,7 +109,7 @@ export const ProposalTracker: React.FC = () => {
 
   const counted = useMemo(() => proposals.filter(p => !isClosedStatus(p.status)), [proposals]); // Rejected is not counted anywhere
   const active = useMemo(
-    () => counted.filter(p => !isSubmittedGroup(p.status)).sort((a, b) => statusRank(a.status) - statusRank(b.status)),
+    () => counted.filter(p => !isSubmittedGroup(p.status)).sort((a, b) => statusRank(a.status) - statusRank(b.status) || compareDeadline(a.deadline, b.deadline)),
     [counted]
   );
   const submitted = useMemo(() => counted.filter(p => isSubmittedGroup(p.status)), [counted]);
