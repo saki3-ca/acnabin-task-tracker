@@ -14,8 +14,9 @@ export const PROPOSAL_TYPES = [
 /** Rejected = discarded: not counted anywhere, only listed under "Show closed proposals". */
 export const isClosedStatus = (status: string) => status === 'Rejected';
 
-/** Already sent to the client (like a completed task): leaves the active list, opened by clicking SUBMITTED. */
-export const isSubmittedGroup = (status: string) => status === 'Submitted' || status === 'Under Review' || status === 'Approved';
+/** Already sent to the client (like a completed task): leaves the active list, opened by clicking SUBMITTED.
+ *  "Under Review" is NOT here: it is the team's own review before the proposal is sent, so it is still ongoing. */
+export const isSubmittedGroup = (status: string) => status === 'Submitted' || status === 'Approved';
 
 export const statusRank = (status: string) => {
   const i = PROPOSAL_STATUSES.indexOf(status);
@@ -36,7 +37,7 @@ export const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   'Draft': { bg: '#E5E7EB', fg: '#4B5563' },
   'In Progress': { bg: '#FEF3C7', fg: '#92400E' },
   'Submitted': { bg: '#DBEAFE', fg: '#1E40AF' },
-  'Under Review': { bg: '#DCFCE7', fg: '#166534' },
+  'Under Review': { bg: '#EDE9FE', fg: '#5B21B6' },
   'On Hold': { bg: '#FEE2E2', fg: '#991B1B' },
   'Approved': { bg: '#16A34A', fg: '#FFFFFF' },
   'Rejected': { bg: '#DC2626', fg: '#FFFFFF' },
