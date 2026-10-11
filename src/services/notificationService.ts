@@ -15,8 +15,9 @@ export const notificationService = {
     await api.callBackend('markNotificationRead', { notificationId });
   },
 
-  async sendInfoRequest(userId?: string, group?: 'STD' | 'EMP'): Promise<{ count: number }> {
-    return api.callBackend('sendInfoRequest', { userId, group });
+  /** scope 'SALARY' asks only for salary/allowance and daily conveyance */
+  async sendInfoRequest(userId?: string, group?: 'STD' | 'EMP', scope?: 'SALARY'): Promise<{ count: number }> {
+    return api.callBackend('sendInfoRequest', { userId, group, scope });
   },
 
   async sendAnnouncement(message: string, userId?: string, group?: 'STD' | 'EMP'): Promise<{ count: number }> {

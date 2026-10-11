@@ -1256,6 +1256,8 @@ export const api = {
           .eq('status', 'ACTIVE');
         if (tErr) throw tErr;
         const requestId = `INFO-${Date.now()}`;
+        // SALARY asks only for monthly salary/allowance and daily conveyance
+        const salaryOnly = payload?.scope === 'SALARY';
         const rows = (targets || [])
           .filter((u: any) =>
             payload?.userId
@@ -1266,9 +1268,11 @@ export const api = {
           .map((u: any) => ({
             user_id: u.id,
             type: 'INFO_REQUEST',
-            title: 'Please update your information',
-            message: 'Tap "Update info" to fill in your academic year, salary/allowance, daily conveyance, blood group and emergency contact.',
-            data: { requestId, kind: 'PROFILE_INFO' }
+            title: salaryOnly ? 'Please update your salary & conveyance' : 'Please update your information',
+            message: salaryOnly
+              ? 'Tap "Update info" to confirm your monthly salary/allowance and daily conveyance.'
+              : 'Tap "Update info" to fill in your academic year, salary/allowance, daily conveyance, blood group and emergency contact.',
+            data: { requestId, kind: salaryOnly ? 'SALARY_INFO' : 'PROFILE_INFO' }
           }));
         if (rows.length === 0) return { count: 0 } as T;
         const { error: insErr } = await supabase.from('notifications').insert(rows);
