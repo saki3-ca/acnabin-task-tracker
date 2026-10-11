@@ -316,6 +316,7 @@ export const NotificationsView: React.FC = () => {
 
       {infoFor && (
         <ProfileInfoModal
+          salaryOnly={notifications.find(n => n.id === infoFor)?.data?.kind === 'SALARY_INFO'}
           onClose={() => setInfoFor(null)}
           onDone={() => {
             markAsRead(infoFor);

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { notificationService } from '../../services/notificationService';
 
 type Audience = 'ALL' | 'STD' | 'EMP' | 'ONE';
-type Kind = 'MESSAGE' | 'INFO';
+type Kind = 'MESSAGE' | 'INFO' | 'SALARY';
 
 const segStyle = (active: boolean): React.CSSProperties => ({
   flex: 1,
@@ -45,7 +45,13 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
     if (audience === 'ONE' && !userId) return setNote({ ok: false, text: 'Please select a user.' });
     if (kind === 'MESSAGE' && !text.trim()) return setNote({ ok: false, text: 'Please type your message.' });
     const who = audience === 'STD' ? 'all active STUDENTS (STD)' : audience === 'EMP' ? 'all active EMPLOYEES (EMP)' : 'ALL active users';
-    if (audience !== 'ONE' && !window.confirm(kind === 'INFO' ? `Send an "update your information" request to ${who}?` : `Send this message to ${who}?`)) return;
+    const confirmText =
+      kind === 'INFO'
+        ? `Send an "update your information" request to ${who}?`
+        : kind === 'SALARY'
+          ? `Send a "salary & conveyance" update request to ${who}?`
+          : `Send this message to ${who}?`;
+    if (audience !== 'ONE' && !window.confirm(confirmText)) return;
 
     setSending(true);
     try {
@@ -54,7 +60,9 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
       const { count } =
         kind === 'INFO'
           ? await notificationService.sendInfoRequest(target, group)
-          : await notificationService.sendAnnouncement(text.trim(), target, group);
+          : kind === 'SALARY'
+            ? await notificationService.sendInfoRequest(target, group, 'SALARY')
+            : await notificationService.sendAnnouncement(text.trim(), target, group);
       if (kind === 'MESSAGE') setText('');
       setNote({ ok: true, text: `Sent to ${count} user${count === 1 ? '' : 's'}.` });
       onSent();
@@ -103,14 +111,17 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
 
           <div>
             <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>Type</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button type="button" style={segStyle(kind === 'MESSAGE')} onClick={() => setKind('MESSAGE')}>Custom message</button>
               <button type="button" style={segStyle(kind === 'INFO')} onClick={() => setKind('INFO')}>Update info request</button>
+              <button type="button" style={segStyle(kind === 'SALARY')} onClick={() => setKind('SALARY')}>Salary &amp; conveyance only</button>
             </div>
             <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginTop: '6px' }}>
               {kind === 'MESSAGE'
                 ? 'A plain notification, e.g. "Attend team meeting". Users just read it.'
-                : 'Asks for academic year, salary/allowance, daily conveyance, blood group and emergency contact. Stays unread until they submit.'}
+                : kind === 'SALARY'
+                  ? 'Asks only for monthly salary/allowance and daily conveyance, showing their current values. Stays unread until they submit.'
+                  : 'Asks for academic year, salary/allowance, daily conveyance, blood group and emergency contact. Stays unread until they submit.'}
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { isAssistantDirectorOrAbove, isStudentLevelDesignation, normalizeBDMobile } from '../../lib/permissions';
@@ -8,15 +8,17 @@ const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const YEARS = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
 
 interface Props {
+  /** Ask only for salary/allowance and daily conveyance */
+  salaryOnly?: boolean;
   onClose: () => void;
   onDone: () => void;
 }
 
-export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
+export const ProfileInfoModal: React.FC<Props> = ({ salaryOnly = false, onClose, onDone }) => {
   const { currentUser, allClients } = useAuth();
 
   // Only student-level roles (Student, Trainee, In Charge, Supervisor) have an academic year
-  const hasAcademicYear = isStudentLevelDesignation(currentUser?.designation);
+  const hasAcademicYear = !salaryOnly && isStudentLevelDesignation(currentUser?.designation);
   // Assistant Director and above may submit without filling anything in
   const infoOptional = isAssistantDirectorOrAbove(currentUser?.designation);
   const [academicYear, setAcademicYear] = useState('');
@@ -40,6 +42,30 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
     return isWalton ? 24 : 22;
   }, [currentUser, allClients]);
 
+  // Prefill salary and daily conveyance with what is already on record
+  const [current, setCurrent] = useState<{ salary: number | null; daily: number | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    notificationService
+      .getMyInfo()
+      .then(info => {
+        if (!alive || !info) return;
+        const d =
+          info.dailyConveyance !== null
+            ? info.dailyConveyance
+            : info.conveyance !== null
+              ? Math.round(info.conveyance / days)
+              : null;
+        setCurrent({ salary: info.salary, daily: d });
+        if (info.salary !== null) setSalary(s => (s === '' ? String(info.salary) : s));
+        if (d !== null) setDaily(v => (v === '' ? String(d) : v));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [days]);
+
   const dailyNum = Number(daily) || 0;
   const monthlyConveyance = dailyNum * days;
 
@@ -49,6 +75,21 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
       !academicYear && salary.trim() === '' && daily.trim() === '' && !bloodGroup && !emName.trim() && !emPhone.trim();
     if (infoOptional && allBlank) {
       onDone(); // nothing to update: just complete the request
+      return;
+    }
+    if (salaryOnly) {
+      if (salary.trim() === '' || Number(salary) < 0) return setError('Please enter your monthly salary/allowance (0 if none).');
+      if (daily.trim() === '' || Number(daily) < 0) return setError('Please enter your daily conveyance (0 if none).');
+      setSaving(true);
+      try {
+        // Only salary and conveyance are sent; everything else on record stays as it is
+        await notificationService.saveMyInfo({ salary: Number(salary), dailyConveyance: Number(daily) });
+        onDone();
+      } catch (e: any) {
+        setError(e?.message || 'Could not save. Please try again.');
+      } finally {
+        setSaving(false);
+      }
       return;
     }
     if (hasAcademicYear && !academicYear) return setError('Please select your academic year.');
@@ -107,7 +148,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
           className="banner-strip banner-maroon"
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}
         >
-          <span style={{ fontSize: '14px', fontWeight: 700 }}>UPDATE YOUR INFORMATION</span>
+          <span style={{ fontSize: '14px', fontWeight: 700 }}>{salaryOnly ? 'UPDATE YOUR SALARY & CONVEYANCE' : 'UPDATE YOUR INFORMATION'}</span>
           <button
             type="button"
             onClick={onClose}
@@ -151,6 +192,11 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
               placeholder="e.g. 15000"
               style={{ height: '36px', fontSize: '13px' }}
             />
+            {current && (
+              <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px' }}>
+                Current on record: {current.salary === null ? 'not set' : `৳ ${current.salary.toLocaleString('en-IN')}`}
+              </div>
+            )}
           </div>
 
           <div className="form-field">
@@ -164,12 +210,18 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
               placeholder="e.g. 120"
               style={{ height: '36px', fontSize: '13px' }}
             />
+            {current && (
+              <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px' }}>
+                Current on record: {current.daily === null ? 'not set' : `৳ ${current.daily.toLocaleString('en-IN')} per day`}
+              </div>
+            )}
             <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px' }}>
               Monthly conveyance = ৳ {dailyNum.toLocaleString('en-IN')} × {days} days ={' '}
               <strong>৳ {monthlyConveyance.toLocaleString('en-IN')}</strong>
             </div>
           </div>
 
+          {!salaryOnly && (<>
           <div className="form-field">
             <label style={{ fontSize: '12px', fontWeight: 700 }}>Blood Group</label>
             <select
@@ -208,6 +260,7 @@ export const ProfileInfoModal: React.FC<Props> = ({ onClose, onDone }) => {
               />
             </div>
           </div>
+          </>)}
 
           {error && (
             <div className="auth-alert-error" style={{ margin: 0 }}>
