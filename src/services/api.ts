@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { formatHrmId } from '../lib/permissions';
+import { formatHrmId, getUserRank } from '../lib/permissions';
 import {
   AppNotification,
   Client,
@@ -140,6 +140,13 @@ function mapUserFromDb(row: any): User {
     mobile: row.mobile || '',
     createdDate: row.created_date
   };
+}
+
+/** Team Tasks: hide Admin tasks and tasks of people ranked above the viewer, unless the viewer gave or got the task. */
+function isVisibleByRank(t: Task, viewerId: string, hiddenIds: Set<string>): boolean {
+  if (t.assignedToId === viewerId || t.createdById === viewerId) return true;
+  if (t.assignedToId === 'ADMIN' || t.assignedToName?.toLowerCase() === 'admin') return false;
+  return !hiddenIds.has(t.assignedToId);
 }
 
 function splitClientIds(value?: string | null): string[] {
@@ -865,19 +872,17 @@ export const api = {
         if (error) throw error;
         let tasks = (rawTasks || []).map(mapTaskFromDb);
 
-        // Exclude system Admin tasks (assigned to ADMIN role / designation) for practice team members
+        // Practice team members never see tasks of Admin or of anyone ranked above them
+        // (e.g. an In Charge doesn't see an Assistant Director's tasks), except tasks they gave or got themselves.
         if (currentUserRole !== 'ADMIN') {
-          const { data: adminUsers } = await supabase
-            .from('users')
-            .select('id')
-            .or('role.eq.ADMIN,designation.eq.Admin');
-          const adminIds = (adminUsers || []).map((u: any) => u.id);
-
-          tasks = tasks.filter(t => {
-            if (t.assignedToId && (adminIds.includes(t.assignedToId) || t.assignedToId === 'ADMIN')) return false;
-            if (t.assignedToName?.toLowerCase() === 'admin') return false;
-            return true;
-          });
+          const { data: people } = await supabase.from('users').select('id, role, designation');
+          const callerRank = getUserRank({ role: currentUserRole, designation: currentUserDesig } as User);
+          const hiddenIds = new Set<string>(
+            (people || [])
+              .filter((u: any) => u.id !== targetUserId && getUserRank({ role: u.role, designation: u.designation } as User) > callerRank)
+              .map((u: any) => u.id)
+          );
+          tasks = tasks.filter(t => isVisibleByRank(t, targetUserId, hiddenIds));
         }
 
         if (currentUserRole !== 'ADMIN' && !AD_AND_ABOVE.includes(currentUserDesig)) {
@@ -3094,16 +3099,12 @@ export const api = {
         const caller = fallbackStore.currentUser;
         let tasks = [...fallbackStore.tasks];
 
-        if (caller?.role !== 'ADMIN') {
-          const adminUserIds = fallbackStore.users
-            .filter(u => u.role === 'ADMIN' || u.designation === 'Admin')
-            .map(u => u.id);
-
-          tasks = tasks.filter(t => {
-            if (t.assignedToId && (adminUserIds.includes(t.assignedToId) || t.assignedToId === 'ADMIN')) return false;
-            if (t.assignedToName?.toLowerCase() === 'admin') return false;
-            return true;
-          });
+        if (caller && caller.role !== 'ADMIN') {
+          const callerRank = getUserRank(caller);
+          const hiddenIds = new Set<string>(
+            fallbackStore.users.filter(u => u.id !== caller.id && getUserRank(u) > callerRank).map(u => u.id)
+          );
+          tasks = tasks.filter(t => isVisibleByRank(t, caller.id, hiddenIds));
         }
 
         const AD_AND_ABOVE = ['Assistant Director', 'Deputy Director', 'Director', 'Partner'];
