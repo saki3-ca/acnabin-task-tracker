@@ -36,6 +36,11 @@ export const AdminPanel: React.FC = () => {
   const managers = allUsers.filter(
     u => u.role === 'ADMIN' || u.role === 'MANAGER' || isManagementDesignation(u.designation)
   );
+  // Students and trainees can be made a Team Leader by giving them a team below
+  const teamLeaderCandidates = allUsers.filter(
+    u => u.status === 'ACTIVE' && !managers.includes(u) && (u.designation === 'Student' || u.designation === 'Trainee')
+  );
+  const clientName = (id: string) => allClients.find(c => c.id === id)?.name || id;
 
   const showNotice = (msg: string) => {
     setFeedbackMsg(msg);
@@ -135,6 +140,7 @@ export const AdminPanel: React.FC = () => {
     try {
       const selectedIds = managerStudents.filter(s => s.isAssigned).map(s => s.studentId);
       await adminService.saveManagerStudents(selectedManagerForStudents, selectedIds);
+      await refreshContextData();
       showNotice('Manager student assignments saved successfully.');
     } catch (err: any) {
       showNotice(err.message || 'Error saving student assignments');
@@ -294,6 +300,9 @@ export const AdminPanel: React.FC = () => {
           </h3>
           <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
             Assign articled students and trainees to specific managers for team task review and task delegation.
+            Only students on the selected person's clients are listed. Once someone has students assigned, their Team Tasks
+            shows only those students' tasks; with nobody assigned they see the whole team as before. Picking a student here
+            makes them a Team Leader: they get Team Tasks for their team without becoming In Charge.
           </p>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -303,12 +312,21 @@ export const AdminPanel: React.FC = () => {
               className="form-select"
               style={{ maxWidth: '280px' }}
             >
-              <option value="">Select Manager / Supervisor…</option>
-              {managers.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.designation})
-                </option>
-              ))}
+              <option value="">Select Manager / Supervisor / Team Leader…</option>
+              <optgroup label="Managers / Supervisors">
+                {managers.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.designation})
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Students as Team Leader">
+                {teamLeaderCandidates.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.designation}){m.teamMemberIds?.length ? ' · Team Leader' : ''}
+                  </option>
+                ))}
+              </optgroup>
             </select>
 
             {selectedManagerForStudents && (
@@ -317,6 +335,12 @@ export const AdminPanel: React.FC = () => {
               </button>
             )}
           </div>
+
+          {selectedManagerForStudents && managerStudents.length === 0 && (
+            <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>
+              No students or trainees share a client with this person. Give them clients first (Manager Client Access above, or their Assigned Clients).
+            </p>
+          )}
 
           {selectedManagerForStudents && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
@@ -343,7 +367,13 @@ export const AdminPanel: React.FC = () => {
                   />
                   <div>
                     <div style={{ fontWeight: item.isAssigned ? 600 : 400 }}>{item.studentName}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>{item.empId}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>
+                      {item.empId}
+                      {item.clientIds.length > 0 && ` · ${item.clientIds.map(clientName).join(', ')}`}
+                    </div>
+                    {item.outsideClients && (
+                      <div style={{ fontSize: '11px', color: 'var(--maroon)' }}>Not on this person's clients any more</div>
+                    )}
                   </div>
                 </label>
               ))}

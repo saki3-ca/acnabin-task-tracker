@@ -142,6 +142,34 @@ function mapUserFromDb(row: any): User {
   };
 }
 
+function splitClientIds(value?: string | null): string[] {
+  return String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+/**
+ * Supervisory Assignments list: only the students on the manager's own clients, plus anyone
+ * already assigned (so they can still be unassigned after moving to another client).
+ */
+function studentsForManager(
+  students: { id: string; name: string; empId: string; clientIds: string[] }[],
+  managerUserId: string,
+  managerClientIds: Set<string>,
+  assignedIds: string[]
+): ManagerStudentItem[] {
+  return students
+    .filter(s => s.id !== managerUserId)
+    .map(s => ({ s, onClient: s.clientIds.some(id => managerClientIds.has(id)), isAssigned: assignedIds.includes(s.id) }))
+    .filter(x => x.onClient || x.isAssigned)
+    .map(({ s, onClient, isAssigned }) => ({
+      studentId: s.id,
+      studentName: s.name,
+      empId: s.empId,
+      isAssigned,
+      clientIds: s.clientIds,
+      outsideClients: !onClient
+    }));
+}
+
 function mapClientFromDb(row: any): Client {
   return {
     id: row.id,
@@ -880,6 +908,20 @@ export const api = {
                 return false;
               });
             }
+          }
+        }
+
+        // Students assigned to this person (Manager Student Supervisory Assignments): only their tasks.
+        // Nobody assigned = the team view stays as above.
+        if (currentUserRole !== 'ADMIN') {
+          const { data: teamRows } = await supabase
+            .from('manager_student_access')
+            .select('student_user_id')
+            .eq('manager_user_id', targetUserId)
+            .eq('status', 'ACTIVE');
+          const teamIds = new Set<string>((teamRows || []).map((r: any) => r.student_user_id));
+          if (teamIds.size > 0) {
+            tasks = tasks.filter(t => teamIds.has(t.assignedToId) || t.assignedToId === targetUserId || t.createdById === targetUserId);
           }
         }
 
@@ -2265,13 +2307,17 @@ export const api = {
       // ADMIN & USERS
       // ----------------------------------------------------------------------
       case 'getAllUsers': {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .order('name', { ascending: true });
+        const [{ data, error }, { data: teamRows }] = await Promise.all([
+          supabase.from('users').select('*').order('name', { ascending: true }),
+          supabase.from('manager_student_access').select('manager_user_id, student_user_id').eq('status', 'ACTIVE')
+        ]);
 
         if (error) throw error;
-        return (data || []).map(mapUserFromDb) as T;
+        const teams = new Map<string, string[]>();
+        (teamRows || []).forEach((r: any) => {
+          teams.set(r.manager_user_id, [...(teams.get(r.manager_user_id) || []), r.student_user_id]);
+        });
+        return (data || []).map((row: any) => ({ ...mapUserFromDb(row), teamMemberIds: teams.get(row.id) || [] })) as T;
       }
 
       case 'updateUser': {
@@ -2384,21 +2430,24 @@ export const api = {
 
       case 'getManagerStudents': {
         const { managerUserId } = payload;
-        const [usersRes, accessRes] = await Promise.all([
+        const [usersRes, accessRes, clientAccessRes, managerRes] = await Promise.all([
           supabase.from('users').select('*').in('designation', ['Student', 'Trainee']).order('name', { ascending: true }),
-          supabase.from('manager_student_access').select('student_user_id').eq('manager_user_id', managerUserId).eq('status', 'ACTIVE')
+          supabase.from('manager_student_access').select('student_user_id').eq('manager_user_id', managerUserId).eq('status', 'ACTIVE'),
+          supabase.from('manager_client_access').select('client_id').eq('manager_user_id', managerUserId).eq('status', 'ACTIVE'),
+          supabase.from('users').select('signup_client_id').eq('id', managerUserId).maybeSingle()
         ]);
 
         if (usersRes.error) throw usersRes.error;
+        const managerClientIds = new Set<string>((clientAccessRes.data || []).map((r: any) => r.client_id));
+        splitClientIds(managerRes.data?.signup_client_id).forEach(id => managerClientIds.add(id));
         const assignedIds = (accessRes.data || []).map((r: any) => r.student_user_id);
 
-        const result: ManagerStudentItem[] = (usersRes.data || []).map((s: any) => ({
-          studentId: s.id,
-          studentName: s.name,
-          empId: s.emp_id,
-          isAssigned: assignedIds.includes(s.id)
-        }));
-        return result as T;
+        return studentsForManager(
+          (usersRes.data || []).map((s: any) => ({ id: s.id, name: s.name, empId: s.emp_id, clientIds: splitClientIds(s.signup_client_id) })),
+          managerUserId,
+          managerClientIds,
+          assignedIds
+        ) as T;
       }
 
       case 'saveManagerStudents': {
@@ -3085,6 +3134,11 @@ export const api = {
           }
         }
 
+        const teamIds = callerRole !== 'ADMIN' ? fallbackStore.managerStudents[caller?.id || ''] || [] : [];
+        if (teamIds.length > 0) {
+          tasks = tasks.filter(t => teamIds.includes(t.assignedToId) || t.assignedToId === caller?.id || t.createdById === caller?.id);
+        }
+
         const filters: TaskFilter = payload?.filters || {};
         if (filters?.clientId) {
           tasks = tasks.filter(t => t.clientId === filters.clientId);
@@ -3195,7 +3249,7 @@ export const api = {
       }
 
       case 'getAllUsers':
-        return fallbackStore.users as T;
+        return fallbackStore.users.map(u => ({ ...u, teamMemberIds: fallbackStore.managerStudents[u.id] || [] })) as T;
 
       case 'updateUser': {
         const { userId, updates } = payload;
@@ -3236,13 +3290,18 @@ export const api = {
 
       case 'getManagerStudents': {
         const assignedIds = fallbackStore.managerStudents[payload.managerUserId] || [];
+        const manager = fallbackStore.users.find(u => u.id === payload.managerUserId);
+        const managerClientIds = new Set<string>([
+          ...(fallbackStore.managerClients[payload.managerUserId] || []),
+          ...splitClientIds(manager?.signupClientId)
+        ]);
         const students = fallbackStore.users.filter(u => u.designation === 'Student' || u.designation === 'Trainee');
-        return students.map(s => ({
-          studentId: s.id,
-          studentName: s.name,
-          empId: s.empId,
-          isAssigned: assignedIds.includes(s.id)
-        })) as T;
+        return studentsForManager(
+          students.map(s => ({ id: s.id, name: s.name, empId: s.empId, clientIds: splitClientIds(s.signupClientId) })),
+          payload.managerUserId,
+          managerClientIds,
+          assignedIds
+        ) as T;
       }
 
       case 'saveManagerStudents': {

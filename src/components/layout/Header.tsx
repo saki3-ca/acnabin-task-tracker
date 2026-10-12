@@ -2,7 +2,7 @@ import React from 'react';
 import { FileText, LogOut, Plus, RefreshCw, UserCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BRAND } from '../../lib/constants';
-import { canRequestTask } from '../../lib/permissions';
+import { canRequestTask, hasTeamAccess, isTeamLeader } from '../../lib/permissions';
 
 interface HeaderProps {
   onOpenAddTask: () => void;
@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddTask, onOpenRequestTask
           </div>
         </div>
 
-        <span className={roleBadgeClass()}>{currentUser.designation}</span>
+        <span className={roleBadgeClass()}>{currentUser.designation}{isTeamLeader(currentUser) && !hasTeamAccess({ ...currentUser, teamMemberIds: [] }) ? ' · Team Leader' : ''}</span>
 
         {/* Quick Switcher (Admin Only) */}
         {currentUser.role === 'ADMIN' && (

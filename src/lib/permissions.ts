@@ -15,9 +15,18 @@ export function isInChargeOrAbove(designation?: Designation | string): boolean {
   ].includes(designation);
 }
 
+/**
+ * Team Leader: anyone (a Student too) with students assigned in Manager Student Supervisory
+ * Assignments. Their designation stays as it is; they only get Team Tasks for those students,
+ * can comment on their tasks and assign tasks to them.
+ */
+export function isTeamLeader(user: User | null | undefined): boolean {
+  return Boolean(user?.teamMemberIds?.length);
+}
+
 export function hasTeamAccess(user: User | null): boolean {
   if (!user) return false;
-  return user.role === 'ADMIN' || user.role === 'MANAGER' || isInChargeOrAbove(user.designation);
+  return user.role === 'ADMIN' || user.role === 'MANAGER' || isInChargeOrAbove(user.designation) || isTeamLeader(user);
 }
 
 export function isManagementDesignation(designation?: Designation | string): boolean {
@@ -260,6 +269,7 @@ export function getUserAssignedClientIds(user?: User | null): string[] {
  *   (Task Requests are different: see getEligibleTaskRequestRecipients.)
  * - Admin and Assistant Director and above can assign to those people firm-wide, whatever the client.
  * - Everyone below Assistant Director can only assign to subordinates who are assigned to the selected client.
+ * - A Team Leader can also assign to their own team members on the selected client.
  */
 export function getAssignableUsers(
   currentUser: User | null,
@@ -280,6 +290,12 @@ export function getAssignableUsers(
          getUserRank(u) < currentRank
   );
 
+  // A Team Leader may also assign to their own team (on the selected client), whatever their rank
+  const team = isTeamLeader(currentUser)
+    ? allUsers.filter(u => currentUser.teamMemberIds!.includes(u.id) && !subordinates.includes(u))
+    : [];
+  const onClient = (u: User) => getUserAssignedClientIds(u).includes(selectedClientId);
+
   if (isADPlusUser) {
     // Firm-wide for "all clients" (or nothing chosen yet); otherwise only people on the selected client
     if (!selectedClientId || selectedClientId === 'ALL_CLIENTS' || selectedClientId === 'ALL') return subordinates;
@@ -288,7 +304,7 @@ export function getAssignableUsers(
 
   // Below Assistant Director: only people on the selected client
   if (!selectedClientId || selectedClientId === 'ALL_CLIENTS' || selectedClientId === 'ALL') return [];
-  return subordinates.filter(u => getUserAssignedClientIds(u).includes(selectedClientId));
+  return [...subordinates, ...team].filter(onClient);
 }
 
 /**

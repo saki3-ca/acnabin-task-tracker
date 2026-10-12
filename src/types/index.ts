@@ -32,6 +32,8 @@ export interface User {
   mobile?: string;
   lastLogin?: string;
   createdDate?: string;
+  /** Students/trainees assigned to this person in Manager Student Supervisory Assignments (Admin panel). */
+  teamMemberIds?: string[];
 }
 
 export interface Client {
@@ -73,6 +75,10 @@ export interface ManagerStudentItem {
   studentName: string;
   empId: string;
   isAssigned: boolean;
+  /** The student's clients, for showing next to the name */
+  clientIds: string[];
+  /** Assigned earlier but no longer on any of the manager's clients */
+  outsideClients?: boolean;
 }
 
 export interface TaskFilter {

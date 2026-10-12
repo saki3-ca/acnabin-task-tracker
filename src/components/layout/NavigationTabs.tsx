@@ -92,7 +92,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
 
   if (!currentUser) return null;
 
-  // Team Tasks: In Charge and above (not Students)
+  // Team Tasks: In Charge and above, and Team Leaders (students with a team assigned)
   const showTeamTasksTab = canViewTeamTasks(currentUser);
 
   // Manpower: Admin, Assistant Director and above, In Charge to Manager (own clients only) or anyone the Admin added

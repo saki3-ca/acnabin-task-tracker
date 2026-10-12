@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, RotateCcw, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
-import { formatHrmId, getUserAssignedClientIds, hasTeamAccess, isAssistantDirectorOrAbove } from '../../lib/permissions';
+import { formatHrmId, getUserAssignedClientIds, hasTeamAccess, isAssistantDirectorOrAbove, isTeamLeader } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { Client, User } from '../../types';
 
@@ -47,6 +47,10 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal,
 
   const allowedMembers = useMemo(() => {
     if (!currentUser) return [];
+    // Students assigned to them in Supervisory Assignments: Team Tasks shows only those
+    if (currentUser.role !== 'ADMIN' && isTeamLeader(currentUser)) {
+      return allUsers.filter(u => currentUser.teamMemberIds!.includes(u.id));
+    }
     if (isADPlus) {
       return allUsers.filter(u => u.role !== 'ADMIN' && u.designation !== 'Admin');
     }
