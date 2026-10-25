@@ -57,13 +57,17 @@ BEGIN
     ), '[]'::jsonb),
     'rows', COALESCE((
       WITH uc AS (
-        SELECT u2.id AS uid, btrim(c) AS cid
-        FROM public.users u2, unnest(string_to_array(COALESCE(u2.signup_client_id, ''), ',')) c
-        UNION
-        SELECT m.manager_user_id, m.client_id FROM public.manager_client_access m WHERE m.status = 'ACTIVE'
+        -- ord = position in the person's own list: the first client is their Primary client
+        SELECT u2.id AS uid, btrim(c.cid) AS cid, c.ord::INT AS ord
+        FROM public.users u2, unnest(string_to_array(COALESCE(u2.signup_client_id, ''), ',')) WITH ORDINALITY AS c(cid, ord)
+        UNION ALL
+        SELECT m.manager_user_id, m.client_id, 1000 FROM public.manager_client_access m WHERE m.status = 'ACTIVE'
       ), shared AS (
-        SELECT uc.uid, array_agg(DISTINCT uc.cid) AS cids
-        FROM uc WHERE uc.cid = ANY (v_mine) GROUP BY uc.uid
+        SELECT t.uid, array_agg(t.cid ORDER BY t.ord, t.cid) AS cids
+        FROM (
+          SELECT uc.uid, uc.cid, min(uc.ord) AS ord
+          FROM uc WHERE uc.cid = ANY (v_mine) GROUP BY uc.uid, uc.cid
+        ) t GROUP BY t.uid
       )
       SELECT jsonb_agg(jsonb_build_object(
         'emp_id', upper(u.emp_id),

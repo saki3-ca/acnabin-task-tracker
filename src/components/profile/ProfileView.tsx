@@ -244,10 +244,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       .finally(() => setIsLoadingClients(false));
   }, [currentUser, canSeeAll, allClients]);
 
+  // The person's own clients in the order they chose: the first is the Primary client, the rest Secondary.
+  const ownClientOrder = useMemo(() => (canSeeAll ? [] : getUserAssignedClientIds(currentUser)), [canSeeAll, currentUser]);
   const assignedClientsList = useMemo(() => {
     if (canSeeAll) return allClients;
-    return allClients.filter(c => assignedClientIds.includes(c.id));
-  }, [allClients, assignedClientIds, canSeeAll]);
+    const list = allClients.filter(c => assignedClientIds.includes(c.id));
+    const pos = (id: string) => { const i = ownClientOrder.indexOf(id); return i === -1 ? 9999 : i; };
+    return list.sort((a, b) => pos(a.id) - pos(b.id));
+  }, [allClients, assignedClientIds, canSeeAll, ownClientOrder]);
 
   const completedTasks = useMemo(() => {
     return myTasks.filter(t => t.status === 'Completed');
@@ -305,7 +309,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       .filter((c): c is NonNullable<typeof c> => Boolean(c))
       .map(c => ({ id: c.id, name: c.name }));
     setEditClients(current);
-    setClientsSnap(current.map(c => c.id).sort().join(','));
+    setClientsSnap(current.map(c => c.id).join(','));
     setEditClientInput('');
     setEditClientSuggestions([]);
 
@@ -474,7 +478,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       editBlood !== (snap?.bloodGroup || '') ||
       editEmName.trim() !== (snap?.emergencyName || '') ||
       emPhoneNorm !== (snap?.emergencyPhone || '');
-    const clientsChanged = editClients.map(c => c.id).sort().join(',') !== clientsSnap;
+    const clientsChanged = editClients.map(c => c.id).join(',') !== clientsSnap;
 
     // Official employee profile fields (blank = leave as it is)
     const staffFields: Record<string, string> = {
@@ -666,31 +670,72 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             <div className="form-field" style={{ position: 'relative' }}>
               <label style={clientsInInfoBox ? { fontSize: '11.5px' } : undefined}>Assigned Client(s)</label>
               {editClients.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
-                  {editClients.map(c => (
-                    <span
-                      key={c.id}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: 'var(--navy-light, #EBF0FE)',
-                        border: '1px solid var(--navy, #1B2A6B)',
-                        borderRadius: '20px',
-                        padding: '2px 10px',
-                        fontSize: '12px',
-                        color: 'var(--navy, #1B2A6B)',
-                        fontWeight: 600
-                      }}
-                    >
-                      <span><ClientLabel id={c.id} name={c.name} /></span>
-                      <button
-                        type="button"
-                        onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
-                      >×</button>
-                    </span>
-                  ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '8px' }}>
+                  {editClients.map((c, index) => {
+                    const isPrimary = index === 0;
+                    return (
+                      <div
+                        key={c.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          background: isPrimary ? '#F0FDF4' : '#F8FAFC',
+                          border: `1.5px solid ${isPrimary ? '#10B981' : '#E2E8F0'}`,
+                          borderRadius: '8px',
+                          padding: '5px 10px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                          {editClients.length > 1 && (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                background: isPrimary ? '#059669' : '#E2E8F0',
+                                color: isPrimary ? '#ffffff' : '#64748B',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                flexShrink: 0
+                              }}
+                            >
+                              {isPrimary ? '★ PRIMARY' : 'SECONDARY'}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '12.5px', fontWeight: isPrimary ? 700 : 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <ClientLabel id={c.id} name={c.name} />
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                          {!isPrimary && (
+                            <button
+                              type="button"
+                              onClick={() => setEditClients(prev => {
+                                const target = prev.find(x => x.id === c.id);
+                                return target ? [target, ...prev.filter(x => x.id !== c.id)] : prev;
+                              })}
+                              style={{ background: '#fff', border: '1px solid #10B981', color: '#059669', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                              title="Make this client the Primary client"
+                            >
+                              ★ Make Primary
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
+                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: '0 4px', lineHeight: 1, fontSize: '16px' }}
+                            title="Remove client"
+                          >×</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {editClients.length > 1 && (
+                    <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
+                      The Primary client is the one counted in Manpower summary and Excel exports.
+                    </div>
+                  )}
                 </div>
               )}
               <input
@@ -1159,6 +1204,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Building size={15} color="var(--ink-soft)" />
                           <span>{client.name}</span>
+                          {ownClientOrder.length > 1 && ownClientOrder.includes(client.id) && (
+                            ownClientOrder[0] === client.id ? (
+                              <span style={{ fontSize: '9.5px', fontWeight: 700, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }} title="Primary client">
+                                ★ Primary
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '9px', fontWeight: 600, background: '#F1F5F9', color: '#64748B', border: '1px solid #E2E8F0', padding: '1px 5px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }} title="Secondary client">
+                                Secondary
+                              </span>
+                            )
+                          )}
                         </div>
                       </td>
                       <td style={{ textAlign: 'left' }}>

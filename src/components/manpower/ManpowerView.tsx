@@ -81,6 +81,9 @@ const FullManpowerView: React.FC = () => {
   // Details View Filters
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedClient, setSelectedClient] = useState<string>('');
+  // Set when a Summary row is clicked: the Summary counts people under their Primary client only,
+  // so the list it opens must show exactly those people (not people who have it as Secondary).
+  const [clientPrimaryOnly, setClientPrimaryOnly] = useState(false);
   const [selectedDesignation, setSelectedDesignation] = useState<string>('');
 
   // Details View Sorting
@@ -196,7 +199,10 @@ const FullManpowerView: React.FC = () => {
       }
 
       if (selectedClient) {
-        if (!r.assignedClient.toLowerCase().includes(selectedClient.toLowerCase())) {
+        // Exact client names (a substring match made "Walton" also match "Walton Plaza")
+        const names = (r.assignedClient || '').split(',').map(n => n.trim().toLowerCase());
+        const wanted = selectedClient.trim().toLowerCase();
+        if (clientPrimaryOnly ? names[0] !== wanted : !names.includes(wanted)) {
           return false;
         }
       }
@@ -209,7 +215,7 @@ const FullManpowerView: React.FC = () => {
 
       return true;
     });
-  }, [records, searchTerm, selectedClient, selectedDesignation]);
+  }, [records, searchTerm, selectedClient, clientPrimaryOnly, selectedDesignation]);
 
   const sortedDetails = useMemo(() => {
     const list = [...filteredDetails];
@@ -385,8 +391,10 @@ const FullManpowerView: React.FC = () => {
   const handleClientRowClick = (clientName: string) => {
     if (clientName === 'Unassigned' || clientName === ALL_CLIENTS) {
       setSelectedClient('');
+      setClientPrimaryOnly(false);
     } else {
       setSelectedClient(clientName);
+      setClientPrimaryOnly(true);
     }
     setViewMode('details');
   };
@@ -475,6 +483,7 @@ const FullManpowerView: React.FC = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedClient('');
+    setClientPrimaryOnly(false);
     setSelectedDesignation('');
   };
 
@@ -884,7 +893,7 @@ const FullManpowerView: React.FC = () => {
                   className="form-select"
                   style={{ height: '36px', fontSize: '12.5px', width: '100%' }}
                   value={selectedClient}
-                  onChange={e => setSelectedClient(e.target.value)}
+                  onChange={e => { setSelectedClient(e.target.value); setClientPrimaryOnly(false); }}
                 >
                   <option value="">All Assigned Clients</option>
                   {uniqueClients.map(c => (
