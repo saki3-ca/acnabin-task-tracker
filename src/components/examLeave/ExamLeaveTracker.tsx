@@ -24,7 +24,7 @@ import {
   countPeople,
   countsAsLeave,
   examLeaveService,
-  formatDayMonth,
+  formatShortDate,
   sameName,
   weekdayLetter
 } from '../../services/examLeaveService';
@@ -33,12 +33,7 @@ import { useAuth } from '../../context/AuthContext';
 import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove } from '../../lib/permissions';
 import { ApplyExamLeaveModal } from './ApplyExamLeaveModal';
 
-const formatRoutineDate = (dateStr: string, dayName: string) => {
-  const [y, m, d] = dateStr.split('-');
-  const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = monthNames[Number(m)] || m;
-  return `${d} ${month} ${y}, ${dayName}`;
-};
+const formatRoutineDate = (dateStr: string, dayName: string) => `${formatShortDate(dateStr)}, ${dayName}`;
 
 export const ExamLeaveTracker: React.FC = () => {
   const { currentUser, allUsers } = useAuth();
@@ -519,16 +514,16 @@ export const ExamLeaveTracker: React.FC = () => {
           {/* the legend sits in the gap above the title bar, so the space between filter bar and table stays the same as Manpower */}
           <div style={{ position: 'absolute', right: '2px', bottom: '100%', marginBottom: '7px', display: 'flex', justifyContent: 'flex-end' }}>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#FEF9C3', border: '1px solid #CA8A04', color: '#854D0E', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#EAB308', display: 'inline-block' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#FBEBC4', border: '1px solid #D9A441', color: '#7A4B00', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#D99A1F', display: 'inline-block' }} />
                 Study Leave
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#FEE2E2', border: '1px solid #DC2626', color: '#991B1B', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#DC2626', display: 'inline-block' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#F6E3E3', border: '1px solid #C98F8F', color: '#7A1F1F', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A94442', display: 'inline-block' }} />
                 Holiday
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#F1F5F9', border: '1px solid #CBD5E1', color: '#475569', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94A3B8', display: 'inline-block' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#F3EFE9', border: '1px solid #D8D0C4', color: '#6B6256', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A79F92', display: 'inline-block' }} />
                 Working day
               </span>
             </div>
@@ -693,14 +688,14 @@ export const ExamLeaveTracker: React.FC = () => {
                           borderRight: '1px solid var(--line)',
                           cursor: 'pointer',
                           background: isSelected
-                            ? '#3B82F6'
+                            ? '#1B2A6B'
                             : isFri
-                            ? '#991B1B'
+                            ? '#E6CBCB'
                             : '#FAF7F2',
-                          color: isSelected || isFri ? '#ffffff' : 'var(--ink)',
+                          color: isSelected ? '#ffffff' : isFri ? '#7A1F1F' : 'var(--ink)',
                           transition: 'background 0.2s'
                         }}
-                        title={`Click to inspect ${dateStr}`}
+                        title={`Click to inspect ${formatShortDate(dateStr)}`}
                       >
                         <div style={{ fontSize: '9px', textTransform: 'uppercase', opacity: 0.8 }}>
                           {dayName}
@@ -909,17 +904,17 @@ export const ExamLeaveTracker: React.FC = () => {
                               borderRight: '1px solid #E2E8F0',
                               cursor: 'pointer',
                               background: isOnLeave
-                                ? '#FEF08A'
+                                ? '#F7DC93'
                                 : isOffDay
-                                ? '#FEE2E2'
+                                ? '#F6E3E3'
                                 : isSelectedCol
-                                ? '#EFF6FF'
+                                ? '#EEF0F8'
                                 : 'transparent',
-                              color: isOnLeave ? '#854D0E' : isOffDay ? '#DC2626' : 'var(--ink-muted)',
+                              color: isOnLeave ? '#7A4B00' : isOffDay ? '#A94442' : 'var(--ink-muted)',
                               fontWeight: isOnLeave ? 800 : 400,
                               fontSize: isOnLeave ? '12px' : '10px'
                             }}
-                            title={`${record.name} on ${dateStr}: ${isOnLeave ? 'Study Leave' : isOffDay ? 'Holiday' : 'Working day'}`}
+                            title={`${record.name} on ${formatShortDate(dateStr)}: ${isOnLeave ? 'Study Leave' : isOffDay ? 'Holiday' : 'Working day'}`}
                           >
                             {isOnLeave ? (
                               <span style={{ display: 'inline-block', width: '100%', height: '16px' }} />
@@ -991,16 +986,16 @@ export const ExamLeaveTracker: React.FC = () => {
               {/* Matrix Table Footer Summary Rows */}
               <tfoot>
                 {/* Row 1: TOTAL ON LEAVE PER DAY: */}
-                <tr style={{ background: '#1E293B', color: '#ffffff', fontWeight: 700 }}>
+                <tr style={{ background: '#1B2A6B', color: '#ffffff', fontWeight: 700 }}>
                   <td
                     colSpan={5}
                     style={{
                       padding: '9px 12px',
-                      borderTop: '2px solid #0F172A',
+                      borderTop: '2px solid #141F52',
                       position: 'sticky',
                       left: 0,
                       zIndex: 11,
-                      background: '#1E293B',
+                      background: '#1B2A6B',
                       fontSize: '11.5px',
                       letterSpacing: '0.3px'
                     }}
@@ -1016,9 +1011,9 @@ export const ExamLeaveTracker: React.FC = () => {
                         style={{
                           textAlign: 'center',
                           padding: '7px 2px',
-                          borderTop: '2px solid #0F172A',
-                          borderRight: '1px solid #334155',
-                          background: isFri ? '#7F1D1D' : count >= 10 ? '#DC2626' : count >= 5 ? '#D97706' : '#1E293B',
+                          borderTop: '2px solid #141F52',
+                          borderRight: '1px solid #33438A',
+                          background: isFri ? '#5B2230' : count >= 10 ? '#9B2C2C' : count >= 5 ? '#A66A12' : '#1B2A6B',
                           color: '#ffffff',
                           fontWeight: 800,
                           fontSize: '11.5px'
@@ -1028,20 +1023,20 @@ export const ExamLeaveTracker: React.FC = () => {
                       </td>
                     );
                   })}
-                  <td style={{ background: '#1E293B' }}></td>
+                  <td style={{ background: '#1B2A6B' }}></td>
                 </tr>
 
                 {/* Row 2: AVAILABLE IN-OFFICE MANPOWER: */}
-                <tr style={{ background: '#0F172A', color: '#ffffff', fontWeight: 700 }}>
+                <tr style={{ background: '#141F52', color: '#ffffff', fontWeight: 700 }}>
                   <td
                     colSpan={5}
                     style={{
                       padding: '9px 12px',
-                      borderTop: '1px solid #334155',
+                      borderTop: '1px solid #33438A',
                       position: 'sticky',
                       left: 0,
                       zIndex: 11,
-                      background: '#0F172A',
+                      background: '#141F52',
                       fontSize: '11.5px',
                       letterSpacing: '0.3px'
                     }}
@@ -1059,10 +1054,10 @@ export const ExamLeaveTracker: React.FC = () => {
                         style={{
                           textAlign: 'center',
                           padding: '7px 2px',
-                          borderTop: '1px solid #334155',
-                          borderRight: '1px solid #1E293B',
-                          background: isFri ? '#450A0A' : isDeficit && totalStaffCount > 0 ? '#991B1B' : '#0F172A',
-                          color: isFri ? '#FCA5A5' : '#ffffff',
+                          borderTop: '1px solid #33438A',
+                          borderRight: '1px solid #1B2A6B',
+                          background: isFri ? '#3F1D2B' : isDeficit && totalStaffCount > 0 ? '#9B2C2C' : '#141F52',
+                          color: isFri ? '#E3B3B3' : '#ffffff',
                           fontWeight: 800,
                           fontSize: '11px'
                         }}
@@ -1071,7 +1066,7 @@ export const ExamLeaveTracker: React.FC = () => {
                       </td>
                     );
                   })}
-                  <td style={{ background: '#0F172A' }}></td>
+                  <td style={{ background: '#141F52' }}></td>
                 </tr>
               </tfoot>
             </table>
@@ -1278,11 +1273,11 @@ export const ExamLeaveTracker: React.FC = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11.5px', marginBottom: '12px' }}>
                       <div>
                         <span style={{ color: 'var(--ink-muted)', display: 'block', fontSize: '10.5px' }}>Leave Start</span>
-                        <strong>{record.leaveStartDay}</strong>
+                        <strong>{formatShortDate(record.leaveStartDay)}</strong>
                       </div>
                       <div>
                         <span style={{ color: 'var(--ink-muted)', display: 'block', fontSize: '10.5px' }}>Last Exam</span>
-                        <strong>{record.appearInLastExamDate}</strong>
+                        <strong>{formatShortDate(record.appearInLastExamDate)}</strong>
                       </div>
                     </div>
                   </div>
@@ -1413,12 +1408,12 @@ export const ExamLeaveTracker: React.FC = () => {
                           background: isOff
                             ? '#FAF8F5'
                             : isAL
-                            ? 'rgba(20, 104, 96, 0.05)'
+                            ? 'rgba(139, 20, 32, 0.05)'
                             : '#ffffff',
-                          borderLeft: isAL ? '4px solid #146860' : 'none'
+                          borderLeft: isAL ? '4px solid #8B1420' : 'none'
                         }}
                       >
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: isAL ? '#146860' : isOff ? '#94A3B8' : 'var(--ink)', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink)', whiteSpace: 'nowrap' }}>
                           {formatRoutineDate(item.date, item.dayName)}
                         </td>
                         <td style={{ padding: '10px 6px', textAlign: 'center' }}>
@@ -1430,9 +1425,9 @@ export const ExamLeaveTracker: React.FC = () => {
                                 borderRadius: '4px',
                                 fontSize: '11px',
                                 fontWeight: 800,
-                                background: isAL ? '#E6F5F2' : '#EBF0F7',
-                                color: isAL ? '#146860' : '#1E344F',
-                                border: isAL ? '1px solid #146860' : '1px solid #CBD5E1'
+                                background: isAL ? '#F9E8EA' : '#EBF0F7',
+                                color: isAL ? '#8B1420' : '#1E344F',
+                                border: isAL ? '1px solid #8B1420' : '1px solid #CBD5E1'
                               }}
                             >
                               {item.level}
@@ -1445,7 +1440,7 @@ export const ExamLeaveTracker: React.FC = () => {
                           <span
                             style={{
                               fontWeight: isAL ? 700 : isOff ? 500 : 600,
-                              color: isAL ? '#146860' : isOff ? '#64748B' : 'var(--ink)',
+                              color: isAL ? '#8B1420' : isOff ? '#64748B' : 'var(--ink)',
                               fontStyle: isOff ? 'italic' : 'normal'
                             }}
                           >
@@ -1457,7 +1452,7 @@ export const ExamLeaveTracker: React.FC = () => {
                             style={{
                               fontSize: '11.5px',
                               fontWeight: isAL ? 600 : 400,
-                              color: isAL ? '#146860' : isOff ? '#94A3B8' : 'var(--ink-soft)',
+                              color: isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink-soft)',
                               fontStyle: isOff ? 'italic' : 'normal'
                             }}
                           >
@@ -1622,8 +1617,8 @@ export const ExamLeaveTracker: React.FC = () => {
                   Leave Schedule
                 </h4>
                 <div style={{ fontSize: '12.5px', lineHeight: '1.6' }}>
-                  <div><strong>Leave Commences:</strong> {selectedStudentForDrawer.leaveStartDay}</div>
-                  <div><strong>Last Exam Date:</strong> {selectedStudentForDrawer.appearInLastExamDate}</div>
+                  <div><strong>Leave Commences:</strong> {formatShortDate(selectedStudentForDrawer.leaveStartDay)}</div>
+                  <div><strong>Last Exam Date:</strong> {formatShortDate(selectedStudentForDrawer.appearInLastExamDate)}</div>
                 </div>
               </div>
 
@@ -1638,13 +1633,13 @@ export const ExamLeaveTracker: React.FC = () => {
                       style={{
                         padding: '3px 7px',
                         borderRadius: '4px',
-                        background: '#FEF08A',
-                        color: '#713F12',
+                        background: '#F7DC93',
+                        color: '#7A4B00',
                         fontSize: '11px',
                         fontWeight: 700
                       }}
                     >
-                      {formatDayMonth(d)}
+                      {formatShortDate(d)}
                     </span>
                   ))}
                 </div>

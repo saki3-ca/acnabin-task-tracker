@@ -282,12 +282,12 @@ export const countOnLeave = (records: StaffExamLeaveRecord[], dateStr: string): 
 export const countPeople = (records: StaffExamLeaveRecord[]): number =>
   new Set(records.map(r => r.name.trim().replace(/\s+/g, ' ').toLowerCase())).size;
 
-/** '2026-10-24' -> '24-Oct' */
-export const formatDayMonth = (dateStr: string): string => {
+/** '2026-11-01' -> '01 Nov 26' (anything that is not a YYYY-MM-DD date is returned as it is) */
+export const formatShortDate = (dateStr: string): string => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || '');
   if (!m) return dateStr;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${Number(m[3])}-${months[Number(m[2]) - 1]}`;
+  return `${m[3]} ${months[Number(m[2]) - 1]} ${m[1].slice(2)}`;
 };
 
 /** A rejected application does not take the person out of the office. */
@@ -474,7 +474,7 @@ class ExamLeaveService {
         sc.value = shortCode(item);
         const dc = sheet.getCell(r, dateCol);
         dc.value = toDate(item.date);
-        dc.numFmt = 'dd-mmm-yy';
+        dc.numFmt = 'dd mmm yy';
         dc.alignment = { horizontal: 'center' };
         if (item.isOffDay) {
           sc.font = { color: { argb: 'FFFFFFFF' }, bold: true };
@@ -513,7 +513,7 @@ class ExamLeaveService {
     dates.forEach((d, idx) => {
       const cell = sheet.getRow(HEADER_ROW).getCell(FIRST_DAY_COL + idx);
       cell.value = toDate(d);
-      cell.numFmt = 'dd-mmm';
+      cell.numFmt = 'dd mmm';
       cell.font = { bold: true, size: 9, color: { argb: isCentralHoliday(d) ? 'FFFFFFFF' : 'FF0F172A' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90 };
       cell.fill = fill(isCentralHoliday(d) ? 'FFDC2626' : 'FFF1F5F9');
@@ -542,7 +542,7 @@ class ExamLeaveService {
         cell.value = v;
         cell.border = box;
         cell.alignment = { vertical: 'middle', horizontal: i === 1 || i === 2 || i === 3 ? 'left' : 'center', wrapText: true };
-        if (v instanceof Date) cell.numFmt = 'dd-mmm-yy';
+        if (v instanceof Date) cell.numFmt = 'dd mmm yy';
       });
       // keep tall subject lists readable
       const lines = String(rec.subjects || '').split('\n').length;

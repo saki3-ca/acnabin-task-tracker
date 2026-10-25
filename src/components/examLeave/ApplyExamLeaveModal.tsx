@@ -12,7 +12,7 @@ import {
   ICAB_PAPERS_CATALOG,
   examLeaveService,
   isCentralHoliday,
-  formatDayMonth,
+  formatShortDate,
   sameName,
   weekdayLetter
 } from '../../services/examLeaveService';
@@ -531,7 +531,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                       <span>
                         <strong>{paper.code}</strong> — {paper.name}{' '}
                         <span style={{ color: 'var(--ink-muted)', fontSize: '11px' }}>
-                          (Exam: {paper.date})
+                          (Exam: {formatShortDate(paper.date)})
                         </span>
                       </span>
                     </label>
@@ -588,7 +588,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 </span>
                 {selectedDates.length > 0 && (
                   <span style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginLeft: '10px' }}>
-                    ({formatDayMonth(selectedDates[0])} to {formatDayMonth(lastExamDate)})
+                    ({formatShortDate(selectedDates[0])} to {formatShortDate(lastExamDate)})
                   </span>
                 )}
               </div>
@@ -628,16 +628,16 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                       fontWeight: 600,
                       cursor: 'pointer',
                       border: isSelected
-                        ? '1px solid #CA8A04'
+                        ? '1px solid #D9A441'
                         : isHoliday
-                        ? '1px solid #FCA5A5'
+                        ? '1px solid #D9AEAE'
                         : '1px solid #CBD5E1',
-                      background: isSelected ? '#FEF08A' : isHoliday ? '#FEE2E2' : '#ffffff',
-                      color: isSelected ? '#713F12' : isHoliday ? '#DC2626' : 'var(--ink)'
+                      background: isSelected ? '#F7DC93' : isHoliday ? '#F6E3E3' : '#ffffff',
+                      color: isSelected ? '#7A4B00' : isHoliday ? '#A94442' : 'var(--ink)'
                     }}
-                    title={isSelected ? `${d} (${dayName}): Study Leave Day` : isHoliday ? `${d} (${dayName}): Holiday` : `${d} (${dayName}): Working Day`}
+                    title={isSelected ? `${formatShortDate(d)} (${dayName}): Study Leave Day` : isHoliday ? `${formatShortDate(d)} (${dayName}): Holiday` : `${formatShortDate(d)} (${dayName}): Working Day`}
                   >
-                    {formatDayMonth(d)} ({dayName}) {isSelected ? '✓' : isHoliday ? 'OFF' : ''}
+                    {formatShortDate(d)} ({dayName}) {isSelected ? '✓' : isHoliday ? 'OFF' : ''}
                   </button>
                 );
               })}
