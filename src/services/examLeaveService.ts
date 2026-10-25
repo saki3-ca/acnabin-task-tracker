@@ -37,13 +37,13 @@ export const isCentralHoliday = (dateStr: string): boolean => {
 
 export const ICAB_PAPERS_CATALOG = {
   CL: [
-    { code: 'i', name: 'Assurance', date: '2026-11-23' },
-    { code: 'ii', name: 'Accounting', date: '2026-11-24' },
-    { code: 'iii', name: 'Business, Technology and Finance', date: '2026-11-25' },
-    { code: 'iv', name: 'Management Information', date: '2026-11-26' },
-    { code: 'v', name: 'Principles of Taxation', date: '2026-11-28' },
-    { code: 'vi', name: 'Business Law', date: '2026-11-29' },
-    { code: 'vii', name: 'Information Technology', date: '2026-11-30' }
+    { code: 'AA', name: 'Assurance', date: '2026-11-23' },
+    { code: 'ACC', name: 'Accounting', date: '2026-11-24' },
+    { code: 'BTF', name: 'Business, Technology and Finance', date: '2026-11-25' },
+    { code: 'MI', name: 'Management Information', date: '2026-11-26' },
+    { code: 'Tax', name: 'Principles of Taxation', date: '2026-11-28' },
+    { code: 'Law', name: 'Business Law', date: '2026-11-29' },
+    { code: 'IT', name: 'Information Technology', date: '2026-11-30' }
   ],
   PL: [
     { code: 'FAR', name: 'Financial Accounting & Reporting', date: '2026-11-08' },
@@ -180,7 +180,7 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   {
     id: 'icab-cl-1',
     level: 'CL',
-    paperCode: 'i',
+    paperCode: 'AA',
     subject: 'Assurance',
     date: '2026-11-23',
     dayName: 'Monday',
@@ -189,7 +189,7 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   {
     id: 'icab-cl-2',
     level: 'CL',
-    paperCode: 'ii',
+    paperCode: 'ACC',
     subject: 'Accounting',
     date: '2026-11-24',
     dayName: 'Tuesday',
@@ -198,7 +198,7 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   {
     id: 'icab-cl-3',
     level: 'CL',
-    paperCode: 'iii',
+    paperCode: 'BTF',
     subject: 'Business, Technology and Finance',
     date: '2026-11-25',
     dayName: 'Wednesday',
@@ -207,7 +207,7 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   {
     id: 'icab-cl-4',
     level: 'CL',
-    paperCode: 'iv',
+    paperCode: 'MI',
     subject: 'Management Information',
     date: '2026-11-26',
     dayName: 'Thursday',
@@ -224,7 +224,7 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   {
     id: 'icab-cl-6',
     level: 'CL',
-    paperCode: 'v',
+    paperCode: 'Tax',
     subject: 'Principles of Taxation',
     date: '2026-11-28',
     dayName: 'Saturday',
@@ -233,7 +233,7 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   {
     id: 'icab-cl-7',
     level: 'CL',
-    paperCode: 'vi',
+    paperCode: 'Law',
     subject: 'Business Law',
     date: '2026-11-29',
     dayName: 'Sunday',
@@ -242,7 +242,7 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   {
     id: 'icab-cl-8',
     level: 'CL',
-    paperCode: 'vii',
+    paperCode: 'IT',
     subject: 'Information Technology',
     date: '2026-11-30',
     dayName: 'Monday',
@@ -281,6 +281,56 @@ export const countOnLeave = (records: StaffExamLeaveRecord[], dateStr: string): 
 /** Number of different people in a list of records. */
 export const countPeople = (records: StaffExamLeaveRecord[]): number =>
   new Set(records.map(r => r.name.trim().replace(/\s+/g, ' ').toLowerCase())).size;
+
+/** CL papers were saved as roman numerals (i-vii), then as AC / BF, before getting their current codes. */
+const LEGACY_CL_CODES: Record<string, string> = { i: 'AA', ii: 'ACC', iii: 'BTF', iv: 'MI', v: 'Tax', vi: 'Law', vii: 'IT', ac: 'ACC', bf: 'BTF' };
+
+type RecordPaper = NonNullable<StaffExamLeaveRecord['papers']>[number];
+
+/** The papers of a leave record (with attempt). Older records only have text like "1. FM (1st Attempt - 5 days)". */
+export const getRecordPapers = (rec: StaffExamLeaveRecord): RecordPaper[] => {
+  if (rec.level !== 'PL' && rec.level !== 'CL' && rec.level !== 'AL') return [];
+  const catalog = ICAB_PAPERS_CATALOG[rec.level];
+  const fix = (code: string) => (rec.level === 'CL' ? LEGACY_CL_CODES[code.toLowerCase()] || code : code);
+  if (rec.papers && rec.papers.length > 0) {
+    return rec.papers.map(p => {
+      const code = fix(p.code);
+      const hit = catalog.find(c => c.code === code);
+      return { ...p, code, name: hit?.name || p.name };
+    });
+  }
+  const parsed: RecordPaper[] = [];
+  (rec.subjects || '').split('\n').forEach(line => {
+    const m = /^\s*\d+\.\s*(.+?)\s*(?:\((.*)\))?\s*$/.exec(line);
+    if (!m) return;
+    const code = fix(m[1].trim());
+    const paper = catalog.find(c => c.code.toLowerCase() === code.toLowerCase());
+    if (!paper || parsed.some(x => x.code === paper.code)) return;
+    const note = m[2] || '';
+    const attempt = /1st/i.test(note) ? '1st Attempt' : /2nd/i.test(note) ? '2nd Attempt' : '3rd Attempt & rest';
+    parsed.push({ ...paper, attempt });
+  });
+  return parsed;
+};
+
+/** Short codes of the papers this person sits on the given day, e.g. ['FAR'] */
+export const examCodesOn = (rec: StaffExamLeaveRecord, dateStr: string): string[] =>
+  getRecordPapers(rec).filter(p => p.date === dateStr).map(p => p.code);
+
+/** Short code of a routine row: 'FAR', 'FM', 'AA' ... ('' for an off day) */
+export const routineCode = (item: IcabExamScheduleItem): string => {
+  if (item.isOffDay) return '';
+  if (item.paperCode) return item.paperCode;
+  if (/^IT Governance/.test(item.subject)) return 'IT';
+  const hit = [...ICAB_PAPERS_CATALOG.PL, ...ICAB_PAPERS_CATALOG.AL].find(p => p.date === item.date);
+  return hit ? hit.code : '';
+};
+
+/** 'Assurance (AA)' / 'Financial Accounting & Reporting (FAR)'; an off day stays 'Off Day' */
+export const routineSubject = (item: IcabExamScheduleItem): string => {
+  const code = routineCode(item);
+  return code ? `${item.subject} (${code})` : item.subject;
+};
 
 /** '2026-11-01' -> '01 Nov 26' (anything that is not a YYYY-MM-DD date is returned as it is) */
 export const formatShortDate = (dateStr: string): string => {
@@ -553,9 +603,10 @@ class ExamLeaveService {
         cell.border = box;
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         if (rec.leaveDates.includes(d)) {
-          cell.value = 1;
+          const codes = examCodesOn(rec, d);
+          cell.value = codes.length > 0 ? codes.join(' / ') : 1;
           cell.fill = fill('FFFFFF00');
-          cell.font = { bold: true };
+          cell.font = { bold: true, size: codes.length > 0 ? 8 : 11 };
         } else if (isCentralHoliday(d)) {
           cell.fill = fill('FFFFC7CE');
         }

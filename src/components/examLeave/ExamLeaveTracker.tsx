@@ -23,8 +23,10 @@ import {
   countOnLeave,
   countPeople,
   countsAsLeave,
+  examCodesOn,
   examLeaveService,
   formatShortDate,
+  routineSubject,
   sameName,
   weekdayLetter
 } from '../../services/examLeaveService';
@@ -914,10 +916,19 @@ export const ExamLeaveTracker: React.FC = () => {
                               fontWeight: isOnLeave ? 800 : 400,
                               fontSize: isOnLeave ? '12px' : '10px'
                             }}
-                            title={`${record.name} on ${formatShortDate(dateStr)}: ${isOnLeave ? 'Study Leave' : isOffDay ? 'Holiday' : 'Working day'}`}
+                            title={`${record.name} on ${formatShortDate(dateStr)}: ${isOnLeave ? (examCodesOn(record, dateStr).length > 0 ? `Exam - ${examCodesOn(record, dateStr).join(' / ')} (${record.level})` : 'Study Leave') : isOffDay ? 'Holiday' : 'Working day'}`}
                           >
                             {isOnLeave ? (
-                              <span style={{ display: 'inline-block', width: '100%', height: '16px' }} />
+                              (() => {
+                                const codes = examCodesOn(record, dateStr);
+                                return codes.length > 0 ? (
+                                  <span style={{ display: 'inline-block', width: '100%', minHeight: '16px', fontSize: '9px', fontWeight: 800, lineHeight: '16px', color: '#5C3600', letterSpacing: '-0.2px' }}>
+                                    {codes.join('/')}
+                                  </span>
+                                ) : (
+                                  <span style={{ display: 'inline-block', width: '100%', height: '16px' }} />
+                                );
+                              })()
                             ) : isOffDay ? (
                               <span style={{ opacity: 0.35 }}>—</span>
                             ) : (
@@ -1444,7 +1455,7 @@ export const ExamLeaveTracker: React.FC = () => {
                               fontStyle: isOff ? 'italic' : 'normal'
                             }}
                           >
-                            {item.subject}
+                            {routineSubject(item)}
                           </span>
                         </td>
                         <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -1508,12 +1519,12 @@ export const ExamLeaveTracker: React.FC = () => {
                             border: '1px solid #146860'
                           }}
                         >
-                          Paper {item.paperCode}
+                          {item.paperCode}
                         </span>
                         )}
                       </td>
                       <td style={{ padding: '10px 14px', fontWeight: item.isOffDay ? 500 : 600, color: item.isOffDay ? '#64748B' : 'var(--ink)', fontStyle: item.isOffDay ? 'italic' : 'normal' }}>
-                        {item.subject}
+                        {routineSubject(item)}
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', color: item.isOffDay ? '#94A3B8' : 'var(--ink-soft)', fontStyle: item.isOffDay ? 'italic' : 'normal', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                         {item.timeSlot || (item.isOffDay ? 'Off Day' : '—')}
@@ -1821,7 +1832,7 @@ export const ExamLeaveTracker: React.FC = () => {
                                   fontStyle: isOff ? 'italic' : 'normal'
                                 }}
                               >
-                                {item.subject}
+                                {routineSubject(item)}
                               </span>
                             </td>
                             <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -1872,11 +1883,11 @@ export const ExamLeaveTracker: React.FC = () => {
                                 border: '1px solid #146860'
                               }}
                             >
-                              Paper {item.paperCode}
+                              {item.paperCode}
                             </span>
                           </td>
                           <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>
-                            {item.subject}
+                            {routineSubject(item)}
                           </td>
                           <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--ink-soft)', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                             {item.timeSlot || '—'}

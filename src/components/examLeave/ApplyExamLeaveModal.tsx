@@ -13,6 +13,7 @@ import {
   examLeaveService,
   isCentralHoliday,
   formatShortDate,
+  getRecordPapers,
   sameName,
   weekdayLetter
 } from '../../services/examLeaveService';
@@ -103,9 +104,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   useEffect(() => {
     if (isOpen) examLeaveService.getLeaves().then(setSavedRecords).catch(() => setSavedRecords([]));
   }, [isOpen]);
-  const sameLevelRecord = existingRecord
-    ? null
-    : savedRecords.find(r => sameName(r.name, candidateName) && r.level === examLevel) || null;
+  // Another leave of the same person at the chosen level (a person has one leave per level)
+  const sameLevelRecord =
+    savedRecords.find(r => sameName(r.name, candidateName) && r.level === examLevel && r.id !== existingRecord?.id) || null;
   const otherLevels = savedRecords
     .filter(r => sameName(r.name, candidateName) && r.level !== examLevel && r.id !== existingRecord?.id)
     .map(r => r.level);
@@ -134,23 +135,8 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       setSelectedDates([...existingRecord.leaveDates]);
       setRemarks(existingRecord.notes || '');
 
-      // Bring back the papers and their attempt so they can be changed here. Records saved before papers were
-      // stored are read back from their text ("1. FM (1st Attempt - 5 days)").
-      if (existingRecord.papers && existingRecord.papers.length > 0) {
-        setSelectedPapers(existingRecord.papers.map(p => ({ ...p })));
-      } else if (['PL', 'CL', 'AL'].includes(existingRecord.level)) {
-        const catalog = ICAB_PAPERS_CATALOG[existingRecord.level as ExamLevel];
-        const parsed: { code: string; name: string; date: string; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[] = [];
-        (existingRecord.subjects || '').split('\n').forEach(line => {
-          const m = /^\s*\d+\.\s*(.+?)\s*\((.*)\)\s*$/.exec(line);
-          if (!m) return;
-          const paper = catalog.find(c => c.code.toLowerCase() === m[1].trim().toLowerCase());
-          if (!paper || parsed.some(x => x.code === paper.code)) return;
-          const attempt = /1st/i.test(m[2]) ? '1st Attempt' : /2nd/i.test(m[2]) ? '2nd Attempt' : '3rd Attempt & rest';
-          parsed.push({ ...paper, attempt });
-        });
-        setSelectedPapers(parsed);
-      }
+      // Bring back the papers and their attempt so they can be changed here
+      setSelectedPapers(getRecordPapers(existingRecord));
     } else if (currentUser && isAdmin) {
       // Admin applies on behalf of someone: nobody is pre-selected (Admin is not a candidate)
       setCandidateName('');
@@ -279,7 +265,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     // One record per person per level (a PL, a CL and an AL leave sit side by side). A submitted leave is
     // never overwritten from this form, which would risk wrong data: changes go through Edit.
     const existing = existingRecord || null;
-    if (!existing && all.some(r => sameName(r.name, candidateName) && r.level === examLevel)) {
+    if (all.some(r => sameName(r.name, candidateName) && r.level === examLevel && r.id !== existing?.id)) {
       alert(`A ${examLevel} leave is already submitted for ${candidateName.trim()}. To change it, use Edit in the Action column.`);
       return;
     }
@@ -430,8 +416,8 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 <button
                   key={lvl.id}
                   type="button"
-                  disabled={Boolean(existingRecord) && examLevel !== lvl.id}
                   onClick={() => {
+                    if (lvl.id === examLevel) return; // re-clicking the same level must not wipe the papers
                     setExamLevel(lvl.id as ExamLevel);
                     setSelectedPapers([]);
                     setSelectedDates([]);
@@ -453,10 +439,12 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
             </div>
           </div>
 
-          {(sameLevelRecord || otherLevels.length > 0) && (
-            <div style={{ fontSize: '11.5px', marginTop: '-8px', marginBottom: '14px', padding: '6px 10px', borderRadius: '6px', background: sameLevelRecord ? '#FEE2E2' : '#EFF6FF', border: `1px solid ${sameLevelRecord ? '#F87171' : '#BFDBFE'}`, color: sameLevelRecord ? '#991B1B' : '#1E40AF' }}>
+          {(sameLevelRecord || (!existingRecord && otherLevels.length > 0) || (existingRecord && existingRecord.level !== examLevel)) && (
+            <div style={{ fontSize: '11.5px', marginTop: '-8px', marginBottom: '14px', padding: '6px 10px', borderRadius: '6px', background: sameLevelRecord ? '#FEE2E2' : existingRecord ? '#FBEBC4' : '#EFF6FF', border: `1px solid ${sameLevelRecord ? '#F87171' : existingRecord ? '#D9A441' : '#BFDBFE'}`, color: sameLevelRecord ? '#991B1B' : existingRecord ? '#7A4B00' : '#1E40AF' }}>
               {sameLevelRecord
-                ? `A ${examLevel} leave is already submitted for ${candidateName}. To change it, use Edit in the Action column.`
+                ? `A ${examLevel} leave is already submitted for ${candidateName}. To change it, use Edit on that leave.`
+                : existingRecord
+                ? `Level changed from ${existingRecord.level} to ${examLevel}: the papers and days were cleared. Pick the ${examLevel} papers again.`
                 : `Already saved: ${otherLevels.join(', ')}. This will be added as a separate ${examLevel} leave.`}
             </div>
           )}
