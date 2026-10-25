@@ -247,19 +247,21 @@ const FullManpowerView: React.FC = () => {
         cName = 'Unassigned';
       }
 
-      // Someone assigned to several clients is counted once, under their first client
+      // Someone assigned to several clients is counted once, under their Primary client
       // (so there are no combined rows and the grand totals stay right).
-      const firstId = r.clientIds && r.clientIds.length > 1 ? r.clientIds[0] : null;
-      if (firstId) {
-        const first = allClients.find(c => c.id === firstId);
+      const primaryId = (r.clientIds && r.clientIds.length > 0) ? r.clientIds[0] : (r.clientId || null);
+      if (primaryId) {
+        const first = allClients.find(c => c.id === primaryId);
         cName = first ? first.name : cName.split(',')[0].trim();
+      } else if (cName.includes(',')) {
+        cName = cName.split(',')[0].trim();
       }
 
-      // A single-client row is grouped by client id, so two clients with the same
+      // Grouped by client id, so two clients with the same
       // name but different job IDs stay separate.
-      const singleId = r.clientIds && r.clientIds.length >= 1 ? r.clientIds[0] : null;
+      const singleId = primaryId;
       const key = singleId ? `${cName.toLowerCase()}|${singleId}` : cName.toLowerCase();
-      const cId = firstId || r.clientId || (cName === 'Unassigned' ? 'UNASSIGNED' : cName);
+      const cId = primaryId || (cName === 'Unassigned' ? 'UNASSIGNED' : cName);
 
       if (!groupMap.has(key)) {
         groupMap.set(key, {
@@ -397,6 +399,29 @@ const FullManpowerView: React.FC = () => {
           .join(', ')
       : r.assignedClient;
 
+  // Extracts only the Primary client for Excel export so each record reconciles client-wise
+  const primaryClientText = (r: ManpowerRecord): string => {
+    if (r.assignedClient === ALL_CLIENTS) return ALL_CLIENTS;
+    if (r.clientIds && r.clientIds.length > 0) {
+      const primaryId = r.clientIds[0];
+      const match = allClients.find(c => c.id === primaryId);
+      const name = match ? match.name : r.assignedClient.split(',')[0].trim();
+      if (!name || name === '—' || name.toLowerCase() === 'unassigned') return '';
+      return clientText(name, jobOf(primaryId));
+    }
+    if (r.clientId) {
+      const match = allClients.find(c => c.id === r.clientId);
+      const name = match ? match.name : r.assignedClient.split(',')[0].trim();
+      if (!name || name === '—' || name.toLowerCase() === 'unassigned') return '';
+      return clientText(name, jobOf(r.clientId));
+    }
+    if (r.assignedClient && r.assignedClient !== '—' && r.assignedClient.toLowerCase() !== 'unassigned') {
+      const first = r.assignedClient.split(',')[0].trim();
+      return first;
+    }
+    return '';
+  };
+
   const handleExportExcel = async () => {
     const today = new Date().toISOString().split('T')[0];
     const fileName = `ACNABIN_Manpower_Summary_and_Details_${today}.xlsx`;
@@ -419,7 +444,7 @@ const FullManpowerView: React.FC = () => {
       empId: item.empId,
       name: item.name,
       designation: /year/i.test(item.designation || '') ? 'Student' : (item.designation || ''),
-      clients: assignedClientText(item) === '—' ? '' : assignedClientText(item),
+      clients: primaryClientText(item),
       academicYear: item.academicYear || '',
       salary: item.salary,
       conveyance: item.conveyance,
@@ -466,15 +491,25 @@ const FullManpowerView: React.FC = () => {
       acad = rec.designation;
     }
     setEditAcademicYear(acad);
-    // Current clients: the user's saved assignments, else match the displayed client names
+    // Current clients: the user's saved assignments (maintaining primary client order), else match the displayed client names
     const user = allUsers.find(u => (u.empId || '').toUpperCase() === rec.empId.toUpperCase());
-    let current = (user?.assignedClientIds || [])
+    const targetClientIds = (user?.assignedClientIds && user.assignedClientIds.length > 0)
+      ? user.assignedClientIds
+      : (rec.clientIds || []);
+    let current = targetClientIds
       .map(id => allClients.find(c => c.id === id))
       .filter((c): c is NonNullable<typeof c> => Boolean(c))
       .map(c => ({ id: c.id, name: c.name }));
-    if (current.length === 0 && rec.assignedClient && rec.assignedClient !== 'Unassigned') {
-      const names = rec.assignedClient.split(',').map(n => n.trim().toLowerCase());
-      current = allClients.filter(c => names.includes(c.name.trim().toLowerCase())).map(c => ({ id: c.id, name: c.name }));
+    if (current.length === 0 && rec.assignedClient && rec.assignedClient !== 'Unassigned' && rec.assignedClient !== '—') {
+      const names = rec.assignedClient.split(',').map(n => n.trim());
+      const matched: { id: string; name: string }[] = [];
+      names.forEach(n => {
+        const found = allClients.find(c => c.name.toLowerCase().trim() === n.toLowerCase());
+        if (found && !matched.find(m => m.id === found.id)) {
+          matched.push({ id: found.id, name: found.name });
+        }
+      });
+      current = matched;
     }
     setEditClients(current);
     setEditClientInput('');
@@ -1117,13 +1152,111 @@ const FullManpowerView: React.FC = () => {
                           {item.name}
                         </td>
                         <td style={{ color: 'var(--ink)', fontSize: '12.5px' }}>
-                          {item.clientIds && item.clientIds.length > 0
-                            ? item.clientIds.map(id => (
-                                <div key={id}>
-                                  <ClientLabel id={id} name={allClients.find(c => c.id === id)?.name || item.assignedClient} />
-                                </div>
-                              ))
-                            : item.assignedClient}
+                          {item.assignedClient === ALL_CLIENTS ? (
+                            <span style={{ fontStyle: 'italic', color: 'var(--ink-muted)' }}>{ALL_CLIENTS}</span>
+                          ) : item.clientIds && item.clientIds.length > 1 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              {item.clientIds.map((id, index) => {
+                                const isPrimary = index === 0;
+                                const cName = allClients.find(c => c.id === id)?.name || item.assignedClient;
+                                return (
+                                  <div key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <span><ClientLabel id={id} name={cName} /></span>
+                                    {isPrimary ? (
+                                      <span
+                                        style={{
+                                          fontSize: '9.5px',
+                                          fontWeight: 700,
+                                          background: '#ECFDF5',
+                                          color: '#065F46',
+                                          border: '1px solid #A7F3D0',
+                                          padding: '1px 6px',
+                                          borderRadius: '10px',
+                                          lineHeight: '1.3',
+                                          letterSpacing: '0.02em',
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                        title="Primary Client (counted in summary & exported to Excel)"
+                                      >
+                                        ★ Primary
+                                      </span>
+                                    ) : (
+                                      <span
+                                        style={{
+                                          fontSize: '9px',
+                                          fontWeight: 600,
+                                          background: '#F1F5F9',
+                                          color: '#64748B',
+                                          border: '1px solid #E2E8F0',
+                                          padding: '1px 5px',
+                                          borderRadius: '10px',
+                                          lineHeight: '1.3',
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                        title="Secondary Client"
+                                      >
+                                        Secondary
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : item.clientIds && item.clientIds.length === 1 ? (
+                            <ClientLabel id={item.clientIds[0]} name={allClients.find(c => c.id === item.clientIds![0])?.name || item.assignedClient} />
+                          ) : item.assignedClient && item.assignedClient.includes(',') ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              {item.assignedClient.split(',').map((name, index) => {
+                                const trimmed = name.trim();
+                                const isPrimary = index === 0;
+                                return (
+                                  <div key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <span>{trimmed}</span>
+                                    {isPrimary ? (
+                                      <span
+                                        style={{
+                                          fontSize: '9.5px',
+                                          fontWeight: 700,
+                                          background: '#ECFDF5',
+                                          color: '#065F46',
+                                          border: '1px solid #A7F3D0',
+                                          padding: '1px 6px',
+                                          borderRadius: '10px',
+                                          lineHeight: '1.3',
+                                          letterSpacing: '0.02em',
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                        title="Primary Client"
+                                      >
+                                        ★ Primary
+                                      </span>
+                                    ) : (
+                                      <span
+                                        style={{
+                                          fontSize: '9px',
+                                          fontWeight: 600,
+                                          background: '#F1F5F9',
+                                          color: '#64748B',
+                                          border: '1px solid #E2E8F0',
+                                          padding: '1px 5px',
+                                          borderRadius: '10px',
+                                          lineHeight: '1.3',
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                        title="Secondary Client"
+                                      >
+                                        Secondary
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : item.assignedClient === '—' || item.assignedClient.toLowerCase() === 'unassigned' ? (
+                            <span style={{ color: 'var(--ink-muted)' }}>Unassigned</span>
+                          ) : (
+                            item.assignedClient
+                          )}
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           {item.designation && item.designation !== 'TBA' ? (
@@ -1673,33 +1806,115 @@ const FullManpowerView: React.FC = () => {
               </div>
 
               <div className="form-field" style={{ position: 'relative' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700 }}>Assigned Client</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>Assigned Client(s)</label>
+                  {editClients.length > 1 && (
+                    <span style={{ fontSize: '11px', color: '#065F46', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                      ★ 1st client is Primary
+                    </span>
+                  )}
+                </div>
+
                 {editClients.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
-                    {editClients.map(c => (
-                      <span
-                        key={c.id}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          background: 'var(--navy-light, #EBF0FE)',
-                          border: '1px solid var(--navy, #1B2A6B)',
-                          borderRadius: '20px',
-                          padding: '2px 10px',
-                          fontSize: '12px',
-                          color: 'var(--navy, #1B2A6B)',
-                          fontWeight: 600
-                        }}
-                      >
-                        <span><ClientLabel id={c.id} name={c.name} /></span>
-                        <button
-                          type="button"
-                          onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
-                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: 0, lineHeight: 1, fontSize: '14px' }}
-                        >×</button>
-                      </span>
-                    ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                    {editClients.map((c, index) => {
+                      const isPrimary = index === 0;
+                      return (
+                        <div
+                          key={c.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: isPrimary ? '#F0FDF4' : '#F8FAFC',
+                            border: `1.5px solid ${isPrimary ? '#10B981' : '#E2E8F0'}`,
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            gap: '8px',
+                            boxShadow: isPrimary ? '0 1px 3px rgba(16, 185, 129, 0.12)' : 'none'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                background: isPrimary ? '#059669' : '#E2E8F0',
+                                color: isPrimary ? '#ffffff' : '#64748B',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                letterSpacing: '0.03em',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                flexShrink: 0
+                              }}
+                            >
+                              {isPrimary ? '★ PRIMARY' : 'SECONDARY'}
+                            </span>
+                            <span style={{ fontSize: '13px', fontWeight: isPrimary ? 700 : 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <ClientLabel id={c.id} name={c.name} />
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            {!isPrimary && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditClients(prev => {
+                                    const target = prev.find(x => x.id === c.id);
+                                    if (!target) return prev;
+                                    return [target, ...prev.filter(x => x.id !== c.id)];
+                                  });
+                                }}
+                                style={{
+                                  background: '#ffffff',
+                                  border: '1px solid #10B981',
+                                  color: '#059669',
+                                  borderRadius: '6px',
+                                  padding: '3px 8px',
+                                  fontSize: '11px',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                title="Make this client the Primary client"
+                              >
+                                ★ Make Primary
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                color: 'var(--maroon)',
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                lineHeight: 1,
+                                fontSize: '16px',
+                                borderRadius: '4px'
+                              }}
+                              title="Remove client assignment"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {editClients.length > 1 && (
+                      <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontStyle: 'italic', padding: '2px 4px' }}>
+                        💡 Only the Primary client is displayed in the Excel export and client-wise cost summary.
+                      </div>
+                    )}
                   </div>
                 )}
                 <input

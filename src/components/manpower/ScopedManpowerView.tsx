@@ -15,6 +15,7 @@ interface Props {
 interface Row extends ScopedManpowerRow {
   year: string;
   clientsText: string;
+  primaryClientText: string;
 }
 
 type Col = { key: string; label: string; width: number; get: (r: Row) => string; center?: boolean; sort?: (r: Row) => string };
@@ -24,7 +25,7 @@ const COLS: Col[] = [
   { key: 'name', label: 'Name', width: 180, get: r => r.name },
   { key: 'designation', label: 'Designation', width: 150, get: r => r.designation, center: true },
   { key: 'department', label: 'Department', width: 120, get: r => r.department },
-  { key: 'clientsText', label: 'Client Name(s)', width: 230, get: r => r.clientsText },
+  { key: 'clientsText', label: 'Primary Client', width: 230, get: r => r.primaryClientText || r.clientsText },
   { key: 'year', label: 'Academic / Employment Year', width: 150, get: r => r.year, center: true },
   { key: 'joiningDate', label: 'Joining Date', width: 105, get: r => formatPeriodDate(r.joiningDate) || r.joiningDate, sort: r => r.joiningDate, center: true },
   // two lines: "29 Sep 2022 to" then "28 Sep 2026"
@@ -71,7 +72,9 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
     const clientsText = r.clientIds
       .map(id => { const c = clientById.get(id); return c ? clientText(c.name, c.jobNumber) : ''; })
       .filter(Boolean).join(', ');
-    return { ...r, year: year || r.academicYear, clientsText };
+    const primaryClient = r.clientIds.length > 0 ? clientById.get(r.clientIds[0]) : null;
+    const primaryClientText = primaryClient ? clientText(primaryClient.name, primaryClient.jobNumber) : (clientsText.split(',')[0].trim());
+    return { ...r, year: year || r.academicYear, clientsText, primaryClientText };
   }), [data.rows, clientById]);
 
   const designations = useMemo(() => Array.from(new Set(rows.map(r => r.designation).filter(Boolean))).sort(), [rows]);
@@ -111,7 +114,7 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
   const exportExcel = async () => {
     try {
       await downloadScopedManpowerExcel(shown.map(r => ({
-        empId: r.empId, name: r.name, designation: r.designation, department: r.department, clients: r.clientsText, year: r.year,
+        empId: r.empId, name: r.name, designation: r.designation, department: r.department, clients: r.primaryClientText || r.clientsText, year: r.year,
         joiningDate: formatPeriodDate(r.joiningDate) || r.joiningDate, articleshipPeriod: r.articleshipPeriod.replace(/\s+to\s+/i, ' to\n'),
         articleshipStart: formatPeriodDate(r.articleshipStart) || r.articleshipStart, articleshipEnd: formatPeriodDate(r.articleshipEnd) || r.articleshipEnd, principal: r.principalName, mobile: r.mobile, email: r.email, bloodGroup: r.bloodGroup,
         presentAddress: r.presentAddress, emergencyName: r.emergencyName, relationship: r.emergencyRelationship,
@@ -246,7 +249,31 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
                             ...stickyLeft(i)
                           }}
                         >
-                          {v || <span style={{ color: 'var(--ink-muted)' }}>-</span>}
+                          {c.key === 'clientsText' && r.clientIds.length > 1 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              {r.clientIds.map((cid, cIdx) => {
+                                const cli = clientById.get(cid);
+                                const txt = cli ? clientText(cli.name, cli.jobNumber) : cid;
+                                const isPrimary = cIdx === 0;
+                                return (
+                                  <div key={cid} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <span>{txt}</span>
+                                    {isPrimary ? (
+                                      <span style={{ fontSize: '9.5px', fontWeight: 700, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
+                                        ★ Primary
+                                      </span>
+                                    ) : (
+                                      <span style={{ fontSize: '9px', fontWeight: 600, background: '#F1F5F9', color: '#64748B', border: '1px solid #E2E8F0', padding: '1px 5px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
+                                        Secondary
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            v || <span style={{ color: 'var(--ink-muted)' }}>-</span>
+                          )}
                         </td>
                       );
                     })}

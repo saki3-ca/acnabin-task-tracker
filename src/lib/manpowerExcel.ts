@@ -118,7 +118,7 @@ export async function buildManpowerWorkbook(
     { header: 'Name', width: 28, align: 'left' },
     { header: 'Designation', width: 22, align: 'left' },
     ...(hasStaff ? [{ header: 'Department', width: 22, align: 'left' } as Col] : []),
-    { header: 'Client Name(s)', width: 40, align: 'left', wrap: true },
+    { header: 'Primary Client', width: 38, align: 'left', wrap: true },
     { header: 'Academic / Employment Year', width: 16, align: 'center' },
     ...(hasStaff
       ? ([
@@ -163,6 +163,7 @@ export async function buildManpowerWorkbook(
       case 'Name': return d.name;
       case 'Designation': return d.designation;
       case 'Department': return st?.department || null;
+      case 'Primary Client':
       case 'Client Name(s)': return d.clients || null;
       case 'Academic / Employment Year': {
         const y = st

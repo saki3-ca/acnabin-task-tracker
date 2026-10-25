@@ -2,7 +2,7 @@
 import { principalDisplay } from './academicYear';
 
 export const SCOPED_EXCEL_HEADERS = [
-  'SL', 'STD/EMP ID', 'Name', 'Designation', 'Department', 'Client Name(s)', 'Academic / Employment Year', 'Joining Date',
+  'SL', 'STD/EMP ID', 'Name', 'Designation', 'Department', 'Primary Client', 'Academic / Employment Year', 'Joining Date',
   'Articleship Period', 'Articleship Start', 'Articleship End', 'Principal', 'Mobile', 'Email', 'Blood Group', 'Present Address',
   'Emergency Contact Name', 'Relationship', 'Emergency Mobile', 'Laptop Available', 'Laptop Ownership', 'Laptop ID', 'Remarks'
 ];

@@ -3392,9 +3392,11 @@ export const api = {
 
             let assignedClient = 'Unassigned';
             let resolvedClientId: string | null = null;
+            let rowClientIds: string[] = [];
             if (appClientNames.length > 0) {
               assignedClient = appClientNames.join(', ');
               resolvedClientId = Array.from(userClientIds)[0] || null;
+              rowClientIds = Array.from(userClientIds).filter(cid => clientMap.has(cid));
             } else if (u.signupClientName) {
               assignedClient = u.signupClientName;
             } else if (mp && mp.assignedClient && mp.assignedClient !== '-' && mp.assignedClient.toLowerCase() !== 'none') {
@@ -3428,6 +3430,7 @@ export const api = {
               empId: u.empId,
               name: u.name,
               clientId: resolvedClientId,
+              clientIds: rowClientIds,
               assignedClient,
               designation: (desig as string) === 'TBA' ? '' : (desig || ''),
               academicYear: acad || '—',
@@ -3457,6 +3460,7 @@ export const api = {
           let resolvedClientId = m.clientId || null;
           let designation = (m.designation as string) === 'TBA' ? '' : (m.designation || '');
           let name = m.name || '';
+          let rowClientIds: string[] = m.clientId ? [m.clientId] : [];
 
           if (matchedUser) {
             name = matchedUser.name;
@@ -3483,6 +3487,7 @@ export const api = {
             if (appClientNames.length > 0) {
               assignedClient = appClientNames.join(', ');
               resolvedClientId = Array.from(userClientIds)[0] || m.clientId || null;
+              rowClientIds = Array.from(userClientIds).filter(cid => clientMap.has(cid));
             } else if (matchedUser.signupClientName) {
               assignedClient = matchedUser.signupClientName;
             }
@@ -3507,6 +3512,7 @@ export const api = {
             ...m,
             name: name || m.name,
             clientId: resolvedClientId,
+            clientIds: rowClientIds,
             assignedClient,
             designation: finalDesig,
             academicYear: acad || '—'
