@@ -60,42 +60,31 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [remarks, setRemarks] = useState<string>('');
 
-  // Auto-calculate leave dates for given papers and candidate type
-  // Rule:
-  // - Employee: all subjects get 2 days (exam day + 1 day before: e.g. exam on 10 -> 9, 10)
-  // - Student:
-  //   1st attempt = 5 days (exam day + 4 days before: e.g. exam on 10 -> 6, 7, 8, 9, 10)
-  //   2nd attempt = 4 days (exam day + 3 days before: e.g. exam on 10 -> 7, 8, 9, 10)
-  //   3rd attempt & rest = 3 days (exam day + 2 days before: e.g. exam on 10 -> 8, 9, 10)
+  // Auto-calculate leave dates for the chosen papers.
+  // Days per paper:
+  // - Employee: 2 days per paper
+  // - Student: 1st attempt = 5 days, 2nd attempt = 4 days, 3rd attempt & rest = 3 days
+  // The total is the SUM over all papers (3 papers on the 1st attempt = 15 days), counted back from the
+  // last exam: the leave is that many calendar days ending on the day of the last exam. Nothing after it.
   const calculateLeaveDates = (
     papers: { code: string; name: string; date: string; attempt: string }[],
     type: 'Student' | 'Employee'
   ): string[] => {
     if (papers.length === 0) return [];
-    const dateSet = new Set<string>();
 
-    papers.forEach(p => {
-      let daysCount = 2;
-      if (type === 'Employee') {
-        daysCount = 2;
-      } else {
-        if (p.attempt === '1st Attempt') daysCount = 5;
-        else if (p.attempt === '2nd Attempt') daysCount = 4;
-        else daysCount = 3;
-      }
+    const total = papers.reduce((sum, p) => {
+      if (type === 'Employee') return sum + 2;
+      return sum + (p.attempt === '1st Attempt' ? 5 : p.attempt === '2nd Attempt' ? 4 : 3);
+    }, 0);
 
-      const [y, m, d] = p.date.split('-').map(Number);
-      // Exam day and (daysCount - 1) days before
-      for (let offset = daysCount - 1; offset >= 0; offset--) {
-        const dt = new Date(y, m - 1, d - offset);
-        const yStr = dt.getFullYear();
-        const mStr = String(dt.getMonth() + 1).padStart(2, '0');
-        const dStr = String(dt.getDate()).padStart(2, '0');
-        dateSet.add(`${yStr}-${mStr}-${dStr}`);
-      }
-    });
-
-    return Array.from(dateSet).sort();
+    const last = papers.map(p => p.date).sort().slice(-1)[0];
+    const [y, m, d] = last.split('-').map(Number);
+    const dates: string[] = [];
+    for (let offset = total - 1; offset >= 0; offset--) {
+      const dt = new Date(y, m - 1, d - offset);
+      dates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
+    }
+    return dates;
   };
 
   // Records already saved: a person has ONE leave that can cover PL, AL and CL together
@@ -343,11 +332,11 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
           <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginBottom: '16px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
             {candidateType === 'Student' ? (
               <span>
-                <strong>Articled Student rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> (exam day & days before).
+                <strong>Articled Student rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> per paper. The days of all papers are added up and counted back from the last exam (3 papers on the 1st attempt = 15 days).
               </span>
             ) : (
               <span>
-                <strong>Employee rule:</strong> every paper = <strong>2 days</strong> (exam day & 1 day before).
+                <strong>Employee rule:</strong> every paper = <strong>2 days</strong>. The days of all papers are added up and counted back from the last exam.
               </span>
             )}
           </div>
