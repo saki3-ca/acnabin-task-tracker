@@ -90,22 +90,31 @@ export const ExamLeaveTracker: React.FC = () => {
     return allRecords.filter(r => sameName(r.name, currentUser?.name) || teamUsers.some(u => sameName(u.name, r.name)));
   }, [allRecords, canSeeEveryone, teamUsers, currentUser]);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const attempt = async (action: () => Promise<unknown>) => {
+    try {
+      await action();
+    } catch (err: any) {
+      alert(err?.message || 'Something went wrong. Please try again.');
+    }
+  };
+
   const handleApprove = async (id: string) => {
-    await examLeaveService.approveLeave(id);
+    await attempt(() => examLeaveService.approveLeave(id));
     await loadLeaves();
   };
 
   const handleDelete = async (record: StaffExamLeaveRecord) => {
     if (!isAdmin) return;
     if (!window.confirm(`Delete the exam leave of ${record.name}? This cannot be undone.`)) return;
-    await examLeaveService.deleteLeave(record.id);
+    await attempt(() => examLeaveService.deleteLeave(record.id));
     setSelectedStudentForDrawer(null);
     await loadLeaves();
   };
 
   const handleReject = async (id: string) => {
     if (window.confirm('Are you sure you want to reject this leave application?')) {
-      await examLeaveService.rejectLeave(id);
+      await attempt(() => examLeaveService.rejectLeave(id));
       await loadLeaves();
     }
   };
@@ -121,6 +130,9 @@ export const ExamLeaveTracker: React.FC = () => {
     try {
       const data = await examLeaveService.getLeaves();
       setRecords(data);
+      setLoadError(null);
+    } catch (err: any) {
+      setLoadError(err?.message || 'Could not load exam leave.');
     } finally {
       setLoading(false);
     }
@@ -135,15 +147,6 @@ export const ExamLeaveTracker: React.FC = () => {
       alert('Failed to export leave matrix to Excel.');
     } finally {
       setExporting(false);
-    }
-  };
-
-  const handleReset = async () => {
-    if (window.confirm('Reset all leave records to the official template data? Custom edits will be overwritten.')) {
-      setLoading(true);
-      const def = await examLeaveService.resetToDefaults();
-      setRecords(def);
-      setLoading(false);
     }
   };
 
@@ -267,6 +270,11 @@ export const ExamLeaveTracker: React.FC = () => {
 
   return (
     <div className="tab-pane">
+      {loadError && (
+        <div className="auth-alert-error" style={{ margin: 0 }}>
+          {loadError}
+        </div>
+      )}
       {/* 1. TOP ROW: 5-SLOT GRID MATCHING MANPOWER & TEAM TASKS EXACT HEIGHT & PROPORTIONS */}
       <div className="stat-pills">
         {/* Pill 1: Total Candidates */}

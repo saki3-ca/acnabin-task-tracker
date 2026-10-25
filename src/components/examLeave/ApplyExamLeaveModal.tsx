@@ -60,14 +60,21 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [remarks, setRemarks] = useState<string>('');
 
+  // Leave days per paper. Student: PL and AL = 5 / 4 / 3 (1st / 2nd / 3rd+ attempt), CL = 4 / 3 / 2. Employee: 2.
+  const daysFor = (level: ExamLevel, attempt: string, type: 'Student' | 'Employee'): number => {
+    if (type === 'Employee') return 2;
+    const base = level === 'CL' ? 4 : 5;
+    return attempt === '1st Attempt' ? base : attempt === '2nd Attempt' ? base - 1 : base - 2;
+  };
+
   // Auto-calculate leave dates for the chosen papers.
-  // Days per paper: Employee 2; Student 1st attempt 5, 2nd attempt 4, 3rd attempt & rest 3.
+  // Days per paper: see daysFor above.
   // Each paper's leave ENDS on its exam day and runs backwards. Working from the last exam to the first,
   // a day that is already taken by a later paper is skipped (the window slides earlier), so the total is
   // always the sum of the papers' days and nothing falls after the last exam. Papers far apart keep their
   // own separate blocks (the days in between stay working days).
   const calculateLeaveDates = (
-    papers: { code: string; name: string; date: string; attempt: string }[],
+    papers: { code: string; name: string; date: string; level: ExamLevel; attempt: string }[],
     type: 'Student' | 'Employee'
   ): string[] => {
     if (papers.length === 0) return [];
@@ -75,7 +82,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     const taken = new Set<string>();
 
     [...papers].sort((a, b) => b.date.localeCompare(a.date)).forEach(p => {
-      const need = type === 'Employee' ? 2 : p.attempt === '1st Attempt' ? 5 : p.attempt === '2nd Attempt' ? 4 : 3;
+      const need = daysFor(p.level, p.attempt, type);
       const [y, m, d] = p.date.split('-').map(Number);
       let offset = 0;
       let got = 0;
@@ -232,8 +239,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     }
 
     // Format subjects string: one block per level when the leave covers more than one
-    const dayLabel = (p: { attempt: string }) =>
-      candidateType === 'Employee' ? '2 days' : p.attempt === '1st Attempt' ? '5 days' : p.attempt === '2nd Attempt' ? '4 days' : '3 days';
+    const dayLabel = (p: { level: ExamLevel; attempt: string }) => `${daysFor(p.level, p.attempt, candidateType)} days`;
     const levelsPicked = LEVEL_ORDER.filter(l => selectedPapers.some(p => p.level === l));
     let formattedSubjects = '';
     if (selectedPapers.length > 0) {
@@ -278,10 +284,16 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       leaveDates: selectedDates,
       status: isAdmin ? 'Approved' : (existing?.status || 'Pending'),
       empId: existing?.empId || allUsers.find(u => u.id === selectedUserId)?.empId,
+      userId: existing?.userId || selectedUserId || undefined,
       notes: remarks.trim()
     };
 
-    await examLeaveService.saveLeave(recordToSave);
+    try {
+      await examLeaveService.saveLeave(recordToSave);
+    } catch (err: any) {
+      alert(err?.message || 'Could not save the leave. Please try again.');
+      return;
+    }
     onSubmitted();
     onClose();
   };
@@ -336,7 +348,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
           <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginBottom: '16px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
             {candidateType === 'Student' ? (
               <span>
-                <strong>Articled Student rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> per paper. Each paper's days end on its exam day; the total is the sum of all papers (3 papers on the 1st attempt = 15 days). You can still adjust days by hand.
+                <strong>Articled Student rule:</strong> PL and AL: 1st attempt <strong>5 days</strong>, 2nd <strong>4</strong>, 3rd+ <strong>3</strong>. CL: 1st attempt <strong>4 days</strong>, 2nd <strong>3</strong>, 3rd+ <strong>2</strong>. Each paper's days end on its exam day; the total is the sum of all papers (3 papers on the 1st attempt = 15 days). You can still adjust days by hand.
               </span>
             ) : (
               <span>
@@ -486,9 +498,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                               color: 'var(--ink)'
                             }}
                           >
-                            <option value="1st Attempt">1st Attempt (5 Days)</option>
-                            <option value="2nd Attempt">2nd Attempt (4 Days)</option>
-                            <option value="3rd Attempt & rest">3rd+ Attempt (3 Days)</option>
+                            <option value="1st Attempt">1st Attempt ({daysFor(paper.level, '1st Attempt', 'Student')} Days)</option>
+                            <option value="2nd Attempt">2nd Attempt ({daysFor(paper.level, '2nd Attempt', 'Student')} Days)</option>
+                            <option value="3rd Attempt & rest">3rd+ Attempt ({daysFor(paper.level, '3rd Attempt & rest', 'Student')} Days)</option>
                           </select>
                         ) : (
                           <span

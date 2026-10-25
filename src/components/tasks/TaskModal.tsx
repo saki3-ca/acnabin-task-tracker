@@ -108,6 +108,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     [assignableUsers]
   );
 
+  // The study-leave warning reads the leaves from the database: load them when the form opens
+  const [leaveTick, setLeaveTick] = useState(0);
+  useEffect(() => {
+    if (isOpen) examLeaveService.getLeaves().then(() => setLeaveTick(t => t + 1)).catch(() => undefined);
+  }, [isOpen]);
+
   // Check if assigned user is on ICAB study leave during assigned date or deadline
   const leaveWarning = useMemo(() => {
     if (mode !== 'team' || !assignedToId || assignedToId === 'ALL_MEMBERS') return null;
@@ -128,7 +134,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       };
     }
     return null;
-  }, [mode, assignedToId, assignableUsers, allUsers, deadline, assignedDate]);
+  }, [mode, assignedToId, assignableUsers, allUsers, deadline, assignedDate, leaveTick]);
 
   useEffect(() => {
     if (taskToEdit) {

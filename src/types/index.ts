@@ -416,6 +416,8 @@ export interface StaffExamLeaveRecord {
   sl: number;
   name: string;
   empId?: string;
+  /** The account this leave belongs to (set by the database) */
+  userId?: string;
   candidateType?: 'Student' | 'Employee';
   category: string;
   subjects: string;

@@ -30,7 +30,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
   'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet', 'tenderAgentBridgeToken',
-  'examLeaveEnabledGet', 'examLeaveEnabledSet', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
+  'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -1884,6 +1884,49 @@ export const api = {
         const { data, error } = await supabase.rpc('app_proposal_attachment_delete', { p_session: session.token, p_id: payload.id });
         if (error) throw new Error('Could not remove the file record.');
         if (data === 'FORBIDDEN') throw new Error('Only Admin or the person who uploaded the file can delete it.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'examLeaveList': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_exam_leave_list', { p_session: session.token });
+        if (error) throw new Error('Could not load exam leave. Has supabase_exam_leaves.sql been run?');
+        return ((data as any[]) || []) as T;
+      }
+
+      case 'examLeaveSave': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_exam_leave_save', { p_session: session.token, p_record: payload.record });
+        if (error) throw new Error('Could not save the leave. Has supabase_exam_leaves.sql been run?');
+        if (data === 'DUPLICATE') throw new Error('A leave is already submitted for this person. Use Edit to change it.');
+        if (data === 'FORBIDDEN') throw new Error('You are not allowed to add or change this leave.');
+        if (data === 'INVALID_INPUT') throw new Error('Some details are missing. Please check the form.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'examLeaveDelete': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_exam_leave_delete', { p_session: session.token, p_id: payload.id });
+        if (error) throw new Error('Could not delete the leave.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can delete a leave.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'examLeaveStatus': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_exam_leave_status', { p_session: session.token, p_id: payload.id, p_status: payload.status });
+        if (error) throw new Error('Could not update the leave.');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can approve or reject a leave.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }

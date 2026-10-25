@@ -250,8 +250,6 @@ export const OFFICIAL_ICAB_SCHEDULE: IcabExamScheduleItem[] = [
   }
 ];
 
-export const INITIAL_STAFF_RECORDS: StaffExamLeaveRecord[] = [];
-
 // v3: drops the test records saved under v1/v2.
 const STORAGE_KEY = 'acnabin_exam_leaves_data_v3';
 const OLD_STORAGE_KEYS = ['acnabin_exam_leaves_data_v1', 'acnabin_exam_leaves_data_v2'];
@@ -358,17 +356,38 @@ export const formatShortDate = (dateStr: string): string => {
 export const countsAsLeave = (r: StaffExamLeaveRecord): boolean => r.status !== 'Rejected';
 
 class ExamLeaveService {
+  /** Last list loaded from the database; the synchronous lookups below (task warning) read from it. */
+  private cache: StaffExamLeaveRecord[] = [];
+
   private getStorage(): StaffExamLeaveRecord[] {
+    return this.cache;
+  }
+
+  /** Leaves entered before they were stored in the database lived in this browser only: upload them once. */
+  private async uploadOldLocalLeaves(): Promise<void> {
+    let local: StaffExamLeaveRecord[] = [];
     try {
       OLD_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored) as StaffExamLeaveRecord[];
-      }
-    } catch (e) {
-      console.warn('Failed to parse stored exam leaves, falling back to defaults:', e);
+      if (!stored) return;
+      local = JSON.parse(stored) as StaffExamLeaveRecord[];
+    } catch {
+      return;
     }
-    return INITIAL_STAFF_RECORDS;
+    let keep = false;
+    for (const rec of local) {
+      try {
+        await api.callBackend('examLeaveSave', { record: rec });
+      } catch (e: any) {
+        // already there / not yours to add: nothing more to do. Anything else (offline...) stays for next time.
+        if (!/already submitted|not allowed/i.test(e?.message || '')) keep = true;
+      }
+    }
+    try {
+      if (!keep) localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   }
 
   /** Is the Exam Leave tab switched on for everyone? (Admin turns it on for exam time.) */
@@ -380,62 +399,30 @@ class ExamLeaveService {
     await api.callBackend('examLeaveEnabledSet', { enabled });
   }
 
-  async clearAllLeaves(): Promise<void> {
-    this.setStorage([]);
-  }
-
-  private setStorage(records: StaffExamLeaveRecord[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-    } catch (e) {
-      console.error('Failed to store exam leaves in localStorage:', e);
-    }
-  }
-
+  /** The leaves the signed-in person is allowed to see (the database decides). */
   async getLeaves(): Promise<StaffExamLeaveRecord[]> {
-    return this.getStorage();
+    await this.uploadOldLocalLeaves();
+    const list = await api.callBackend<StaffExamLeaveRecord[]>('examLeaveList', {});
+    this.cache = Array.isArray(list) ? list : [];
+    return this.cache;
   }
 
   async saveLeave(record: StaffExamLeaveRecord): Promise<StaffExamLeaveRecord> {
-    const list = this.getStorage();
-    const index = list.findIndex(r => r.id === record.id);
-    if (index >= 0) {
-      list[index] = record;
-    } else {
-      list.push(record);
-    }
-    this.setStorage(list);
+    await api.callBackend('examLeaveSave', { record });
     return record;
   }
 
   async deleteLeave(id: string): Promise<boolean> {
-    const list = this.getStorage();
-    const filtered = list.filter(r => r.id !== id);
-    this.setStorage(filtered);
+    await api.callBackend('examLeaveDelete', { id });
     return true;
   }
 
-  async resetToDefaults(): Promise<StaffExamLeaveRecord[]> {
-    this.setStorage(INITIAL_STAFF_RECORDS);
-    return INITIAL_STAFF_RECORDS;
+  async approveLeave(id: string): Promise<void> {
+    await api.callBackend('examLeaveStatus', { id, status: 'Approved' });
   }
 
-  async approveLeave(id: string): Promise<StaffExamLeaveRecord | null> {
-    const list = this.getStorage();
-    const item = list.find(r => r.id === id);
-    if (!item) return null;
-    item.status = 'Approved';
-    this.setStorage(list);
-    return item;
-  }
-
-  async rejectLeave(id: string): Promise<StaffExamLeaveRecord | null> {
-    const list = this.getStorage();
-    const item = list.find(r => r.id === id);
-    if (!item) return null;
-    item.status = 'Rejected';
-    this.setStorage(list);
-    return item;
+  async rejectLeave(id: string): Promise<void> {
+    await api.callBackend('examLeaveStatus', { id, status: 'Rejected' });
   }
 
   getIcabSchedule(): IcabExamScheduleItem[] {
