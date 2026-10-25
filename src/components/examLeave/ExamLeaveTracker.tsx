@@ -791,7 +791,7 @@ export const ExamLeaveTracker: React.FC = () => {
                           color: 'var(--ink-muted)'
                         }}
                       >
-                        {record.sl}
+                        {idx + 1}
                       </td>
 
                       {/* Candidate Name */}
@@ -1052,7 +1052,7 @@ export const ExamLeaveTracker: React.FC = () => {
                       letterSpacing: '0.3px'
                     }}
                   >
-                    AVAILABLE IN-OFFICE MANPOWER:
+                    AVAILABLE IN-OFFICE MANPOWER (OUT OF {totalStaffCount}):
                   </td>
                   {EXAM_TIMELINE_DATES.map(dateStr => {
                     const count = countOnLeave(leaveRecords, dateStr);
@@ -1393,13 +1393,13 @@ export const ExamLeaveTracker: React.FC = () => {
             </div>
 
             <div className="table-responsive">
-              <table className="data-table maroon-table" style={{ width: '100%' }}>
+              <table className="data-table maroon-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
                     <th style={{ width: '170px', minWidth: '160px', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}>Date & Day</th>
                     <th style={{ width: '65px', textAlign: 'center', padding: '10px 6px' }}>Level</th>
-                    <th style={{ minWidth: '180px', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
-                    <th style={{ width: '160px', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
+                    <th style={{ textAlign: 'left', padding: '10px 14px' }}>Subject</th>
+                    <th style={{ width: '120px', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1452,7 +1452,7 @@ export const ExamLeaveTracker: React.FC = () => {
                             {routineSubject(item)}
                           </span>
                         </td>
-                        <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                           <span
                             style={{
                               fontSize: '11.5px',
@@ -1482,13 +1482,13 @@ export const ExamLeaveTracker: React.FC = () => {
             </div>
 
             <div className="table-responsive">
-              <table className="data-table teal-table" style={{ width: '100%' }}>
+              <table className="data-table teal-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
                     <th style={{ width: '170px', minWidth: '160px', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}>Date & Day</th>
-                    <th style={{ width: '90px', textAlign: 'center', padding: '10px 6px' }}>Paper</th>
-                    <th style={{ minWidth: '180px', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
-                    <th style={{ width: '160px', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
+                    <th style={{ width: '80px', textAlign: 'center', padding: '10px 6px' }}>Paper</th>
+                    <th style={{ width: '200px', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
+                    <th style={{ textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
                   </tr>
                 </thead>
                 <tbody>

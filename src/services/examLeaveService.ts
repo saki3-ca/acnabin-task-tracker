@@ -495,7 +495,7 @@ class ExamLeaveService {
     const FIRST_DAY_COL = 10;
     sheet.getColumn(1).width = 2;
     [5, 30, 24, 34, 9, 16, 14, 18].forEach((w, i) => { sheet.getColumn(i + 2).width = w; });
-    dates.forEach((_, i) => { sheet.getColumn(FIRST_DAY_COL + i).width = 5; });
+    dates.forEach((_, i) => { sheet.getColumn(FIRST_DAY_COL + i).width = 6; });
     sheet.getColumn(FIRST_DAY_COL + dates.length).width = 11;
 
     // --- Rows 1-14: the ICAB routine (PL | AL | CL), the same blocks as the firm's leave sheet
@@ -559,6 +559,18 @@ class ExamLeaveService {
     sheet.getCell('P4').value = 'Working day';
     sheet.getCell('P4').fill = fill('FFE2E8F0');
 
+    // --- Row 17: total manpower (type a new number here and every "available" figure below updates)
+    sheet.getCell(17, 8).value = 'Total Manpower:';
+    sheet.getCell(17, 8).font = { bold: true };
+    sheet.getCell(17, 8).alignment = { horizontal: 'right', vertical: 'middle' };
+    const TOTAL_CELL = '$I$17';
+    const totalManpowerCell = sheet.getCell(17, 9);
+    totalManpowerCell.value = staffTotal;
+    totalManpowerCell.font = { bold: true, color: { argb: 'FF1B2A6B' } };
+    totalManpowerCell.fill = fill('FFEEF0F8');
+    totalManpowerCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    totalManpowerCell.border = box;
+
     // --- Row 18: available manpower, row 19: headers
     const HEADER_ROW = 19;
     sheet.getCell(18, 9).value = 'Available Manpower';
@@ -591,13 +603,23 @@ class ExamLeaveService {
     totalHead.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     totalHead.border = box;
 
-    // --- Data rows (from row 20), numbered 1..n so deleted people leave no gaps
+    // Column letters, for the formulas
+    const firstDayLetter = sheet.getColumn(FIRST_DAY_COL).letter;
+    const lastDayLetter = sheet.getColumn(FIRST_DAY_COL + dates.length - 1).letter;
+    const FIRST_DATA = HEADER_ROW + 1;
+    const LAST_DATA = HEADER_ROW + records.length;
+    const hasRows = records.length > 0;
+
+    // --- Data rows (from row 20), numbered 1..n so deleted people leave no gaps.
+    // A leave day is any non-empty cell in the day columns (a 1, or the exam code on the exam day), so the
+    // totals below are formulas: add, remove or retype a mark in Excel and every total follows.
     records.forEach((rec, rIdx) => {
-      const row = sheet.getRow(HEADER_ROW + 1 + rIdx);
+      const rowNo = FIRST_DATA + rIdx;
+      const row = sheet.getRow(rowNo);
       const startDate = toDate(rec.leaveStartDay);
       const lastExam = toDate(rec.appearInLastExamDate);
       const values: (string | number | Date | null)[] = [
-        rIdx + 1, rec.name, rec.category, rec.subjects, rec.level, rec.totalLeaveDays,
+        rIdx + 1, rec.name, rec.category, rec.subjects, rec.level, null,
         startDate || (rec.leaveStartDay === '—' ? '' : rec.leaveStartDay),
         lastExam || (rec.appearInLastExamDate === '—' ? '' : rec.appearInLastExamDate)
       ];
@@ -625,34 +647,54 @@ class ExamLeaveService {
           cell.fill = fill('FFFFC7CE');
         }
       });
+
+      // Total days of this person = number of marked days (also shown as "N Days" in the label column)
+      const range = `${firstDayLetter}${rowNo}:${lastDayLetter}${rowNo}`;
+      const n = rec.leaveDates.filter(d => dates.includes(d)).length;
       const total = row.getCell(totalCol);
-      total.value = rec.leaveDates.length;
+      total.value = { formula: `COUNTA(${range})`, result: n };
       total.font = { bold: true };
       total.alignment = { horizontal: 'center', vertical: 'middle' };
       total.border = box;
+      const label = row.getCell(7);
+      label.value = { formula: `COUNTA(${range})&" Days"`, result: `${n} Days` };
     });
 
-    // --- Summary row under the table + available manpower in row 18
-    const summaryRow = sheet.getRow(HEADER_ROW + 1 + records.length);
+    // --- Summary row under the table (formulas) + available manpower in row 18 (formulas)
+    const SUMMARY_ROW = HEADER_ROW + 1 + records.length;
+    const summaryRow = sheet.getRow(SUMMARY_ROW);
     summaryRow.getCell(9).value = 'Total on Leave:';
     summaryRow.getCell(9).font = { bold: true };
     summaryRow.getCell(9).alignment = { horizontal: 'right' };
 
     dates.forEach((d, dIdx) => {
       const col = FIRST_DAY_COL + dIdx;
+      const letter = sheet.getColumn(col).letter;
       const count = countOnLeave(records, d);
       const sumCell = summaryRow.getCell(col);
-      sumCell.value = count;
+      sumCell.value = hasRows ? { formula: `COUNTA(${letter}${FIRST_DATA}:${letter}${LAST_DATA})`, result: count } : 0;
       sumCell.font = { bold: true };
       sumCell.alignment = { horizontal: 'center' };
       sumCell.border = box;
 
       const availCell = sheet.getRow(18).getCell(col);
-      availCell.value = staffTotal - count;
+      availCell.value = { formula: `${TOTAL_CELL}-${letter}${SUMMARY_ROW}`, result: staffTotal - count };
       availCell.font = { bold: true };
       availCell.alignment = { horizontal: 'center' };
-      if (staffTotal - count <= 7) availCell.fill = fill('FFFCA5A5');
     });
+
+    // Colours that follow the numbers: a marked day turns yellow, low availability turns red
+    if (hasRows) {
+      sheet.addConditionalFormatting({
+        ref: `${firstDayLetter}${FIRST_DATA}:${lastDayLetter}${LAST_DATA}`,
+        rules: [{ type: 'expression', priority: 1, formulae: [`LEN(${firstDayLetter}${FIRST_DATA})>0`], style: { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FFFFFF00' } } } }]
+      });
+    }
+    sheet.addConditionalFormatting({
+      ref: `${firstDayLetter}18:${lastDayLetter}18`,
+      rules: [{ type: 'expression', priority: 2, formulae: [`AND(ISNUMBER(${firstDayLetter}18),${firstDayLetter}18<=7)`], style: { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FFFCA5A5' } } } }]
+    });
+    workbook.calcProperties.fullCalcOnLoad = true;
 
     // Landscape, fit all columns on one page width
     sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
