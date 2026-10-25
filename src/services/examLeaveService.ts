@@ -285,30 +285,40 @@ export const countPeople = (records: StaffExamLeaveRecord[]): number =>
 /** CL papers were saved as roman numerals (i-vii), then as AC / BF, before getting their current codes. */
 const LEGACY_CL_CODES: Record<string, string> = { i: 'AA', ii: 'ACC', iii: 'BTF', iv: 'MI', v: 'Tax', vi: 'Law', vii: 'IT', ac: 'ACC', bf: 'BTF' };
 
-type RecordPaper = NonNullable<StaffExamLeaveRecord['papers']>[number];
+type RecordPaper = Omit<NonNullable<StaffExamLeaveRecord['papers']>[number], 'level'> & { level: 'PL' | 'AL' | 'CL' };
 
-/** The papers of a leave record (with attempt). Older records only have text like "1. FM (1st Attempt - 5 days)". */
+/** Levels of a record in a fixed order: 'PL & AL' */
+export const LEVEL_ORDER: ('PL' | 'AL' | 'CL')[] = ['PL', 'AL', 'CL'];
+export const levelsOfRecord = (rec: StaffExamLeaveRecord): ('PL' | 'AL' | 'CL')[] =>
+  LEVEL_ORDER.filter(l => new RegExp(`\\b${l}\\b`).test(rec.level || ''));
+
+/** The papers of a leave record (with level and attempt). Older records only have text like
+ *  "1. FM (1st Attempt - 5 days)", with the level taken from the record or from "PL" / "CL" heading lines. */
 export const getRecordPapers = (rec: StaffExamLeaveRecord): RecordPaper[] => {
-  if (rec.level !== 'PL' && rec.level !== 'CL' && rec.level !== 'AL') return [];
-  const catalog = ICAB_PAPERS_CATALOG[rec.level];
-  const fix = (code: string) => (rec.level === 'CL' ? LEGACY_CL_CODES[code.toLowerCase()] || code : code);
+  const levels = levelsOfRecord(rec);
+  if (levels.length === 0) return [];
+  const fix = (level: 'PL' | 'AL' | 'CL', code: string) => (level === 'CL' ? LEGACY_CL_CODES[code.toLowerCase()] || code : code);
   if (rec.papers && rec.papers.length > 0) {
     return rec.papers.map(p => {
-      const code = fix(p.code);
-      const hit = catalog.find(c => c.code === code);
-      return { ...p, code, name: hit?.name || p.name };
+      const level = p.level || levels[0];
+      const code = fix(level, p.code);
+      const hit = ICAB_PAPERS_CATALOG[level].find(c => c.code === code);
+      return { ...p, level, code, name: hit?.name || p.name };
     });
   }
   const parsed: RecordPaper[] = [];
+  let level: 'PL' | 'AL' | 'CL' = levels[0];
   (rec.subjects || '').split('\n').forEach(line => {
+    const head = /^\s*(PL|AL|CL)\s*$/i.exec(line);
+    if (head) { level = head[1].toUpperCase() as 'PL' | 'AL' | 'CL'; return; }
     const m = /^\s*\d+\.\s*(.+?)\s*(?:\((.*)\))?\s*$/.exec(line);
     if (!m) return;
-    const code = fix(m[1].trim());
-    const paper = catalog.find(c => c.code.toLowerCase() === code.toLowerCase());
-    if (!paper || parsed.some(x => x.code === paper.code)) return;
+    const code = fix(level, m[1].trim());
+    const paper = ICAB_PAPERS_CATALOG[level].find(c => c.code.toLowerCase() === code.toLowerCase());
+    if (!paper || parsed.some(x => x.code === paper.code && x.level === level)) return;
     const note = m[2] || '';
     const attempt = /1st/i.test(note) ? '1st Attempt' : /2nd/i.test(note) ? '2nd Attempt' : '3rd Attempt & rest';
-    parsed.push({ ...paper, attempt });
+    parsed.push({ ...paper, level, attempt });
   });
   return parsed;
 };
@@ -316,6 +326,10 @@ export const getRecordPapers = (rec: StaffExamLeaveRecord): RecordPaper[] => {
 /** Short codes of the papers this person sits on the given day, e.g. ['FAR'] */
 export const examCodesOn = (rec: StaffExamLeaveRecord, dateStr: string): string[] =>
   getRecordPapers(rec).filter(p => p.date === dateStr).map(p => p.code);
+
+/** The papers (with level) this person sits on the given day */
+export const examPapersOn = (rec: StaffExamLeaveRecord, dateStr: string): RecordPaper[] =>
+  getRecordPapers(rec).filter(p => p.date === dateStr);
 
 /** Short code of a routine row: 'FAR', 'FM', 'AA' ... ('' for an off day) */
 export const routineCode = (item: IcabExamScheduleItem): string => {

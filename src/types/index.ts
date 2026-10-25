@@ -420,7 +420,7 @@ export interface StaffExamLeaveRecord {
   category: string;
   subjects: string;
   /** The papers picked in the form (with attempt), so Edit can show and change them. Older records only have the text. */
-  papers?: { code: string; name: string; date: string; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[];
+  papers?: { code: string; name: string; date: string; level?: 'PL' | 'AL' | 'CL'; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[];
   level: string;
   totalLeaveDays: string;
   leaveStartDay: string;

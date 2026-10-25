@@ -24,6 +24,7 @@ import {
   countPeople,
   countsAsLeave,
   examCodesOn,
+  examPapersOn,
   examLeaveService,
   formatShortDate,
   routineSubject,
@@ -61,12 +62,18 @@ export const ExamLeaveTracker: React.FC = () => {
   const [selectedStudentForDrawer, setSelectedStudentForDrawer] = useState<StaffExamLeaveRecord | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  // My leave records: one per level (PL, CL, AL), so there can be up to three
+  // My leave: one per person, covering every level (PL, AL, CL) in the same record
   const myRecordIds = useMemo(
     () => new Set(allRecords.filter(r => sameName(r.name, currentUser?.name)).map(r => r.id)),
     [allRecords, currentUser]
   );
   const hasMyRecord = myRecordIds.size > 0;
+  // Apply once, then Edit: a submitted leave is never re-submitted from the Apply form
+  const openMyLeave = () => {
+    const mine = allRecords.find(r => myRecordIds.has(r.id));
+    setSelectedRecordForApplication(mine || null);
+    setIsApplyModalOpen(true);
+  };
 
   // Assistant Directors and above (and Admin) see everyone. Everyone else sees only the people who share
   // one of their clients, plus themselves.
@@ -181,9 +188,9 @@ export const ExamLeaveTracker: React.FC = () => {
   const uniqueLevels = useMemo(() => {
     const set = new Set<string>();
     records.forEach(r => {
-      if (r.level && r.level.trim() && r.level !== '—') {
-        set.add(r.level.trim());
-      }
+      (r.level || '').split(/\s*&\s*/).forEach(l => {
+        if (l.trim() && l.trim() !== '—') set.add(l.trim());
+      });
     });
     return Array.from(set).sort();
   }, [records]);
@@ -206,9 +213,8 @@ export const ExamLeaveTracker: React.FC = () => {
       }
 
       if (selectedLevel) {
-        if (r.level !== selectedLevel) {
-          return false;
-        }
+        // a leave can cover several levels ('PL & AL')
+        if (!(r.level || '').split(/\s*&\s*/).map(l => l.trim()).includes(selectedLevel)) return false;
       }
 
       return true;
@@ -563,10 +569,7 @@ export const ExamLeaveTracker: React.FC = () => {
               <div style={{ position: 'absolute', right: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedRecordForApplication(null);
-                    setIsApplyModalOpen(true);
-                  }}
+                  onClick={openMyLeave}
                   style={{
                     background: '#F59E0B',
                     color: '#1F2937',
@@ -583,7 +586,7 @@ export const ExamLeaveTracker: React.FC = () => {
                   }}
                 >
                   <Pencil size={12} />
-                  Apply for Leave
+                  {hasMyRecord ? 'Edit My Leave' : 'Apply for Leave'}
                 </button>
 
                 <button
@@ -752,10 +755,7 @@ export const ExamLeaveTracker: React.FC = () => {
                       </p>
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedRecordForApplication(null);
-                          setIsApplyModalOpen(true);
-                        }}
+                        onClick={openMyLeave}
                         className="btn btn-primary btn-sm"
                         style={{ padding: '8px 18px', fontSize: '12.5px', fontWeight: 700 }}
                       >
@@ -916,7 +916,7 @@ export const ExamLeaveTracker: React.FC = () => {
                               fontWeight: isOnLeave ? 800 : 400,
                               fontSize: isOnLeave ? '12px' : '10px'
                             }}
-                            title={`${record.name} on ${formatShortDate(dateStr)}: ${isOnLeave ? (examCodesOn(record, dateStr).length > 0 ? `Exam - ${examCodesOn(record, dateStr).join(' / ')} (${record.level})` : 'Study Leave') : isOffDay ? 'Holiday' : 'Working day'}`}
+                            title={`${record.name} on ${formatShortDate(dateStr)}: ${isOnLeave ? (examCodesOn(record, dateStr).length > 0 ? `Exam - ${examPapersOn(record, dateStr).map(p => `${p.code} (${p.level})`).join(' / ')}` : 'Study Leave') : isOffDay ? 'Holiday' : 'Working day'}`}
                           >
                             {isOnLeave ? (
                               (() => {
@@ -1117,10 +1117,7 @@ export const ExamLeaveTracker: React.FC = () => {
             <div style={{ position: 'absolute', right: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedRecordForApplication(null);
-                  setIsApplyModalOpen(true);
-                }}
+                onClick={openMyLeave}
                 style={{
                   background: '#F59E0B',
                   color: '#1F2937',
@@ -1137,7 +1134,7 @@ export const ExamLeaveTracker: React.FC = () => {
                 }}
               >
                 <Pencil size={12} />
-                Apply for Leave
+                {hasMyRecord ? 'Edit My Leave' : 'Apply for Leave'}
               </button>
 
               <button
@@ -1190,10 +1187,7 @@ export const ExamLeaveTracker: React.FC = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedRecordForApplication(null);
-                    setIsApplyModalOpen(true);
-                  }}
+                  onClick={openMyLeave}
                   className="btn btn-primary btn-sm"
                   style={{ padding: '8px 18px', fontSize: '12.5px', fontWeight: 700 }}
                 >

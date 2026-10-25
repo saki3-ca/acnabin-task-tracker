@@ -12,8 +12,10 @@ import {
   ICAB_PAPERS_CATALOG,
   examLeaveService,
   isCentralHoliday,
+  LEVEL_ORDER,
   formatShortDate,
   getRecordPapers,
+  levelsOfRecord,
   sameName,
   weekdayLetter
 } from '../../services/examLeaveService';
@@ -47,12 +49,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   const [candidateType, setCandidateType] = useState<'Student' | 'Employee'>('Student');
   const typeOf = (u?: User | null): 'Student' | 'Employee' => (u && isEmployeeProfile(u.empId, u.designation) ? 'Employee' : 'Student');
 
-  // Exam Level: Only PL, CL, AL (No CL & PL Combined)
-  const [examLevel, setExamLevel] = useState<ExamLevel>('PL');
-
   // Selected registered papers
   const [selectedPapers, setSelectedPapers] = useState<
-    { code: string; name: string; date: string; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[]
+    { code: string; name: string; date: string; level: ExamLevel; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[]
   >([]);
 
   // Dates
@@ -99,17 +98,15 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     return Array.from(dateSet).sort();
   };
 
-  // Records already saved: a person can have one per level (PL, CL, AL)
+  // Records already saved: a person has ONE leave that can cover PL, AL and CL together
   const [savedRecords, setSavedRecords] = useState<StaffExamLeaveRecord[]>([]);
   useEffect(() => {
     if (isOpen) examLeaveService.getLeaves().then(setSavedRecords).catch(() => setSavedRecords([]));
   }, [isOpen]);
-  // Another leave of the same person at the chosen level (a person has one leave per level)
-  const sameLevelRecord =
-    savedRecords.find(r => sameName(r.name, candidateName) && r.level === examLevel && r.id !== existingRecord?.id) || null;
-  const otherLevels = savedRecords
-    .filter(r => sameName(r.name, candidateName) && r.level !== examLevel && r.id !== existingRecord?.id)
-    .map(r => r.level);
+  const personRecord = savedRecords.find(r => sameName(r.name, candidateName) && r.id !== existingRecord?.id) || null;
+
+  // The last exam is the end of the leave: nothing is added after it
+  const lastExamIso = selectedPapers.length > 0 ? selectedPapers.map(p => p.date).sort().slice(-1)[0] : '';
 
   // Initialize or pre-fill every time the modal opens, so a previous application never carries over
   useEffect(() => {
@@ -117,7 +114,6 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     setSelectedPapers([]);
     setSelectedDates([]);
     setRemarks('');
-    setExamLevel('PL');
     setCandidateType('Student');
     setStartDate('2026-11-01');
     setLastExamDate('2026-11-19');
@@ -127,9 +123,6 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       const person = allUsers.find(u => sameName(u.name, existingRecord.name));
       setCandidateType(person ? typeOf(person) : existingRecord.candidateType || 'Student');
 
-      if (['PL', 'CL', 'AL'].includes(existingRecord.level)) {
-        setExamLevel(existingRecord.level as ExamLevel);
-      }
       setStartDate(existingRecord.leaveStartDay !== '—' ? existingRecord.leaveStartDay : '2026-11-01');
       setLastExamDate(existingRecord.appearInLastExamDate !== '—' ? existingRecord.appearInLastExamDate : '2026-11-19');
       setSelectedDates([...existingRecord.leaveDates]);
@@ -171,18 +164,20 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     }
   };
 
-  // Available catalog papers based on exam level
-  const availableCatalog = useMemo(() => {
-    return (ICAB_PAPERS_CATALOG[examLevel] || []).map(p => ({ ...p, level: examLevel }));
-  }, [examLevel]);
+  // Every paper of every level: a person can sit PL, AL and CL papers in the same session
+  const levelNames: Record<ExamLevel, string> = { PL: 'Professional Level (PL)', AL: 'Advanced Level (AL)', CL: 'Certificate Level (CL)' };
+  const catalogByLevel = useMemo(
+    () => LEVEL_ORDER.map(level => ({ level, papers: ICAB_PAPERS_CATALOG[level].map(p => ({ ...p, level })) })),
+    []
+  );
 
   // Toggle paper selection
-  const togglePaper = (paper: { code: string; name: string; date: string }) => {
-    const exists = selectedPapers.find(x => x.code === paper.code);
-    let nextPapers: { code: string; name: string; date: string; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[];
+  const togglePaper = (paper: { code: string; name: string; date: string; level: ExamLevel }) => {
+    const exists = selectedPapers.find(x => x.code === paper.code && x.level === paper.level);
+    let nextPapers: { code: string; name: string; date: string; level: ExamLevel; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[];
 
     if (exists) {
-      nextPapers = selectedPapers.filter(x => x.code !== paper.code);
+      nextPapers = selectedPapers.filter(x => !(x.code === paper.code && x.level === paper.level));
     } else {
       nextPapers = [...selectedPapers, { ...paper, attempt: '1st Attempt' }];
     }
@@ -193,8 +188,8 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   };
 
   // Change paper attempt (for students)
-  const handleAttemptChange = (code: string, attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest') => {
-    const nextPapers = selectedPapers.map(p => (p.code === code ? { ...p, attempt } : p));
+  const handleAttemptChange = (level: ExamLevel, code: string, attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest') => {
+    const nextPapers = selectedPapers.map(p => (p.code === code && p.level === level ? { ...p, attempt } : p));
     setSelectedPapers(nextPapers);
     const nextDates = calculateLeaveDates(nextPapers, candidateType);
     applyCalculatedDates(nextDates, nextPapers);
@@ -217,6 +212,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
 
   // Manual toggle of individual leave day
   const toggleLeaveDay = (dateStr: string) => {
+    if (lastExamIso && dateStr > lastExamIso && !selectedDates.includes(dateStr)) return; // no leave after the last exam
     if (selectedDates.includes(dateStr)) {
       const next = selectedDates.filter(d => d !== dateStr);
       setSelectedDates(next);
@@ -242,16 +238,18 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       return;
     }
 
-    // Format subjects string
+    // Format subjects string: one block per level when the leave covers more than one
+    const dayLabel = (p: { attempt: string }) =>
+      candidateType === 'Employee' ? '2 days' : p.attempt === '1st Attempt' ? '5 days' : p.attempt === '2nd Attempt' ? '4 days' : '3 days';
+    const levelsPicked = LEVEL_ORDER.filter(l => selectedPapers.some(p => p.level === l));
     let formattedSubjects = '';
     if (selectedPapers.length > 0) {
-      formattedSubjects = selectedPapers
-        .map((p, idx) => {
-          if (candidateType === 'Employee') {
-            return `${idx + 1}. ${p.code} (2 days)`;
-          }
-          const days = p.attempt === '1st Attempt' ? '5 days' : p.attempt === '2nd Attempt' ? '4 days' : '3 days';
-          return `${idx + 1}. ${p.code} (${p.attempt} - ${days})`;
+      formattedSubjects = levelsPicked
+        .map(l => {
+          const lines = selectedPapers
+            .filter(p => p.level === l)
+            .map((p, idx) => (candidateType === 'Employee' ? `${idx + 1}. ${p.code} (2 days)` : `${idx + 1}. ${p.code} (${p.attempt} - ${dayLabel(p)})`));
+          return levelsPicked.length > 1 ? [l, ...lines].join('\n') : lines.join('\n');
         })
         .join('\n');
     } else if (existingRecord?.subjects) {
@@ -262,15 +260,15 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
 
     const totalDaysLabel = `${selectedDates.length} Days`;
     const all = await examLeaveService.getLeaves();
-    // One record per person per level (a PL, a CL and an AL leave sit side by side). A submitted leave is
-    // never overwritten from this form, which would risk wrong data: changes go through Edit.
+    // One leave per person; to change it use Edit. A submitted leave is never overwritten from a new application.
     const existing = existingRecord || null;
-    if (all.some(r => sameName(r.name, candidateName) && r.level === examLevel && r.id !== existing?.id)) {
-      alert(`A ${examLevel} leave is already submitted for ${candidateName.trim()}. To change it, use Edit in the Action column.`);
+    if (all.some(r => sameName(r.name, candidateName) && r.id !== existing?.id)) {
+      alert(`A leave is already submitted for ${candidateName.trim()}. To change it, use Edit.`);
       return;
     }
     const recordId = existing?.id || `leave-${Date.now()}`;
     const sl = existing?.sl || Math.max(0, ...all.map(r => r.sl)) + 1;
+    const recordLevel = levelsPicked.length > 0 ? levelsPicked.join(' & ') : (existing ? levelsOfRecord(existing).join(' & ') || existing.level : 'PL');
 
     const recordToSave: StaffExamLeaveRecord = {
       id: recordId,
@@ -280,10 +278,10 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       category: candidateClient.trim() || 'General Client Assignment',
       subjects: formattedSubjects,
       papers: selectedPapers.length > 0 ? selectedPapers : existing?.papers,
-      level: examLevel,
+      level: recordLevel,
       totalLeaveDays: totalDaysLabel,
       leaveStartDay: selectedDates.length > 0 ? selectedDates[0] : startDate,
-      appearInLastExamDate: lastExamDate,
+      appearInLastExamDate: lastExamIso || lastExamDate,
       leaveDates: selectedDates,
       status: isAdmin ? 'Approved' : (existing?.status || 'Pending'),
       empId: existing?.empId || allUsers.find(u => u.id === selectedUserId)?.empId,
@@ -402,50 +400,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Exam Level Radios (Only PL, CL, AL - No CL & PL Combined) */}
-          <div className="form-field" style={{ marginBottom: '18px' }}>
-            <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, marginBottom: '6px' }}>
-              ICAB Examination Level
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-              {[
-                { id: 'PL', label: 'Professional Level (PL)' },
-                { id: 'CL', label: 'Certificate Level (CL)' },
-                { id: 'AL', label: 'Advanced Level (AL)' }
-              ].map(lvl => (
-                <button
-                  key={lvl.id}
-                  type="button"
-                  onClick={() => {
-                    if (lvl.id === examLevel) return; // re-clicking the same level must not wipe the papers
-                    setExamLevel(lvl.id as ExamLevel);
-                    setSelectedPapers([]);
-                    setSelectedDates([]);
-                  }}
-                  style={{
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: examLevel === lvl.id ? '1.5px solid var(--maroon)' : '1px solid var(--line)',
-                    background: examLevel === lvl.id ? '#F9E8EA' : '#FAF7F2',
-                    color: examLevel === lvl.id ? 'var(--maroon)' : 'var(--ink)'
-                  }}
-                >
-                  {lvl.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {(sameLevelRecord || (!existingRecord && otherLevels.length > 0) || (existingRecord && existingRecord.level !== examLevel)) && (
-            <div style={{ fontSize: '11.5px', marginTop: '-8px', marginBottom: '14px', padding: '6px 10px', borderRadius: '6px', background: sameLevelRecord ? '#FEE2E2' : existingRecord ? '#FBEBC4' : '#EFF6FF', border: `1px solid ${sameLevelRecord ? '#F87171' : existingRecord ? '#D9A441' : '#BFDBFE'}`, color: sameLevelRecord ? '#991B1B' : existingRecord ? '#7A4B00' : '#1E40AF' }}>
-              {sameLevelRecord
-                ? `A ${examLevel} leave is already submitted for ${candidateName}. To change it, use Edit on that leave.`
-                : existingRecord
-                ? `Level changed from ${existingRecord.level} to ${examLevel}: the papers and days were cleared. Pick the ${examLevel} papers again.`
-                : `Already saved: ${otherLevels.join(', ')}. This will be added as a separate ${examLevel} leave.`}
+          {personRecord && (
+            <div style={{ fontSize: '11.5px', marginBottom: '14px', padding: '6px 10px', borderRadius: '6px', background: '#FEE2E2', border: '1px solid #F87171', color: '#991B1B' }}>
+              A leave is already submitted for {candidateName}. To add or change papers (any level), use Edit on that leave.
             </div>
           )}
 
@@ -465,7 +422,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 border: '1px solid var(--line)',
                 borderRadius: '8px',
                 padding: '10px 14px',
-                maxHeight: '210px',
+                maxHeight: '300px',
                 overflowY: 'auto',
                 background: '#FAF7F2',
                 display: 'flex',
@@ -473,22 +430,18 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 gap: '8px'
               }}
             >
-              {availableCatalog.map(paper => {
-                const isChecked = selectedPapers.some(p => p.code === paper.code);
-                const paperItem = selectedPapers.find(p => p.code === paper.code);
-                const currentAttempt = paperItem?.attempt || '1st Attempt';
-
-                // Display days info
-                let daysLabel = '';
-                if (candidateType === 'Employee') {
-                  daysLabel = '2 days leave';
-                } else {
-                  daysLabel = currentAttempt === '1st Attempt' ? '5 days leave' : currentAttempt === '2nd Attempt' ? '4 days leave' : '3 days leave';
-                }
-
+              {catalogByLevel.map(group => (
+                <React.Fragment key={group.level}>
+                  <div style={{ fontSize: '10.5px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', color: group.level === 'PL' ? '#1B2A6B' : group.level === 'AL' ? '#8B1420' : '#1D8C8C', borderBottom: '1px solid #E5DED3', paddingBottom: '3px', marginTop: group.level === 'PL' ? 0 : '6px' }}>
+                    {levelNames[group.level]}
+                  </div>
+                  {group.papers.map(paper => {
+                    const paperItem = selectedPapers.find(p => p.code === paper.code && p.level === paper.level);
+                    const isChecked = Boolean(paperItem);
+                    const currentAttempt = paperItem?.attempt || '1st Attempt';
                 return (
                   <div
-                    key={paper.code}
+                    key={`${paper.level}-${paper.code}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -529,7 +482,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                         {candidateType === 'Student' ? (
                           <select
                             value={currentAttempt}
-                            onChange={e => handleAttemptChange(paper.code, e.target.value as any)}
+                            onChange={e => handleAttemptChange(paper.level, paper.code, e.target.value as any)}
                             style={{
                               fontSize: '11.5px',
                               fontWeight: 600,
@@ -563,7 +516,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                     )}
                   </div>
                 );
-              })}
+                })}
+                </React.Fragment>
+              ))}
             </div>
           </div>
 
@@ -576,12 +531,12 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 </span>
                 {selectedDates.length > 0 && (
                   <span style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginLeft: '10px' }}>
-                    ({formatShortDate(selectedDates[0])} to {formatShortDate(lastExamDate)})
+                    ({formatShortDate(selectedDates[0])} to {formatShortDate(lastExamIso || lastExamDate)})
                   </span>
                 )}
               </div>
               <span style={{ fontSize: '11px', color: 'var(--ink-muted)' }}>
-                Click date to toggle manually if needed
+                Click a date to add or remove it (no leave after the last exam)
               </span>
             </div>
 
@@ -603,18 +558,21 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 const isHoliday = isCentralHoliday(d);
                 const isSelected = selectedDates.includes(d);
                 const dayName = weekdayLetter(d);
+                const afterLastExam = Boolean(lastExamIso) && d > lastExamIso && !isSelected;
 
                 return (
                   <button
                     key={`sel-day-${d}`}
                     type="button"
                     onClick={() => toggleLeaveDay(d)}
+                    disabled={afterLastExam}
                     style={{
                       padding: '4px 7px',
                       borderRadius: '4px',
                       fontSize: '11px',
                       fontWeight: 600,
-                      cursor: 'pointer',
+                      cursor: afterLastExam ? 'not-allowed' : 'pointer',
+                      opacity: afterLastExam ? 0.4 : 1,
                       border: isSelected
                         ? '1px solid #D9A441'
                         : isHoliday
@@ -623,7 +581,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                       background: isSelected ? '#F7DC93' : isHoliday ? '#F6E3E3' : '#ffffff',
                       color: isSelected ? '#7A4B00' : isHoliday ? '#A94442' : 'var(--ink)'
                     }}
-                    title={isSelected ? `${formatShortDate(d)} (${dayName}): Study Leave Day` : isHoliday ? `${formatShortDate(d)} (${dayName}): Holiday` : `${formatShortDate(d)} (${dayName}): Working Day`}
+                    title={afterLastExam ? `${formatShortDate(d)}: after the last exam, no leave` : isSelected ? `${formatShortDate(d)} (${dayName}): Study Leave Day` : isHoliday ? `${formatShortDate(d)} (${dayName}): Holiday` : `${formatShortDate(d)} (${dayName}): Working Day`}
                   >
                     {formatShortDate(d)} ({dayName}) {isSelected ? '✓' : isHoliday ? 'OFF' : ''}
                   </button>
@@ -656,7 +614,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={Boolean(sameLevelRecord)}
+              disabled={Boolean(personRecord)}
               className="btn btn-primary"
               style={{
                 height: '38px',
