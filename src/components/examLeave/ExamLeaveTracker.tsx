@@ -24,6 +24,7 @@ import {
   countPeople,
   countsAsLeave,
   examLeaveService,
+  formatDayMonth,
   sameName,
   weekdayLetter
 } from '../../services/examLeaveService';
@@ -56,7 +57,6 @@ export const ExamLeaveTracker: React.FC = () => {
   const [inspectedDate, setInspectedDate] = useState<string>('2026-11-12');
 
   // Modals & Drawers
-  const [editingRecord, setEditingRecord] = useState<StaffExamLeaveRecord | null>(null);
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
   const [routineModalTab, setRoutineModalTab] = useState<'PL_AL' | 'CL'>('PL_AL');
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -106,15 +106,6 @@ export const ExamLeaveTracker: React.FC = () => {
     }
   };
 
-  // Form edit state
-  const [editSubjects, setEditSubjects] = useState('');
-  const [editLevel, setEditLevel] = useState('');
-  const [editTotalDays, setEditTotalDays] = useState('');
-  const [editLeaveStart, setEditLeaveStart] = useState('');
-  const [editLastExam, setEditLastExam] = useState('');
-  const [editDates, setEditDates] = useState<string[]>([]);
-  const [editClient, setEditClient] = useState('');
-
   const matrixScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -152,41 +143,11 @@ export const ExamLeaveTracker: React.FC = () => {
     }
   };
 
+  // Edit uses the same form as Apply: pick papers and attempt, days follow the rule, and days can still be toggled.
   const handleOpenEdit = (record: StaffExamLeaveRecord) => {
     if (!canEditRecord(record)) return;
-    setEditingRecord(record);
-    setEditSubjects(record.subjects);
-    setEditLevel(record.level);
-    setEditTotalDays(record.totalLeaveDays);
-    setEditLeaveStart(record.leaveStartDay);
-    setEditLastExam(record.appearInLastExamDate);
-    setEditDates([...record.leaveDates]);
-    setEditClient(record.category);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingRecord) return;
-    const updated: StaffExamLeaveRecord = {
-      ...editingRecord,
-      category: editClient,
-      subjects: editSubjects,
-      level: editLevel,
-      totalLeaveDays: editTotalDays || `${editDates.length} Days`,
-      leaveStartDay: editLeaveStart,
-      appearInLastExamDate: editLastExam,
-      leaveDates: editDates
-    };
-    await examLeaveService.saveLeave(updated);
-    setEditingRecord(null);
-    await loadLeaves();
-  };
-
-  const toggleDateInEdit = (dateStr: string) => {
-    if (editDates.includes(dateStr)) {
-      setEditDates(editDates.filter(d => d !== dateStr));
-    } else {
-      setEditDates([...editDates, dateStr].sort());
-    }
+    setSelectedRecordForApplication(record);
+    setIsApplyModalOpen(true);
   };
 
   const scrollToCrunch = () => {
@@ -1683,7 +1644,7 @@ export const ExamLeaveTracker: React.FC = () => {
                         fontWeight: 700
                       }}
                     >
-                      {d}
+                      {formatDayMonth(d)}
                     </span>
                   ))}
                 </div>
@@ -1711,179 +1672,6 @@ export const ExamLeaveTracker: React.FC = () => {
                 Delete
               </button>}
             </div>}
-          </div>
-        </div>
-      )}
-
-      {/* 7. EDIT LEAVE MODAL */}
-      {editingRecord && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 1100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
-          }}
-          onClick={() => setEditingRecord(null)}
-        >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '12px',
-              padding: '22px 26px',
-              maxWidth: '560px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--navy)', margin: 0 }}>
-                  Edit Candidate Leave
-                </h3>
-                <span style={{ fontSize: '12.5px', color: 'var(--ink-muted)' }}>
-                  {editingRecord.name} (Client: {editingRecord.category})
-                </span>
-              </div>
-              <button
-                onClick={() => setEditingRecord(null)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px' }}>
-                  Client
-                </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editClient}
-                  onChange={e => setEditClient(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px' }}>
-                  Exam Level
-                </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={editLevel}
-                  onChange={e => setEditLevel(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px' }}>
-                  Registered Subjects / Attempt Information
-                </label>
-                <textarea
-                  rows={3}
-                  className="form-textarea"
-                  value={editSubjects}
-                  onChange={e => setEditSubjects(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px' }}>
-                    Leave Start Date
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={editLeaveStart}
-                    onChange={e => setEditLeaveStart(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px' }}>
-                    Total Leave Days Label
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={editTotalDays}
-                    onChange={e => setEditTotalDays(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginBottom: '5px' }}>
-                  Toggle Individual Leave Days (Selected: {editDates.length} days)
-                </label>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '5px',
-                    maxHeight: '140px',
-                    overflowY: 'auto',
-                    padding: '8px',
-                    background: 'var(--cream-card)',
-                    borderRadius: '6px',
-                    border: '1px solid var(--line)'
-                  }}
-                >
-                  {EXAM_TIMELINE_DATES.map(d => {
-                    const isSelected = editDates.includes(d);
-                    const isFri = ICAB_OFF_DAYS.has(d);
-                    return (
-                      <button
-                        key={`toggle-${d}`}
-                        type="button"
-                        onClick={() => toggleDateInEdit(d)}
-                        style={{
-                          padding: '3px 7px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          border: isSelected ? '1px solid #CA8A04' : '1px solid #CBD5E1',
-                          background: isSelected ? '#FEF08A' : isFri ? '#FEE2E2' : '#ffffff',
-                          color: isSelected ? '#713F12' : isFri ? '#DC2626' : 'var(--ink)'
-                        }}
-                      >
-                        {d.slice(5)} {isSelected ? '✓' : ''}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => setEditingRecord(null)}
-                className="btn btn-secondary"
-                style={{ height: '36px', padding: '0 16px' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                className="btn btn-primary"
-                style={{ height: '36px', padding: '0 18px' }}
-              >
-                Save Changes
-              </button>
-            </div>
           </div>
         </div>
       )}

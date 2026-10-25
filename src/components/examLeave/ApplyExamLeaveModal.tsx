@@ -13,6 +13,7 @@ import {
   ICAB_PAPERS_CATALOG,
   examLeaveService,
   isCentralHoliday,
+  formatDayMonth,
   sameName,
   weekdayLetter
 } from '../../services/examLeaveService';
@@ -135,6 +136,24 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       setLastExamDate(existingRecord.appearInLastExamDate !== '—' ? existingRecord.appearInLastExamDate : '2026-11-19');
       setSelectedDates([...existingRecord.leaveDates]);
       setRemarks(existingRecord.notes || '');
+
+      // Bring back the papers and their attempt so they can be changed here. Records saved before papers were
+      // stored are read back from their text ("1. FM (1st Attempt - 5 days)").
+      if (existingRecord.papers && existingRecord.papers.length > 0) {
+        setSelectedPapers(existingRecord.papers.map(p => ({ ...p })));
+      } else if (['PL', 'CL', 'AL'].includes(existingRecord.level)) {
+        const catalog = ICAB_PAPERS_CATALOG[existingRecord.level as ExamLevel];
+        const parsed: { code: string; name: string; date: string; attempt: '1st Attempt' | '2nd Attempt' | '3rd Attempt & rest' }[] = [];
+        (existingRecord.subjects || '').split('\n').forEach(line => {
+          const m = /^\s*\d+\.\s*(.+?)\s*\((.*)\)\s*$/.exec(line);
+          if (!m) return;
+          const paper = catalog.find(c => c.code.toLowerCase() === m[1].trim().toLowerCase());
+          if (!paper || parsed.some(x => x.code === paper.code)) return;
+          const attempt = /1st/i.test(m[2]) ? '1st Attempt' : /2nd/i.test(m[2]) ? '2nd Attempt' : '3rd Attempt & rest';
+          parsed.push({ ...paper, attempt });
+        });
+        setSelectedPapers(parsed);
+      }
     } else if (currentUser) {
       setCandidateName(currentUser.name);
       setSelectedUserId(currentUser.id);
@@ -277,6 +296,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       candidateType,
       category: candidateClient.trim() || 'General Client Assignment',
       subjects: formattedSubjects,
+      papers: selectedPapers.length > 0 ? selectedPapers : existing?.papers,
       level: examLevel,
       totalLeaveDays: totalDaysLabel,
       leaveStartDay: selectedDates.length > 0 ? selectedDates[0] : startDate,
@@ -622,7 +642,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 </span>
                 {selectedDates.length > 0 && (
                   <span style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginLeft: '10px' }}>
-                    ({selectedDates[0]} to {lastExamDate})
+                    ({formatDayMonth(selectedDates[0])} to {formatDayMonth(lastExamDate)})
                   </span>
                 )}
               </div>
@@ -671,7 +691,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                     }}
                     title={isSelected ? `${d} (${dayName}): Study Leave Day` : isHoliday ? `${d} (${dayName}): Holiday` : `${d} (${dayName}): Working Day`}
                   >
-                    {d.slice(5)} ({dayName}) {isSelected ? '✓' : isHoliday ? 'OFF' : ''}
+                    {formatDayMonth(d)} ({dayName}) {isSelected ? '✓' : isHoliday ? 'OFF' : ''}
                   </button>
                 );
               })}

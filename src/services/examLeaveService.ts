@@ -282,6 +282,14 @@ export const countOnLeave = (records: StaffExamLeaveRecord[], dateStr: string): 
 export const countPeople = (records: StaffExamLeaveRecord[]): number =>
   new Set(records.map(r => r.name.trim().replace(/\s+/g, ' ').toLowerCase())).size;
 
+/** '2026-10-24' -> '24-Oct' */
+export const formatDayMonth = (dateStr: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr || '');
+  if (!m) return dateStr;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${Number(m[3])}-${months[Number(m[2]) - 1]}`;
+};
+
 /** A rejected application does not take the person out of the office. */
 export const countsAsLeave = (r: StaffExamLeaveRecord): boolean => r.status !== 'Rejected';
 
