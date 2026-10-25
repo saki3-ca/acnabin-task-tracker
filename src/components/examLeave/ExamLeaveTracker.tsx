@@ -20,6 +20,8 @@ import {
   EXAM_TIMELINE_DATES,
   ICAB_OFF_DAYS,
   OFFICIAL_ICAB_SCHEDULE,
+  countOnLeave,
+  countPeople,
   countsAsLeave,
   examLeaveService,
   sameName,
@@ -27,7 +29,7 @@ import {
 } from '../../services/examLeaveService';
 import { StaffExamLeaveRecord } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { canViewAllClients, getUserAssignedClientIds } from '../../lib/permissions';
+import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove } from '../../lib/permissions';
 import { ApplyExamLeaveModal } from './ApplyExamLeaveModal';
 
 const formatRoutineDate = (dateStr: string, dayName: string) => {
@@ -62,11 +64,12 @@ export const ExamLeaveTracker: React.FC = () => {
   const [selectedStudentForDrawer, setSelectedStudentForDrawer] = useState<StaffExamLeaveRecord | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  // My existing record if logged in as student or employee
-  const myExistingRecord = useMemo(() => {
-    if (!currentUser) return null;
-    return allRecords.find(r => sameName(r.name, currentUser.name));
-  }, [allRecords, currentUser]);
+  // My leave records: one per level (PL, CL, AL), so there can be up to three
+  const myRecordIds = useMemo(
+    () => new Set(allRecords.filter(r => sameName(r.name, currentUser?.name)).map(r => r.id)),
+    [allRecords, currentUser]
+  );
+  const hasMyRecord = myRecordIds.size > 0;
 
   // Assistant Directors and above (and Admin) see everyone. Everyone else sees only the people who share
   // one of their clients, plus themselves.
@@ -150,6 +153,7 @@ export const ExamLeaveTracker: React.FC = () => {
   };
 
   const handleOpenEdit = (record: StaffExamLeaveRecord) => {
+    if (!canEditRecord(record)) return;
     setEditingRecord(record);
     setEditSubjects(record.subjects);
     setEditLevel(record.level);
@@ -194,6 +198,14 @@ export const ExamLeaveTracker: React.FC = () => {
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
     }, 150);
+  };
+
+  // Who may change a leave (add or remove days): Admin, the person themself, and Senior Assistant
+  // Manager and above for the people on their own clients (AD and above: everyone).
+  const canEditRecord = (r: StaffExamLeaveRecord): boolean => {
+    if (isAdmin || myRecordIds.has(r.id)) return true;
+    if (!currentUser || !isSAMOrAbove(currentUser.designation)) return false;
+    return canSeeEveryone || teamUsers.some(u => sameName(u.name, r.name));
   };
 
   // Distinct clients list for filter
@@ -259,14 +271,14 @@ export const ExamLeaveTracker: React.FC = () => {
   // In-office headcount is all active staff, not just the people who applied for leave.
   const totalStaffCount = useMemo(() => {
     const staff = canSeeEveryone ? allUsers.filter(u => u.status !== 'INACTIVE' && u.role !== 'ADMIN').length : teamUsers.length;
-    return Math.max(staff, leaveRecords.length);
+    return Math.max(staff, countPeople(leaveRecords));
   }, [allUsers, teamUsers, canSeeEveryone, leaveRecords]);
   const peakLeaveInfo = useMemo(() => {
     let maxOnLeave = 0;
     let peakDate = '2026-11-12';
     for (const d of EXAM_TIMELINE_DATES) {
       if (ICAB_OFF_DAYS.has(d)) continue;
-      const count = leaveRecords.filter(r => r.leaveDates.includes(d)).length;
+      const count = countOnLeave(leaveRecords, d);
       if (count > maxOnLeave) {
         maxOnLeave = count;
         peakDate = d;
@@ -280,7 +292,7 @@ export const ExamLeaveTracker: React.FC = () => {
   const dailyAvailabilityMap = useMemo(() => {
     const map = new Map<string, { onLeave: number; available: number }>();
     for (const d of EXAM_TIMELINE_DATES) {
-      const onLeaveCount = leaveRecords.filter(r => r.leaveDates.includes(d)).length;
+      const onLeaveCount = countOnLeave(leaveRecords, d);
       map.set(d, {
         onLeave: onLeaveCount,
         available: totalStaffCount - onLeaveCount
@@ -297,7 +309,7 @@ export const ExamLeaveTracker: React.FC = () => {
         <div className="stat-pill">
           <span className="stat-pill-label">ACTIVE CANDIDATES</span>
           <span className="stat-pill-value">
-            {String(records.length).padStart(2, '0')}
+            {String(countPeople(records)).padStart(2, '0')}
           </span>
         </div>
 
@@ -594,7 +606,7 @@ export const ExamLeaveTracker: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedRecordForApplication(myExistingRecord || null);
+                    setSelectedRecordForApplication(null);
                     setIsApplyModalOpen(true);
                   }}
                   style={{
@@ -613,7 +625,7 @@ export const ExamLeaveTracker: React.FC = () => {
                   }}
                 >
                   <Pencil size={12} />
-                  {myExistingRecord ? 'Update My Leave' : 'Apply for Leave'}
+                  Apply for Leave
                 </button>
 
                 <button
@@ -967,7 +979,7 @@ export const ExamLeaveTracker: React.FC = () => {
                           borderBottom: '1px solid #E2E8F0'
                         }}
                       >
-                        {isAdmin && <div style={{ display: 'inline-flex', gap: '4px' }}><button
+                        {canEditRecord(record) && <div style={{ display: 'inline-flex', gap: '4px' }}><button
                           onClick={() => handleOpenEdit(record)}
                           title="Edit leave details"
                           style={{
@@ -987,7 +999,7 @@ export const ExamLeaveTracker: React.FC = () => {
                           <Pencil size={11} />
                           Edit
                         </button>
-                        <button
+                        {isAdmin && <button
                           type="button"
                           onClick={() => handleDelete(record)}
                           title="Delete this leave"
@@ -1008,7 +1020,7 @@ export const ExamLeaveTracker: React.FC = () => {
                         >
                           <Trash2 size={11} />
                           Delete
-                        </button></div>}
+                        </button>}</div>}
                       </td>
                     </tr>
                   );
@@ -1035,7 +1047,7 @@ export const ExamLeaveTracker: React.FC = () => {
                     TOTAL ON LEAVE PER DAY:
                   </td>
                   {EXAM_TIMELINE_DATES.map(dateStr => {
-                    const count = leaveRecords.filter(r => r.leaveDates.includes(dateStr)).length;
+                    const count = countOnLeave(leaveRecords, dateStr);
                     const isFri = ICAB_OFF_DAYS.has(dateStr);
                     return (
                       <td
@@ -1076,7 +1088,7 @@ export const ExamLeaveTracker: React.FC = () => {
                     AVAILABLE IN-OFFICE MANPOWER:
                   </td>
                   {EXAM_TIMELINE_DATES.map(dateStr => {
-                    const count = records.filter(r => r.leaveDates.includes(dateStr)).length;
+                    const count = countOnLeave(leaveRecords, dateStr);
                     const avail = Math.max(0, totalStaffCount - count);
                     const isFri = ICAB_OFF_DAYS.has(dateStr);
                     const isDeficit = avail <= 7;
@@ -1139,7 +1151,7 @@ export const ExamLeaveTracker: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedRecordForApplication(myExistingRecord || null);
+                  setSelectedRecordForApplication(null);
                   setIsApplyModalOpen(true);
                 }}
                 style={{
@@ -1158,7 +1170,7 @@ export const ExamLeaveTracker: React.FC = () => {
                 }}
               >
                 <Pencil size={12} />
-                {myExistingRecord ? 'Update My Leave' : 'Apply for Leave'}
+                Apply for Leave
               </button>
 
               <button
@@ -1387,17 +1399,14 @@ export const ExamLeaveTracker: React.FC = () => {
                           </button>
                         </>
                       )}
-                      {(isAdmin || record.id === myExistingRecord?.id) && (
+                      {canEditRecord(record) && (
                       <button
-                        onClick={() => {
-                          setSelectedRecordForApplication(record);
-                          setIsApplyModalOpen(true);
-                        }}
+                        onClick={() => handleOpenEdit(record)}
                         className="btn btn-secondary btn-sm"
                         style={{ padding: '4px 10px', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}
                       >
                         <Pencil size={12} />
-                        Update Leave
+                        Edit
                       </button>
                       )}
                     </div>
@@ -1681,7 +1690,7 @@ export const ExamLeaveTracker: React.FC = () => {
               </div>
             </div>
 
-            {isAdmin && <div style={{ borderTop: '1px solid var(--line)', paddingTop: '14px', display: 'flex', gap: '10px' }}>
+            {canEditRecord(selectedStudentForDrawer) && <div style={{ borderTop: '1px solid var(--line)', paddingTop: '14px', display: 'flex', gap: '10px' }}>
               <button
                 onClick={() => {
                   const rec = selectedStudentForDrawer;
@@ -1693,14 +1702,14 @@ export const ExamLeaveTracker: React.FC = () => {
               >
                 Edit Leave Details
               </button>
-              <button
+              {isAdmin && <button
                 onClick={() => handleDelete(selectedStudentForDrawer)}
                 className="btn btn-secondary"
                 style={{ height: '38px', fontSize: '13px', color: '#B91C1C', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <Trash2 size={14} />
                 Delete
-              </button>
+              </button>}
             </div>}
           </div>
         </div>

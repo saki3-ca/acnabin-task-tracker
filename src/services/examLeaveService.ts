@@ -269,6 +269,19 @@ export const weekdayLetter = (dateStr: string): string => {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'narrow' });
 };
 
+/** One person can have several records (one per level: PL, CL, AL); a person counts once per day. */
+export const countOnLeave = (records: StaffExamLeaveRecord[], dateStr: string): number => {
+  const people = new Set<string>();
+  records.forEach(r => {
+    if (r.status !== 'Rejected' && r.leaveDates.includes(dateStr)) people.add(r.name.trim().replace(/\s+/g, ' ').toLowerCase());
+  });
+  return people.size;
+};
+
+/** Number of different people in a list of records. */
+export const countPeople = (records: StaffExamLeaveRecord[]): number =>
+  new Set(records.map(r => r.name.trim().replace(/\s+/g, ' ').toLowerCase())).size;
+
 /** A rejected application does not take the person out of the office. */
 export const countsAsLeave = (r: StaffExamLeaveRecord): boolean => r.status !== 'Rejected';
 
@@ -363,20 +376,31 @@ class ExamLeaveService {
 
   isStaffOnLeave(staffName: string, dateStr: string): boolean {
     if (!staffName || !dateStr) return false;
-    const match = this.getStorage().find(r => countsAsLeave(r) && sameName(r.name, staffName));
-    if (!match) return false;
-    return match.leaveDates.includes(dateStr);
+    return this.getStorage().some(r => countsAsLeave(r) && sameName(r.name, staffName) && r.leaveDates.includes(dateStr));
   }
 
   getStaffLeaveDetail(staffName: string): StaffExamLeaveRecord | undefined {
     if (!staffName) return undefined;
-    return this.getStorage().find(r => countsAsLeave(r) && sameName(r.name, staffName));
+    // A person can have a PL, CL and AL record: combine them into one summary
+    const mine = this.getStorage().filter(r => countsAsLeave(r) && sameName(r.name, staffName));
+    if (mine.length === 0) return undefined;
+    if (mine.length === 1) return mine[0];
+    const dates = Array.from(new Set(mine.flatMap(r => r.leaveDates))).sort();
+    const lastExams = mine.map(r => r.appearInLastExamDate).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+    return {
+      ...mine[0],
+      level: mine.map(r => r.level).join(' & '),
+      totalLeaveDays: `${dates.length} Days`,
+      leaveStartDay: dates[0] || mine[0].leaveStartDay,
+      appearInLastExamDate: lastExams[lastExams.length - 1] || mine[0].appearInLastExamDate,
+      leaveDates: dates
+    };
   }
 
   async exportToExcel(allRecords: StaffExamLeaveRecord[], dates: string[], totalStaff?: number): Promise<void> {
     const ExcelJS = (await import('exceljs')).default;
     const records = allRecords.filter(countsAsLeave);
-    const staffTotal = Math.max(totalStaff || 0, records.length);
+    const staffTotal = Math.max(totalStaff || 0, countPeople(records));
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'ACNABIN Task Tracker';
     workbook.created = new Date();
@@ -543,7 +567,7 @@ class ExamLeaveService {
 
     dates.forEach((d, dIdx) => {
       const col = FIRST_DAY_COL + dIdx;
-      const count = records.filter(r => r.leaveDates.includes(d)).length;
+      const count = countOnLeave(records, d);
       const sumCell = summaryRow.getCell(col);
       sumCell.value = count;
       sumCell.font = { bold: true };

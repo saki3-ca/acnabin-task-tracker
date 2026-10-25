@@ -95,6 +95,18 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     return Array.from(dateSet).sort();
   };
 
+  // Records already saved: a person can have one per level (PL, CL, AL)
+  const [savedRecords, setSavedRecords] = useState<StaffExamLeaveRecord[]>([]);
+  useEffect(() => {
+    if (isOpen) examLeaveService.getLeaves().then(setSavedRecords).catch(() => setSavedRecords([]));
+  }, [isOpen]);
+  const sameLevelRecord = existingRecord
+    ? null
+    : savedRecords.find(r => sameName(r.name, candidateName) && r.level === examLevel) || null;
+  const otherLevels = savedRecords
+    .filter(r => sameName(r.name, candidateName) && r.level !== examLevel && r.id !== existingRecord?.id)
+    .map(r => r.level);
+
   // Initialize or pre-fill every time the modal opens, so a previous application never carries over
   useEffect(() => {
     if (!isOpen) return;
@@ -247,9 +259,14 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     }
 
     const totalDaysLabel = `${selectedDates.length} Days`;
-    // One record per person: applying again (or Admin applying for someone who already has one) updates it.
     const all = await examLeaveService.getLeaves();
-    const existing = existingRecord || all.find(r => sameName(r.name, candidateName));
+    // One record per person per level (a PL, a CL and an AL leave sit side by side). A submitted leave is
+    // never overwritten from this form, which would risk wrong data: changes go through Edit.
+    const existing = existingRecord || null;
+    if (!existing && all.some(r => sameName(r.name, candidateName) && r.level === examLevel)) {
+      alert(`A ${examLevel} leave is already submitted for ${candidateName.trim()}. To change it, use Edit in the Action column.`);
+      return;
+    }
     const recordId = existing?.id || `leave-${Date.now()}`;
     const sl = existing?.sl || Math.max(0, ...all.map(r => r.sl)) + 1;
 
@@ -265,7 +282,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       leaveStartDay: selectedDates.length > 0 ? selectedDates[0] : startDate,
       appearInLastExamDate: lastExamDate,
       leaveDates: selectedDates,
-      status: isAdmin ? 'Approved' : 'Pending',
+      status: isAdmin ? 'Approved' : (existing?.status || 'Pending'),
       empId: existing?.empId || allUsers.find(u => u.id === selectedUserId)?.empId,
       notes: remarks.trim()
     };
@@ -447,6 +464,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 <button
                   key={lvl.id}
                   type="button"
+                  disabled={Boolean(existingRecord) && examLevel !== lvl.id}
                   onClick={() => {
                     setExamLevel(lvl.id as ExamLevel);
                     setSelectedPapers([]);
@@ -468,6 +486,14 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
               ))}
             </div>
           </div>
+
+          {(sameLevelRecord || otherLevels.length > 0) && (
+            <div style={{ fontSize: '11.5px', marginTop: '-8px', marginBottom: '14px', padding: '6px 10px', borderRadius: '6px', background: sameLevelRecord ? '#FEE2E2' : '#EFF6FF', border: `1px solid ${sameLevelRecord ? '#F87171' : '#BFDBFE'}`, color: sameLevelRecord ? '#991B1B' : '#1E40AF' }}>
+              {sameLevelRecord
+                ? `A ${examLevel} leave is already submitted for ${candidateName}. To change it, use Edit in the Action column.`
+                : `Already saved: ${otherLevels.join(', ')}. This will be added as a separate ${examLevel} leave.`}
+            </div>
+          )}
 
           {/* 4. Papers / Subjects Selector with Attempt Dropdown */}
           <div className="form-field" style={{ marginBottom: '18px' }}>
@@ -676,6 +702,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
             </button>
             <button
               type="submit"
+              disabled={Boolean(sameLevelRecord)}
               className="btn btn-primary"
               style={{
                 height: '38px',
