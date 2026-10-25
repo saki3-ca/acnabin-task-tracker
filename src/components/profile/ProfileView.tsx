@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTasks } from '../../context/TaskContext';
-import { MyInfo } from '../../types';
+import { MyInfo, User } from '../../types';
 import { canViewAllClients, DESIGNATION_RANKS, getUserAssignedClientIds, getUserRank, isSAMOrAbove, isStudentLevelDesignation, normalizeBDMobile } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { notificationService } from '../../services/notificationService';
@@ -124,17 +124,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   }, [canAddClients]);
 
   // Key persons come from In Charge and above, highest designation first, then longest-serving; students/trainees only count when nobody senior is on the client.
+  const sortBySeniority = (list: User[]) =>
+    list.sort((a, b) => {
+      const rank = getUserRank(b) - getUserRank(a);
+      if (rank) return rank;
+      const ja = joiningByEmp[a.empId.toUpperCase()] || '9999';
+      const jb = joiningByEmp[b.empId.toUpperCase()] || '9999';
+      return ja.localeCompare(jb) || a.name.localeCompare(b.name);
+    });
+  // Everyone on the client, most senior first: what Admin can pick from.
+  const allClientPeople = (clientId: string) =>
+    sortBySeniority(allUsers.filter(u => u.status !== 'INACTIVE' && getUserAssignedClientIds(u).includes(clientId)));
+  // The automatic default: In Charge and above; students/trainees only when nobody senior is on the client.
   const clientPeople = (clientId: string) => {
-    const onClient = allUsers.filter(u => u.status !== 'INACTIVE' && getUserAssignedClientIds(u).includes(clientId));
+    const onClient = allClientPeople(clientId);
     const senior = onClient.filter(u => getUserRank(u) >= DESIGNATION_RANKS['In Charge']);
-    return (senior.length > 0 ? senior : onClient)
-      .sort((a, b) => {
-        const rank = getUserRank(b) - getUserRank(a);
-        if (rank) return rank;
-        const ja = joiningByEmp[a.empId.toUpperCase()] || '9999';
-        const jb = joiningByEmp[b.empId.toUpperCase()] || '9999';
-        return ja.localeCompare(jb) || a.name.localeCompare(b.name);
-      });
+    return senior.length > 0 ? senior : onClient;
   };
 
   const keyPersonsOf = (client: { id: string; keyPersonId?: string; secondaryKeyPersonId?: string }) => {
@@ -1700,7 +1705,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
             )}
             {editingClientId && (() => {
-              const people = clientPeople(editingClientId);
+              const people = allClientPeople(editingClientId);
               return ([
                 { label: 'Key Person', value: keyPersonId, set: setKeyPersonId, other: secondaryKeyPersonId },
                 { label: 'Secondary Key Person', value: secondaryKeyPersonId, set: setSecondaryKeyPersonId, other: keyPersonId }
