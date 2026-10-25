@@ -374,135 +374,191 @@ class ExamLeaveService {
   }
 
   async exportToExcel(allRecords: StaffExamLeaveRecord[], dates: string[], totalStaff?: number): Promise<void> {
+    const ExcelJS = (await import('exceljs')).default;
     const records = allRecords.filter(countsAsLeave);
     const staffTotal = Math.max(totalStaff || 0, records.length);
-    const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'ACNABIN Task Tracker';
     workbook.created = new Date();
 
+    // No frozen rows: the routine tables above the matrix would fill the screen. Freeze SL + Name only.
     const sheet = workbook.addWorksheet('CL + PL & AL Level Leave Info.', {
-      views: [{ state: 'frozen', xSplit: 9, ySplit: 19 }]
+      views: [{ state: 'frozen', xSplit: 3, ySplit: 0 }]
     });
 
-    // 1. Title Header Rows 1-3
-    sheet.mergeCells('B2:E2');
-    sheet.getCell('B2').value = 'PL November\'26 Routine';
-    sheet.getCell('B2').font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    sheet.getCell('B2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8B1420' } };
-    sheet.getCell('B2').alignment = { horizontal: 'center' };
+    const fill = (argb: string) => ({ type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb } });
+    const thin = { style: 'thin' as const, color: { argb: 'FFCBD5E1' } };
+    const box = { top: thin, left: thin, bottom: thin, right: thin };
+    const toDate = (iso: string): Date | null => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+      const [y, m, d] = iso.split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    };
 
-    sheet.mergeCells('G2:I2');
-    sheet.getCell('G2').value = 'AL November\'26 Routine';
-    sheet.getCell('G2').font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    sheet.getCell('G2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B2A6B' } };
-    sheet.getCell('G2').alignment = { horizontal: 'center' };
+    // Column widths: A spacer, B SL, C Name, D Client, E Subjects, F Level, G-I leave info, then one narrow column per day
+    const FIRST_DAY_COL = 10;
+    sheet.getColumn(1).width = 2;
+    [5, 30, 24, 34, 9, 16, 14, 18].forEach((w, i) => { sheet.getColumn(i + 2).width = w; });
+    dates.forEach((_, i) => { sheet.getColumn(FIRST_DAY_COL + i).width = 5; });
+    sheet.getColumn(FIRST_DAY_COL + dates.length).width = 11;
 
-    sheet.mergeCells('K2:M2');
-    sheet.getCell('K2').value = 'CL November\'26 Routine';
-    sheet.getCell('K2').font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    sheet.getCell('K2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D8C8C' } };
-    sheet.getCell('K2').alignment = { horizontal: 'center' };
-
-    // Legend at P2:R4
-    sheet.getCell('P2').value = 'OFF Day';
-    sheet.getCell('P2').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
-    sheet.getCell('P2').font = { color: { argb: 'FFFFFFFF' }, bold: true };
-
-    sheet.getCell('P3').value = 'Study Leave';
-    sheet.getCell('P3').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-    sheet.getCell('P3').font = { bold: true };
-
-    sheet.getCell('P4').value = 'Active Duty';
-    sheet.getCell('P4').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
-
-    // Row 18: Available Manpower
-    sheet.getCell('I18').value = 'Available Manpower';
-    sheet.getCell('I18').font = { bold: true };
-
-    // Row 19: Column Headers
-    const headers = [
-      '', 'SL', 'Name', 'Client', 'Subjects', 'Level',
-      'Total Leave Days', 'Leave Start Day', 'Appear in Last Exam Date'
+    // --- Rows 1-14: the ICAB routine (PL | AL | CL), the same blocks as the firm's leave sheet
+    const shortCode = (item: IcabExamScheduleItem): string => {
+      if (item.isOffDay) return 'Off Day';
+      if (item.level === 'CL') return item.subject;
+      if (/^IT Governance/.test(item.subject)) return 'IT';
+      const hit = [...ICAB_PAPERS_CATALOG.PL, ...ICAB_PAPERS_CATALOG.AL].find(p => p.date === item.date);
+      return hit ? hit.code : item.subject;
+    };
+    const blocks: { title: string; level: 'PL' | 'AL' | 'CL'; col: number; span: number; color: string }[] = [
+      { title: "PL November'26", level: 'PL', col: 2, span: 3, color: 'FF8B1420' },
+      { title: "AL November'26", level: 'AL', col: 7, span: 2, color: 'FF1B2A6B' },
+      { title: "CL November'26", level: 'CL', col: 11, span: 2, color: 'FF1D8C8C' }
     ];
-    headers.forEach((h, idx) => {
-      if (idx > 0) {
-        const cell = sheet.getRow(19).getCell(idx + 1);
-        cell.value = h;
-        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      }
-    });
-
-    dates.forEach((d, idx) => {
-      const col = idx + 10;
-      const cell = sheet.getRow(19).getCell(col);
-      cell.value = d.slice(5); // MM-DD
-      cell.font = { bold: true, size: 9 };
-      cell.alignment = { horizontal: 'center' };
-      if (ICAB_OFF_DAYS.has(d)) {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } };
-      }
-    });
-
-    sheet.getRow(19).getCell(dates.length + 10).value = 'Total Days';
-    sheet.getRow(19).getCell(dates.length + 10).font = { bold: true };
-
-    // Fill Data Rows (starting row 20)
-    records.forEach((rec, rIdx) => {
-      const rNum = rIdx + 20;
-      const row = sheet.getRow(rNum);
-      row.getCell(2).value = rec.sl;
-      row.getCell(3).value = rec.name;
-      row.getCell(4).value = rec.category;
-      row.getCell(5).value = rec.subjects;
-      row.getCell(6).value = rec.level;
-      row.getCell(7).value = rec.totalLeaveDays;
-      row.getCell(8).value = rec.leaveStartDay;
-      row.getCell(9).value = rec.appearInLastExamDate;
-
-      dates.forEach((d, dIdx) => {
-        const col = dIdx + 10;
-        const cell = row.getCell(col);
-        const isOnLeave = rec.leaveDates.includes(d);
-        const isOffDay = ICAB_OFF_DAYS.has(d);
-
-        if (isOnLeave) {
-          cell.value = 1;
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-          cell.alignment = { horizontal: 'center' };
-        } else if (isOffDay) {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFC7CE' } };
-        } else {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+    blocks.forEach(b => {
+      const dateCol = b.col + b.span;
+      sheet.mergeCells(1, b.col, 1, dateCol);
+      sheet.getCell(1, b.col).value = 'Exam Schedule as per ICAB Routine';
+      sheet.getCell(1, b.col).font = { italic: true, size: 9 };
+      sheet.getCell(1, b.col).alignment = { horizontal: 'center' };
+      sheet.mergeCells(2, b.col, 2, dateCol);
+      const t = sheet.getCell(2, b.col);
+      t.value = b.title;
+      t.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      t.fill = fill(b.color);
+      t.alignment = { horizontal: 'center' };
+      sheet.mergeCells(3, b.col, 3, dateCol - 1);
+      sheet.getCell(3, b.col).value = 'Subject';
+      sheet.getCell(3, dateCol).value = 'Date';
+      [b.col, dateCol].forEach(c => {
+        sheet.getCell(3, c).font = { bold: true };
+        sheet.getCell(3, c).fill = fill('FFF1F5F9');
+        sheet.getCell(3, c).alignment = { horizontal: 'center' };
+      });
+      OFFICIAL_ICAB_SCHEDULE.filter(i => i.level === b.level).forEach((item, idx) => {
+        const r = 4 + idx;
+        sheet.mergeCells(r, b.col, r, dateCol - 1);
+        const sc = sheet.getCell(r, b.col);
+        sc.value = shortCode(item);
+        const dc = sheet.getCell(r, dateCol);
+        dc.value = toDate(item.date);
+        dc.numFmt = 'dd-mmm-yy';
+        dc.alignment = { horizontal: 'center' };
+        if (item.isOffDay) {
+          sc.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+          sc.fill = fill('FFFF0000');
+          dc.fill = fill('FFFF0000');
+          dc.font = { color: { argb: 'FFFFFFFF' }, bold: true };
         }
       });
-
-      row.getCell(dates.length + 10).value = rec.leaveDates.length;
     });
 
-    // Row 37: Total on leave per day
-    const summaryRow = sheet.getRow(records.length + 20);
+    // Legend
+    sheet.getCell('P2').value = 'OFF Day';
+    sheet.getCell('P2').fill = fill('FFFF0000');
+    sheet.getCell('P2').font = { color: { argb: 'FFFFFFFF' }, bold: true };
+    sheet.getCell('P3').value = 'Study Leave';
+    sheet.getCell('P3').fill = fill('FFFFFF00');
+    sheet.getCell('P3').font = { bold: true };
+    sheet.getCell('P4').value = 'Working day';
+    sheet.getCell('P4').fill = fill('FFE2E8F0');
+
+    // --- Row 18: available manpower, row 19: headers
+    const HEADER_ROW = 19;
+    sheet.getCell(18, 9).value = 'Available Manpower';
+    sheet.getCell(18, 9).font = { bold: true };
+    const headers = ['SL', 'Name', 'Client', 'Subjects', 'Level', 'Total Leave Days', 'Leave Start Day', 'Appear in Last Exam Date'];
+    headers.forEach((h, idx) => {
+      const cell = sheet.getRow(HEADER_ROW).getCell(idx + 2);
+      cell.value = h;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = fill('FF334155');
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = box;
+    });
+    sheet.getRow(HEADER_ROW).height = 42;
+
+    dates.forEach((d, idx) => {
+      const cell = sheet.getRow(HEADER_ROW).getCell(FIRST_DAY_COL + idx);
+      cell.value = toDate(d);
+      cell.numFmt = 'dd-mmm';
+      cell.font = { bold: true, size: 9, color: { argb: isCentralHoliday(d) ? 'FFFFFFFF' : 'FF0F172A' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90 };
+      cell.fill = fill(isCentralHoliday(d) ? 'FFDC2626' : 'FFF1F5F9');
+      cell.border = box;
+    });
+    const totalCol = FIRST_DAY_COL + dates.length;
+    const totalHead = sheet.getRow(HEADER_ROW).getCell(totalCol);
+    totalHead.value = 'Total Days';
+    totalHead.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    totalHead.fill = fill('FF334155');
+    totalHead.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    totalHead.border = box;
+
+    // --- Data rows (from row 20), numbered 1..n so deleted people leave no gaps
+    records.forEach((rec, rIdx) => {
+      const row = sheet.getRow(HEADER_ROW + 1 + rIdx);
+      const startDate = toDate(rec.leaveStartDay);
+      const lastExam = toDate(rec.appearInLastExamDate);
+      const values: (string | number | Date | null)[] = [
+        rIdx + 1, rec.name, rec.category, rec.subjects, rec.level, rec.totalLeaveDays,
+        startDate || (rec.leaveStartDay === '—' ? '' : rec.leaveStartDay),
+        lastExam || (rec.appearInLastExamDate === '—' ? '' : rec.appearInLastExamDate)
+      ];
+      values.forEach((v, i) => {
+        const cell = row.getCell(i + 2);
+        cell.value = v;
+        cell.border = box;
+        cell.alignment = { vertical: 'middle', horizontal: i === 1 || i === 2 || i === 3 ? 'left' : 'center', wrapText: true };
+        if (v instanceof Date) cell.numFmt = 'dd-mmm-yy';
+      });
+      // keep tall subject lists readable
+      const lines = String(rec.subjects || '').split('\n').length;
+      row.height = Math.max(20, lines * 15);
+
+      dates.forEach((d, dIdx) => {
+        const cell = row.getCell(FIRST_DAY_COL + dIdx);
+        cell.border = box;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        if (rec.leaveDates.includes(d)) {
+          cell.value = 1;
+          cell.fill = fill('FFFFFF00');
+          cell.font = { bold: true };
+        } else if (isCentralHoliday(d)) {
+          cell.fill = fill('FFFFC7CE');
+        }
+      });
+      const total = row.getCell(totalCol);
+      total.value = rec.leaveDates.length;
+      total.font = { bold: true };
+      total.alignment = { horizontal: 'center', vertical: 'middle' };
+      total.border = box;
+    });
+
+    // --- Summary row under the table + available manpower in row 18
+    const summaryRow = sheet.getRow(HEADER_ROW + 1 + records.length);
     summaryRow.getCell(9).value = 'Total on Leave:';
     summaryRow.getCell(9).font = { bold: true };
+    summaryRow.getCell(9).alignment = { horizontal: 'right' };
 
     dates.forEach((d, dIdx) => {
-      const col = dIdx + 10;
+      const col = FIRST_DAY_COL + dIdx;
       const count = records.filter(r => r.leaveDates.includes(d)).length;
-      summaryRow.getCell(col).value = count;
-      summaryRow.getCell(col).font = { bold: true };
-      summaryRow.getCell(col).alignment = { horizontal: 'center' };
+      const sumCell = summaryRow.getCell(col);
+      sumCell.value = count;
+      sumCell.font = { bold: true };
+      sumCell.alignment = { horizontal: 'center' };
+      sumCell.border = box;
 
-      // Also set Available Manpower in row 18
       const availCell = sheet.getRow(18).getCell(col);
       availCell.value = staffTotal - count;
       availCell.font = { bold: true };
       availCell.alignment = { horizontal: 'center' };
-      if (staffTotal - count <= 7) {
-        availCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFCA5A5' } };
-      }
+      if (staffTotal - count <= 7) availCell.fill = fill('FFFCA5A5');
     });
+
+    // Landscape, fit all columns on one page width
+    sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
 
     // Download buffer in browser
     const buffer = await workbook.xlsx.writeBuffer();
@@ -510,9 +566,11 @@ class ExamLeaveService {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `ACNABIN_Exam_Leave_Information_Nov_2026.xlsx`;
+    anchor.download = 'ACNABIN_Exam_Leave_Information_Nov_2026.xlsx';
+    document.body.appendChild(anchor);
     anchor.click();
-    URL.revokeObjectURL(url);
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 }
 
