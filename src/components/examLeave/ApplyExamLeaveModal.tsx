@@ -61,30 +61,34 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   const [remarks, setRemarks] = useState<string>('');
 
   // Auto-calculate leave dates for the chosen papers.
-  // Days per paper:
-  // - Employee: 2 days per paper
-  // - Student: 1st attempt = 5 days, 2nd attempt = 4 days, 3rd attempt & rest = 3 days
-  // The total is the SUM over all papers (3 papers on the 1st attempt = 15 days), counted back from the
-  // last exam: the leave is that many calendar days ending on the day of the last exam. Nothing after it.
+  // Days per paper: Employee 2; Student 1st attempt 5, 2nd attempt 4, 3rd attempt & rest 3.
+  // Each paper's leave ENDS on its exam day and runs backwards. Working from the last exam to the first,
+  // a day that is already taken by a later paper is skipped (the window slides earlier), so the total is
+  // always the sum of the papers' days and nothing falls after the last exam. Papers far apart keep their
+  // own separate blocks (the days in between stay working days).
   const calculateLeaveDates = (
     papers: { code: string; name: string; date: string; attempt: string }[],
     type: 'Student' | 'Employee'
   ): string[] => {
     if (papers.length === 0) return [];
+    const iso = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    const taken = new Set<string>();
 
-    const total = papers.reduce((sum, p) => {
-      if (type === 'Employee') return sum + 2;
-      return sum + (p.attempt === '1st Attempt' ? 5 : p.attempt === '2nd Attempt' ? 4 : 3);
-    }, 0);
+    [...papers].sort((a, b) => b.date.localeCompare(a.date)).forEach(p => {
+      const need = type === 'Employee' ? 2 : p.attempt === '1st Attempt' ? 5 : p.attempt === '2nd Attempt' ? 4 : 3;
+      const [y, m, d] = p.date.split('-').map(Number);
+      let offset = 0;
+      let got = 0;
+      while (got < need) {
+        const day = iso(new Date(y, m - 1, d - offset));
+        offset++;
+        if (taken.has(day)) continue;
+        taken.add(day);
+        got++;
+      }
+    });
 
-    const last = papers.map(p => p.date).sort().slice(-1)[0];
-    const [y, m, d] = last.split('-').map(Number);
-    const dates: string[] = [];
-    for (let offset = total - 1; offset >= 0; offset--) {
-      const dt = new Date(y, m - 1, d - offset);
-      dates.push(`${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`);
-    }
-    return dates;
+    return Array.from(taken).sort();
   };
 
   // Records already saved: a person has ONE leave that can cover PL, AL and CL together
@@ -332,11 +336,11 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
           <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginBottom: '16px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
             {candidateType === 'Student' ? (
               <span>
-                <strong>Articled Student rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> per paper. The days of all papers are added up and counted back from the last exam (3 papers on the 1st attempt = 15 days).
+                <strong>Articled Student rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> per paper. Each paper's days end on its exam day; the total is the sum of all papers (3 papers on the 1st attempt = 15 days). You can still adjust days by hand.
               </span>
             ) : (
               <span>
-                <strong>Employee rule:</strong> every paper = <strong>2 days</strong>. The days of all papers are added up and counted back from the last exam.
+                <strong>Employee rule:</strong> every paper = <strong>2 days</strong>, ending on its exam day. The total is the sum of all papers.
               </span>
             )}
           </div>
