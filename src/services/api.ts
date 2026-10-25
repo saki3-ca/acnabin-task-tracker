@@ -184,7 +184,9 @@ function mapClientFromDb(row: any): Client {
     jobNumber: row.job_number || '',
     status: row.status || 'ACTIVE',
     createdDate: row.created_date,
-    lastUpdated: row.last_updated
+    lastUpdated: row.last_updated,
+    keyPersonId: row.key_person_id || undefined,
+    secondaryKeyPersonId: row.secondary_key_person_id || undefined
   };
 }
 
@@ -2265,6 +2267,8 @@ export const api = {
         if (name !== undefined) dbUpdates.name = name;
         if (jobNumber !== undefined) dbUpdates.job_number = jobNumber;
         if (status !== undefined) dbUpdates.status = status;
+        if (payload.keyPersonId !== undefined) dbUpdates.key_person_id = payload.keyPersonId || null;
+        if (payload.secondaryKeyPersonId !== undefined) dbUpdates.secondary_key_person_id = payload.secondaryKeyPersonId || null;
 
         const { data, error } = await supabase
           .from('clients')

@@ -43,6 +43,9 @@ export interface Client {
   status: 'ACTIVE' | 'INACTIVE';
   createdDate?: string;
   lastUpdated?: string;
+  /** User ids of the client's key person and secondary key person; contact info comes from the user record. */
+  keyPersonId?: string;
+  secondaryKeyPersonId?: string;
 }
 
 export interface Task {

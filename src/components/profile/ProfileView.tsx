@@ -31,6 +31,7 @@ import { staffService } from '../../services/staffService';
 import { MyStaff } from '../../types';
 import { Modal } from '../ui/Modal';
 import { CompletedTasksModal } from '../tasks/CompletedTasksModal';
+import { KeyPersonCell } from './KeyPersonCell';
 
 /**
  * Compresses an image file in the browser using HTML Canvas down to max 250x250px.
@@ -85,14 +86,15 @@ interface ProfileViewProps {
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) => {
-  const { currentUser, allClients, refreshContextData } = useAuth();
+  const { currentUser, allClients, allUsers, refreshContextData } = useAuth();
   const { myTasks, teamTasks, myStats } = useTasks();
 
   const canSeeAll = canViewAllClients(currentUser);
   // Client list management: AD and above (and Admin) can add clients; only Admin can delete.
   const canAddClients = canSeeAll;
   const canDeleteClients = currentUser?.role === 'ADMIN';
-  const canEditClients = currentUser?.role === 'ADMIN';
+  const isAdminUser = currentUser?.role === 'ADMIN';
+  const canEditClients = isAdminUser;
 
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClientName, setNewClientName] = useState('');
@@ -104,6 +106,45 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
   const [addClientError, setAddClientError] = useState<string | null>(null);
   const [clientNotice, setClientNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [deletingClientId, setDeletingClientId] = useState<string | null>(null);
+
+  // Key persons: chosen from the people on that client. By default the most senior designation on the
+  // client is the key person and the next one is the secondary.
+  const [keyPersonId, setKeyPersonId] = useState('');
+  const [secondaryKeyPersonId, setSecondaryKeyPersonId] = useState('');
+  const [joiningByEmp, setJoiningByEmp] = useState<Record<string, string>>({});
+  const findUser = (id?: string) => (id ? allUsers.find(u => u.id === id) : undefined);
+
+  useEffect(() => {
+    if (!canAddClients) return;
+    staffService.getStaffDates().then(rows => {
+      const map: Record<string, string> = {};
+      rows.forEach(r => { if (r.joiningDate) map[r.empId.toUpperCase()] = r.joiningDate; });
+      setJoiningByEmp(map);
+    }).catch(() => {});
+  }, [canAddClients]);
+
+  // Key persons come from In Charge and above, highest designation first, then longest-serving; students/trainees only count when nobody senior is on the client.
+  const clientPeople = (clientId: string) => {
+    const onClient = allUsers.filter(u => u.status !== 'INACTIVE' && getUserAssignedClientIds(u).includes(clientId));
+    const senior = onClient.filter(u => getUserRank(u) >= DESIGNATION_RANKS['In Charge']);
+    return (senior.length > 0 ? senior : onClient)
+      .sort((a, b) => {
+        const rank = getUserRank(b) - getUserRank(a);
+        if (rank) return rank;
+        const ja = joiningByEmp[a.empId.toUpperCase()] || '9999';
+        const jb = joiningByEmp[b.empId.toUpperCase()] || '9999';
+        return ja.localeCompare(jb) || a.name.localeCompare(b.name);
+      });
+  };
+
+  const keyPersonsOf = (client: { id: string; keyPersonId?: string; secondaryKeyPersonId?: string }) => {
+    const people = clientPeople(client.id);
+    const setPrimary = findUser(client.keyPersonId);
+    const setSecondary = findUser(client.secondaryKeyPersonId);
+    const primary = setPrimary || people.find(p => p.id !== setSecondary?.id);
+    const secondary = setSecondary || people.find(p => p.id !== primary?.id);
+    return { primary, secondary };
+  };
 
   const [assignedClientIds, setAssignedClientIds] = useState<string[]>(() => {
     if (!currentUser) return [];
@@ -522,12 +563,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
     setNewClientName('');
     setNewClientJobNumber('');
     setNewClientStatus('ACTIVE');
+    setKeyPersonId('');
+    setSecondaryKeyPersonId('');
     setAddClientError(null);
     setIsAddClientOpen(true);
   };
 
-  const openEditClient = (client: { id: string; name: string; jobNumber?: string; status: 'ACTIVE' | 'INACTIVE' }) => {
+  const openEditClient = (client: { id: string; name: string; jobNumber?: string; status: 'ACTIVE' | 'INACTIVE'; keyPersonId?: string; secondaryKeyPersonId?: string }) => {
     setEditingClientId(client.id);
+    const kp = keyPersonsOf(client);
+    setKeyPersonId(kp.primary?.id || '');
+    setSecondaryKeyPersonId(kp.secondary?.id || '');
     setNewClientName(client.name);
     setNewClientJobNumber(client.jobNumber || '');
     setNewClientStatus(client.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE');
@@ -541,15 +587,25 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
       setAddClientError('Please enter the client name.');
       return;
     }
+    if (editingClientId && keyPersonId && keyPersonId === secondaryKeyPersonId) {
+      setAddClientError('Key person and secondary key person must be different people.');
+      return;
+    }
     setAddClientError(null);
     setIsSavingClient(true);
     try {
       if (editingClientId) {
+        const defaults = keyPersonsOf({ id: editingClientId });
         const updated = await clientService.updateClient(editingClientId, {
-          name: newClientName.trim(),
-          // Leaving the Job ID blank keeps the current one.
-          jobNumber: newClientJobNumber.trim() || undefined,
-          status: newClientStatus
+          ...(isAdminUser ? {
+            name: newClientName.trim(),
+            // Leaving the Job ID blank keeps the current one.
+            jobNumber: newClientJobNumber.trim() || undefined,
+            status: newClientStatus
+          } : {}),
+          // Keep following the default (In Charge / longest-serving) unless a different person was picked.
+          keyPersonId: keyPersonId === defaults.primary?.id ? '' : keyPersonId,
+          secondaryKeyPersonId: secondaryKeyPersonId === defaults.secondary?.id ? '' : secondaryKeyPersonId
         });
         await refreshContextData();
         setIsAddClientOpen(false);
@@ -1055,6 +1111,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 <th style={{ width: '50px', textAlign: 'center' }}>SL.</th>
                 <th style={{ width: '140px', textAlign: 'center' }}>Job ID</th>
                 <th style={{ textAlign: 'left', minWidth: '240px' }}>Client / Company Name</th>
+                <th style={{ width: '210px', textAlign: 'left' }}>KEY PERSON</th>
                 <th style={{ width: '130px', textAlign: 'center' }}>ACTIVE TASKS</th>
                 <th style={{ width: '130px', textAlign: 'center' }}>Engagement Status</th>
                 {(canEditClients || canDeleteClients) && <th style={{ width: '170px', textAlign: 'center' }}>Action</th>}
@@ -1063,13 +1120,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             <tbody>
               {isLoadingClients ? (
                 <tr>
-                  <td colSpan={canEditClients || canDeleteClients ? 6 : 5} style={{ textAlign: 'center', padding: '24px' }}>
+                  <td colSpan={canEditClients || canDeleteClients ? 7 : 6} style={{ textAlign: 'center', padding: '24px' }}>
                     <div className="loading-indicator">Loading your assigned clients…</div>
                   </td>
                 </tr>
               ) : assignedClientsList.length === 0 ? (
                 <tr>
-                  <td colSpan={canEditClients || canDeleteClients ? 6 : 5} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
+                  <td colSpan={canEditClients || canDeleteClients ? 7 : 6} className="empty-state" style={{ padding: '32px 16px', textAlign: 'center' }}>
                     <Building size={32} style={{ color: 'var(--ink-muted)', marginBottom: '8px', opacity: 0.5 }} />
                     <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink)' }}>
                       No clients assigned to your profile yet
@@ -1098,6 +1155,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                           <Building size={15} color="var(--ink-soft)" />
                           <span>{client.name}</span>
                         </div>
+                      </td>
+                      <td style={{ textAlign: 'left' }}>
+                        <KeyPersonCell primary={keyPersonsOf(client).primary} secondary={keyPersonsOf(client).secondary} />
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <span
@@ -1609,7 +1669,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 onChange={e => setNewClientName(e.target.value)}
                 className="form-input"
                 placeholder="e.g. Walton Plaza"
-                autoFocus
+                autoFocus={!editingClientId || isAdminUser}
+                disabled={!!editingClientId && !isAdminUser}
                 required
               />
             </div>
@@ -1620,6 +1681,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 value={newClientJobNumber}
                 onChange={e => setNewClientJobNumber(e.target.value)}
                 className="form-input"
+                disabled={!!editingClientId && !isAdminUser}
                 placeholder={editingClientId ? 'e.g. C-25066' : 'e.g. C-25066 (auto-generated if left blank)'}
               />
             </div>
@@ -1630,12 +1692,40 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   value={newClientStatus}
                   onChange={e => setNewClientStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
                   className="form-select"
+                  disabled={!isAdminUser}
                 >
                   <option value="ACTIVE">Active</option>
                   <option value="INACTIVE">Inactive</option>
                 </select>
               </div>
             )}
+            {editingClientId && (() => {
+              const people = clientPeople(editingClientId);
+              return ([
+                { label: 'Key Person', value: keyPersonId, set: setKeyPersonId, other: secondaryKeyPersonId },
+                { label: 'Secondary Key Person', value: secondaryKeyPersonId, set: setSecondaryKeyPersonId, other: keyPersonId }
+              ]).map(f => {
+                const picked = findUser(f.value);
+                const options = people.filter(u => u.id !== f.other);
+                return (
+                  <div className="form-field" key={f.label}>
+                    <label>{f.label}</label>
+                    <select value={f.value} onChange={e => f.set(e.target.value)} className="form-select">
+                      <option value="">— None —</option>
+                      {options.map(u => (
+                        <option key={u.id} value={u.id}>{u.name}{u.designation ? ` — ${u.designation}` : ''}</option>
+                      ))}
+                    </select>
+                    {picked && (
+                      <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--ink-soft)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Phone size={12} /> {picked.mobile || 'No number on file'}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Mail size={12} /> {picked.email || 'No email on file'}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={() => setIsAddClientOpen(false)} disabled={isSavingClient}>
