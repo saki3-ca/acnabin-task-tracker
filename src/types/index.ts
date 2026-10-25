@@ -397,3 +397,33 @@ export interface InvoiceAttachment {
   uploadedById?: string;
   uploadedAt: string;
 }
+
+export type ExamLevel = 'CL' | 'PL' | 'AL';
+
+export interface IcabExamScheduleItem {
+  id: string;
+  level: 'CL' | 'PL' | 'AL';
+  subject: string;
+  paperCode?: string;
+  date: string; // YYYY-MM-DD
+  dayName: string;
+  timeSlot?: string;
+  isOffDay?: boolean;
+}
+
+export interface StaffExamLeaveRecord {
+  id: string;
+  sl: number;
+  name: string;
+  empId?: string;
+  candidateType?: 'Student' | 'Employee';
+  category: string;
+  subjects: string;
+  level: string;
+  totalLeaveDays: string;
+  leaveStartDay: string;
+  appearInLastExamDate: string;
+  leaveDates: string[];
+  status?: 'Approved' | 'Pending' | 'Rejected';
+  notes?: string;
+}

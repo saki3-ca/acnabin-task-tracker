@@ -366,6 +366,11 @@ button, input, select, textarea {
   padding-bottom: 0;
   scroll-behavior: smooth;
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab-pane {

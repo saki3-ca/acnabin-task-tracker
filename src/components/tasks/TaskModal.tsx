@@ -13,6 +13,7 @@ import {
 } from '../../lib/permissions';
 import { Priority, Task, TaskStatus, User } from '../../types';
 import { Modal } from '../ui/Modal';
+import { examLeaveService } from '../../services/examLeaveService';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -106,6 +107,28 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     () => assignableUsers.filter(u => !isAssistantDirectorOrAbove(u.designation)),
     [assignableUsers]
   );
+
+  // Check if assigned user is on ICAB study leave during assigned date or deadline
+  const leaveWarning = useMemo(() => {
+    if (mode !== 'team' || !assignedToId || assignedToId === 'ALL_MEMBERS') return null;
+    const targetUser = assignableUsers.find(u => u.id === assignedToId) || allUsers.find(u => u.id === assignedToId);
+    if (!targetUser) return null;
+    const detail = examLeaveService.getStaffLeaveDetail(targetUser.name);
+    if (!detail || detail.leaveDates.length === 0) return null;
+    const onDeadline = Boolean(deadline && detail.leaveDates.includes(deadline));
+    const onAssigned = Boolean(assignedDate && detail.leaveDates.includes(assignedDate));
+    if (onDeadline || onAssigned) {
+      return {
+        name: targetUser.name,
+        totalDays: detail.totalLeaveDays,
+        level: detail.level,
+        start: detail.leaveStartDay,
+        last: detail.appearInLastExamDate,
+        conflictOn: onDeadline ? `Deadline (${deadline})` : `Assigned Date (${assignedDate})`
+      };
+    }
+    return null;
+  }, [mode, assignedToId, assignableUsers, allUsers, deadline, assignedDate]);
 
   useEffect(() => {
     if (taskToEdit) {
@@ -453,6 +476,30 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               />
             </div>
           </div>
+
+          {/* ICAB Study Leave Warning Banner */}
+          {leaveWarning && (
+            <div
+              style={{
+                background: '#FEF3C7',
+                border: '1.5px solid #F59E0B',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                color: '#92400E',
+                fontSize: '12.5px',
+                lineHeight: '1.45',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                marginBottom: '14px'
+              }}
+            >
+              <span style={{ fontSize: '18px', lineHeight: 1 }}>🎓</span>
+              <div>
+                <strong>ICAB Study Leave Alert:</strong> {leaveWarning.name} is scheduled on study leave on the {leaveWarning.conflictOn}. Total leave: {leaveWarning.totalDays} ({leaveWarning.start} to {leaveWarning.last}).
+              </div>
+            </div>
+          )}
 
           {/* Employee Remarks */}
           <div className="form-field">

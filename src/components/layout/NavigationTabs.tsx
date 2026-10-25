@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, Receipt, Search, Shield, User as UserIcon, Users } from 'lucide-react';
+import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, GraduationCap, Receipt, Search, Shield, User as UserIcon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLivePolling } from '../../lib/useLivePolling';
@@ -9,8 +9,9 @@ import { invoiceService } from '../../services/invoiceService';
 import { manpowerAccessService } from '../../services/manpowerAccessService';
 import { proposalService } from '../../services/proposalService';
 import { tenderAgentService } from '../../services/tenderAgentService';
+import { examLeaveService } from '../../services/examLeaveService';
 
-export type TabKey = 'own' | 'team' | 'manpower' | 'invoices' | 'proposals' | 'tenders' | 'requests' | 'notifications' | 'profile' | 'admin';
+export type TabKey = 'own' | 'team' | 'manpower' | 'exam-leave' | 'invoices' | 'proposals' | 'tenders' | 'requests' | 'notifications' | 'profile' | 'admin';
 
 interface NavigationTabsProps {
   activeTab: TabKey;
@@ -41,6 +42,22 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
     void checkProposalAccess();
   }, [checkProposalAccess]);
   useLivePolling(() => checkProposalAccess(), 60000, Boolean(currentUser));
+
+  // Exam Leave: switched on by Admin for exam time; Admin always sees it
+  const [examLeaveOn, setExamLeaveOn] = useState<boolean | null>(null);
+  const checkExamLeave = useCallback(async () => {
+    if (!currentUser) return;
+    if (isAdminUser) return setExamLeaveOn(true);
+    setExamLeaveOn(await examLeaveService.isEnabled().catch(() => true));
+  }, [currentUser?.id, isAdminUser]);
+  useEffect(() => {
+    void checkExamLeave();
+  }, [checkExamLeave]);
+  useLivePolling(() => checkExamLeave(), 60000, Boolean(currentUser));
+  // Switched off while someone is on the tab: send them home
+  useEffect(() => {
+    if (examLeaveOn === false && activeTab === 'exam-leave') onSelectTab('own');
+  }, [examLeaveOn, activeTab, onSelectTab]);
 
   // Invoices: Admin plus the people the Admin chose
   const [invoiceAccess, setInvoiceAccess] = useState(false);
@@ -187,6 +204,17 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
           <Briefcase size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           Manpower
         </button>
+      )}
+
+      {/* Exam Leave: only while Admin has it switched on */}
+      {examLeaveOn && (
+      <button
+        className={`tab-btn ${activeTab === 'exam-leave' ? 'active' : ''}`}
+        onClick={() => onSelectTab('exam-leave')}
+      >
+        <GraduationCap size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+        Exam Leave
+      </button>
       )}
 
       {/* Invoices: only for people the Admin chose */}

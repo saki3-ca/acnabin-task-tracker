@@ -30,7 +30,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
   'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet', 'tenderAgentBridgeToken',
-  'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
+  'examLeaveEnabledGet', 'examLeaveEnabledSet', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -1884,6 +1884,28 @@ export const api = {
         const { data, error } = await supabase.rpc('app_proposal_attachment_delete', { p_session: session.token, p_id: payload.id });
         if (error) throw new Error('Could not remove the file record.');
         if (data === 'FORBIDDEN') throw new Error('Only Admin or the person who uploaded the file can delete it.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'examLeaveEnabledGet': {
+        const session = readSession();
+        if (!session) return true as T;
+        const { data, error } = await supabase.rpc('app_exam_leave_enabled_get', { p_session: session.token });
+        if (error) {
+          console.warn('[examLeaveEnabledGet] failed (run supabase_exam_leave_switch.sql?):', error.message);
+          return true as T;
+        }
+        return (data !== false) as T;
+      }
+
+      case 'examLeaveEnabledSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_exam_leave_enabled_set', { p_session: session.token, p_enabled: Boolean(payload.enabled) });
+        if (error) throw new Error('Could not save. Has supabase_exam_leave_switch.sql been run?');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can change this.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }

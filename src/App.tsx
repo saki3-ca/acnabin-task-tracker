@@ -29,6 +29,7 @@ import { TenderAgentView } from './components/tenders/TenderAgentView';
 import { InvoiceTracker } from './components/invoices/InvoiceTracker';
 import { ProposalTracker } from './components/proposals/ProposalTracker';
 import { UploadPanel } from './components/proposals/UploadPanel';
+import { ExamLeaveTracker } from './components/examLeave/ExamLeaveTracker';
 
 const MainApp: React.FC = () => {
   const { currentUser, isLoading: authLoading } = useAuth();
@@ -299,6 +300,9 @@ const MainApp: React.FC = () => {
       {activeTab === 'manpower' && (
         <ManpowerView />
       )}
+
+      {/* Central Exam Leave Management */}
+      {activeTab === 'exam-leave' && <ExamLeaveTracker />}
 
       {/* Proposal Tracker (people the Admin chose) */}
       {activeTab === 'invoices' && <InvoiceTracker />}
