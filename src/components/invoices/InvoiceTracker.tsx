@@ -3,7 +3,7 @@ import { Download, ExternalLink, FileSpreadsheet, FileUp, Paperclip, Pencil, Plu
 import { useAuth } from '../../context/AuthContext';
 import { downloadInvoicesExcel } from '../../lib/invoicesExcel';
 import { downloadMonthlyInvoicesExcel } from '../../lib/monthlyInvoiceExcel';
-import { isAssistantDirectorOrAbove } from '../../lib/permissions';
+import { getUserAssignedClientIds, isAssistantDirectorOrAbove } from '../../lib/permissions';
 import {
   COLLECTION_METHODS, DEFAULT_TDS_PCT, DEFAULT_VAT_PCT, fmtDate, fmtMoney, isYes, MONTHS, norm, suggestPeriod, suggestTaxes, toNum
 } from '../../lib/invoices';
@@ -85,6 +85,10 @@ const FormCard: React.FC<{ group: Group; title: string; hint?: string; children:
   </div>
 );
 
+// Client filter value meaning "the clients I work on"
+const MINE = '__MINE__';
+const compact = (v?: string | null) => (v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
 export const InvoiceTracker: React.FC = () => {
   const { currentUser, allClients, allUsers } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
@@ -103,7 +107,36 @@ export const InvoiceTracker: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [show, setShow] = useState<'ALL' | 'NOSUB' | 'OUT' | 'COL'>('ALL');
-  const [clientFilter, setClientFilter] = useState('');
+  // Below Assistant Director the list opens on the person's own clients (they can still pick any other client or All)
+  const isScoped = !isAdmin && !isAssistantDirectorOrAbove(currentUser?.designation);
+  const myClients = useMemo(() => {
+    if (!isScoped || !currentUser) return [];
+    const ids = new Set(getUserAssignedClientIds(currentUser));
+    return allClients.filter(c => ids.has(c.id));
+  }, [isScoped, currentUser, allClients]);
+  const defaultClientFilter = isScoped && myClients.length > 0 ? MINE : '';
+  const [clientFilter, setClientFilter] = useState(defaultClientFilter);
+  const [filterTouched, setFilterTouched] = useState(false);
+  useEffect(() => {
+    // clients can arrive after the first render: switch to "My Clients" once, unless the person already chose
+    if (!filterTouched) setClientFilter(defaultClientFilter);
+  }, [defaultClientFilter, filterTouched]);
+
+  // An invoice is "mine" when its client is one of my clients. The client NAME is the main key, so a client with
+  // several job numbers shows under every one of them; the job number and the job in-charge also count.
+  const isMine = useCallback((i: Invoice) => {
+    const name = compact(i.client);
+    const job = compact(i.jobNumber);
+    const me = compact(currentUser?.name);
+    if (me && compact(i.jicName) === me) return true;
+    return myClients.some(c => {
+      const cn = compact(c.name);
+      const cj = compact(c.jobNumber);
+      if (cj && job && cj === job) return true;
+      if (!cn || !name) return false;
+      return name === cn || (cn.length >= 5 && name.includes(cn)) || (name.length >= 5 && cn.includes(name));
+    });
+  }, [myClients, currentUser?.name]);
 
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [monthlyMonth, setMonthlyMonth] = useState('September');
@@ -185,18 +218,21 @@ export const InvoiceTracker: React.FC = () => {
   const rows = useMemo(() => {
     const q = norm(search);
     return invoices.filter(i => {
-      if (clientFilter && i.client !== clientFilter) return false;
+      if (clientFilter === MINE) {
+        if (!isMine(i)) return false;
+      } else if (clientFilter && i.client !== clientFilter) return false;
       if (show === 'NOSUB' && isYes(i.clientSubmitted)) return false;
       if (show === 'OUT' && isYes(i.collected)) return false;
       if (show === 'COL' && !isYes(i.collected)) return false;
       if (!q) return true;
       return [i.client, i.invoiceNo, i.submissionNo, i.jobNumber, i.jicName, i.purpose, i.forMonth].some(v => norm(v || '').includes(q));
     });
-  }, [invoices, search, show, clientFilter]);
-  const hasActiveFilters = Boolean(search.trim() || clientFilter || show !== 'ALL');
+  }, [invoices, search, show, clientFilter, isMine]);
+  const hasActiveFilters = Boolean(search.trim() || clientFilter !== defaultClientFilter || show !== 'ALL');
   const clearFilters = () => {
     setSearch('');
-    setClientFilter('');
+    setClientFilter(defaultClientFilter);
+    setFilterTouched(false);
     setShow('ALL');
   };
   const clientsInTable = useMemo(() => [...new Set(invoices.map(i => i.client).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [invoices]);
@@ -511,7 +547,8 @@ export const InvoiceTracker: React.FC = () => {
                 />
               </div>
               <div style={{ minWidth: '200px', flex: '1 1 220px' }}>
-                <select className="form-select" style={{ height: '36px', fontSize: '12.5px', width: '100%' }} value={clientFilter} onChange={e => setClientFilter(e.target.value)}>
+                <select className="form-select" style={{ height: '36px', fontSize: '12.5px', width: '100%' }} value={clientFilter} onChange={e => { setClientFilter(e.target.value); setFilterTouched(true); }}>
+                  {myClients.length > 0 && <option value={MINE}>My Clients ({myClients.length})</option>}
                   <option value="">All Clients</option>
                   {clientsInTable.map(c => (
                     <option key={c} value={c}>{c}</option>
