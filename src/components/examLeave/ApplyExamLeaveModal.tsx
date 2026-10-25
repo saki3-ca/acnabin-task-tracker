@@ -61,9 +61,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   // Rule:
   // - Employee: all subjects get 2 days (exam day + 1 day before: e.g. exam on 10 -> 9, 10)
   // - Student:
-  //   1st attempt = 4 days (exam day + 3 days before: e.g. exam on 10 -> 7, 8, 9, 10)
-  //   2nd attempt = 3 days (exam day + 2 days before: e.g. exam on 10 -> 8, 9, 10)
-  //   3rd attempt & rest = 2 days (exam day + 1 day before: e.g. exam on 10 -> 9, 10)
+  //   1st attempt = 5 days (exam day + 4 days before: e.g. exam on 10 -> 6, 7, 8, 9, 10)
+  //   2nd attempt = 4 days (exam day + 3 days before: e.g. exam on 10 -> 7, 8, 9, 10)
+  //   3rd attempt & rest = 3 days (exam day + 2 days before: e.g. exam on 10 -> 8, 9, 10)
   const calculateLeaveDates = (
     papers: { code: string; name: string; date: string; attempt: string }[],
     type: 'Student' | 'Employee'
@@ -76,9 +76,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       if (type === 'Employee') {
         daysCount = 2;
       } else {
-        if (p.attempt === '1st Attempt') daysCount = 4;
-        else if (p.attempt === '2nd Attempt') daysCount = 3;
-        else daysCount = 2;
+        if (p.attempt === '1st Attempt') daysCount = 5;
+        else if (p.attempt === '2nd Attempt') daysCount = 4;
+        else daysCount = 3;
       }
 
       const [y, m, d] = p.date.split('-').map(Number);
@@ -248,7 +248,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
           if (candidateType === 'Employee') {
             return `${idx + 1}. ${p.code} (2 days)`;
           }
-          const days = p.attempt === '1st Attempt' ? '4 days' : p.attempt === '2nd Attempt' ? '3 days' : '2 days';
+          const days = p.attempt === '1st Attempt' ? '5 days' : p.attempt === '2nd Attempt' ? '4 days' : '3 days';
           return `${idx + 1}. ${p.code} (${p.attempt} - ${days})`;
         })
         .join('\n');
@@ -392,7 +392,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
             <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginTop: '6px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
               {candidateType === 'Student' ? (
                 <span>
-                  <strong>Student Rule:</strong> 1st attempt = <strong>4 days</strong>, 2nd attempt = <strong>3 days</strong>, 3rd+ attempt = <strong>2 days</strong> (exam day & days before).
+                  <strong>Student Rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> (exam day & days before).
                 </span>
               ) : (
                 <span>
@@ -529,7 +529,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 if (candidateType === 'Employee') {
                   daysLabel = '2 days leave';
                 } else {
-                  daysLabel = currentAttempt === '1st Attempt' ? '4 days leave' : currentAttempt === '2nd Attempt' ? '3 days leave' : '2 days leave';
+                  daysLabel = currentAttempt === '1st Attempt' ? '5 days leave' : currentAttempt === '2nd Attempt' ? '4 days leave' : '3 days leave';
                 }
 
                 return (
@@ -586,9 +586,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                               color: 'var(--ink)'
                             }}
                           >
-                            <option value="1st Attempt">1st Attempt (4 Days)</option>
-                            <option value="2nd Attempt">2nd Attempt (3 Days)</option>
-                            <option value="3rd Attempt & rest">3rd+ Attempt (2 Days)</option>
+                            <option value="1st Attempt">1st Attempt (5 Days)</option>
+                            <option value="2nd Attempt">2nd Attempt (4 Days)</option>
+                            <option value="3rd Attempt & rest">3rd+ Attempt (3 Days)</option>
                           </select>
                         ) : (
                           <span
