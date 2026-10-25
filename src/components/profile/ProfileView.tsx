@@ -680,14 +680,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          gap: '8px',
+                          gap: '6px 8px',
+                          flexWrap: 'wrap',
                           background: isPrimary ? '#F0FDF4' : '#F8FAFC',
                           border: `1.5px solid ${isPrimary ? '#10B981' : '#E2E8F0'}`,
                           borderRadius: '8px',
                           padding: '5px 10px'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: '1 1 160px' }}>
                           {editClients.length > 1 && (
                             <span
                               style={{
@@ -1475,7 +1476,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   </>
                 ) : clientsInInfoBox ? (
                   <>
-                    <div style={{ gridColumn: 'span 3' }}>{clientPicker}</div>
+                    <div style={{ gridColumn: '1 / -1' }}>{clientPicker}</div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
                       <label style={{ fontSize: '11.5px' }}>Blood Group</label>
                       <select className="form-select" value={editBlood} onChange={e => setEditBlood(e.target.value)} style={infoInputStyle}>
