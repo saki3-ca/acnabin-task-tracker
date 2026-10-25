@@ -5,7 +5,6 @@ import {
   Check,
   GraduationCap,
   Info,
-  UserCheck,
   X
 } from 'lucide-react';
 import {
@@ -19,6 +18,8 @@ import {
 } from '../../services/examLeaveService';
 import { ExamLevel, StaffExamLeaveRecord } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { isEmployeeProfile } from '../../lib/academicYear';
+import { User } from '../../types';
 
 interface ApplyExamLeaveModalProps {
   isOpen: boolean;
@@ -41,8 +42,9 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   const [candidateName, setCandidateName] = useState<string>(currentUser?.name || '');
   const [candidateClient, setCandidateClient] = useState<string>('');
 
-  // Candidate Category: Articled Student vs Employee
+  // Articled Student (STD) or Employee (EMP): taken from the person's account, not chosen here
   const [candidateType, setCandidateType] = useState<'Student' | 'Employee'>('Student');
+  const typeOf = (u?: User | null): 'Student' | 'Employee' => (u && isEmployeeProfile(u.empId, u.designation) ? 'Employee' : 'Student');
 
   // Exam Level: Only PL, CL, AL (No CL & PL Combined)
   const [examLevel, setExamLevel] = useState<ExamLevel>('PL');
@@ -121,13 +123,8 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
     if (existingRecord) {
       setCandidateName(existingRecord.name);
       setCandidateClient(existingRecord.category);
-      if (existingRecord.candidateType) {
-        setCandidateType(existingRecord.candidateType);
-      } else if (existingRecord.category?.toLowerCase().includes('employee')) {
-        setCandidateType('Employee');
-      } else {
-        setCandidateType('Student');
-      }
+      const person = allUsers.find(u => sameName(u.name, existingRecord.name));
+      setCandidateType(person ? typeOf(person) : existingRecord.candidateType || 'Student');
 
       if (['PL', 'CL', 'AL'].includes(existingRecord.level)) {
         setExamLevel(existingRecord.level as ExamLevel);
@@ -154,9 +151,15 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
         });
         setSelectedPapers(parsed);
       }
+    } else if (currentUser && isAdmin) {
+      // Admin applies on behalf of someone: nobody is pre-selected (Admin is not a candidate)
+      setCandidateName('');
+      setSelectedUserId('');
+      setCandidateClient('');
     } else if (currentUser) {
       setCandidateName(currentUser.name);
       setSelectedUserId(currentUser.id);
+      setCandidateType(typeOf(currentUser));
 
       // Determine client name
       const userClients = (currentUser.assignedClientIds || [])
@@ -164,13 +167,16 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
         .filter(Boolean);
       setCandidateClient(userClients.join(', '));
     }
-  }, [isOpen, existingRecord, currentUser, allClients]);
+  }, [isOpen, existingRecord, currentUser, allClients, allUsers]);
 
   // When selected user changes (Admin applying for someone else)
   const handleUserChange = (uId: string) => {
     setSelectedUserId(uId);
     const u = allUsers.find(x => x.id === uId);
     if (u) {
+      const type = typeOf(u);
+      setCandidateType(type);
+      if (selectedPapers.length > 0) applyCalculatedDates(calculateLeaveDates(selectedPapers, type), selectedPapers);
       setCandidateName(u.name);
       const userClients = (u.assignedClientIds || [])
         .map(cid => allClients.find(c => c.id === cid)?.name)
@@ -183,15 +189,6 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   const availableCatalog = useMemo(() => {
     return (ICAB_PAPERS_CATALOG[examLevel] || []).map(p => ({ ...p, level: examLevel }));
   }, [examLevel]);
-
-  // Handle Candidate Type change
-  const handleCandidateTypeChange = (newType: 'Student' | 'Employee') => {
-    setCandidateType(newType);
-    if (selectedPapers.length > 0) {
-      const dates = calculateLeaveDates(selectedPapers, newType);
-      applyCalculatedDates(dates, selectedPapers);
-    }
-  };
 
   // Toggle paper selection
   const togglePaper = (paper: { code: string; name: string; date: string }) => {
@@ -358,68 +355,17 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
-          {/* 1. Candidate Category: Articled Student vs Employee */}
-          <div className="form-field" style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: 'var(--ink)' }}>
-              Candidate Category
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <button
-                type="button"
-                onClick={() => handleCandidateTypeChange('Student')}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  border: candidateType === 'Student' ? '2px solid var(--maroon)' : '1px solid var(--line)',
-                  background: candidateType === 'Student' ? '#F9E8EA' : '#FAF7F2',
-                  color: candidateType === 'Student' ? 'var(--maroon)' : 'var(--ink)'
-                }}
-              >
-                <GraduationCap size={16} />
-                <span>Articled Student</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleCandidateTypeChange('Employee')}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  border: candidateType === 'Employee' ? '2px solid var(--maroon)' : '1px solid var(--line)',
-                  background: candidateType === 'Employee' ? '#F9E8EA' : '#FAF7F2',
-                  color: candidateType === 'Employee' ? 'var(--maroon)' : 'var(--ink)'
-                }}
-              >
-                <UserCheck size={16} />
-                <span>Employee / Audit Staff</span>
-              </button>
-            </div>
-
-            <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginTop: '6px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
-              {candidateType === 'Student' ? (
-                <span>
-                  <strong>Student Rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> (exam day & days before).
-                </span>
-              ) : (
-                <span>
-                  <strong>Employee Rule:</strong> All subjects leave = <strong>2 days</strong> per paper (exam day & 1 day before).
-                </span>
-              )}
-            </div>
+          {/* 1. Category comes from the account (STD = Articled Student, EMP = Employee); only the rule is shown */}
+          <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginBottom: '16px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+            {candidateType === 'Student' ? (
+              <span>
+                <strong>Articled Student rule:</strong> 1st attempt = <strong>5 days</strong>, 2nd attempt = <strong>4 days</strong>, 3rd+ attempt = <strong>3 days</strong> (exam day & days before).
+              </span>
+            ) : (
+              <span>
+                <strong>Employee rule:</strong> every paper = <strong>2 days</strong> (exam day & 1 day before).
+              </span>
+            )}
           </div>
 
           {/* 2. Candidate Profile Info */}
@@ -434,7 +380,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                   required
                 >
                   <option value="">Select candidate…</option>
-                  {allUsers.filter(u => u.status !== 'INACTIVE').map(u => (
+                  {allUsers.filter(u => u.status !== 'INACTIVE' && u.role !== 'ADMIN' && u.designation !== 'Partner').map(u => (
                     <option key={u.id} value={u.id}>
                       {u.name} ({u.designation})
                     </option>
