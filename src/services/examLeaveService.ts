@@ -363,31 +363,82 @@ class ExamLeaveService {
     return this.cache;
   }
 
-  /** Leaves entered before they were stored in the database lived in this browser only: upload them once. */
-  private async uploadOldLocalLeaves(): Promise<void> {
-    let local: StaffExamLeaveRecord[] = [];
+  // ---- leaves that were saved only in this browser (before the database) -----------------------------------
+  /** Why each leave still on this computer could not be uploaded (kept in memory for the notice in the tab) */
+  private pendingReasons = new Map<string, string>();
+
+  private readLocal(): StaffExamLeaveRecord[] {
     try {
       OLD_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return;
-      local = JSON.parse(stored) as StaffExamLeaveRecord[];
+      const list = stored ? (JSON.parse(stored) as StaffExamLeaveRecord[]) : [];
+      return Array.isArray(list) ? list : [];
     } catch {
-      return;
+      return [];
     }
-    let keep = false;
-    for (const rec of local) {
-      try {
-        await api.callBackend('examLeaveSave', { record: rec });
-      } catch (e: any) {
-        // already there / not yours to add: nothing more to do. Anything else (offline...) stays for next time.
-        if (!/already submitted|not allowed/i.test(e?.message || '')) keep = true;
-      }
-    }
+  }
+
+  private writeLocal(list: StaffExamLeaveRecord[]): void {
     try {
-      if (!keep) localStorage.removeItem(STORAGE_KEY);
+      if (list.length === 0) localStorage.removeItem(STORAGE_KEY);
+      else localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     } catch {
       /* ignore */
     }
+  }
+
+  /** Several old rows of one person (one per level) become the single leave a person has now. */
+  private mergeByPerson(list: StaffExamLeaveRecord[]): StaffExamLeaveRecord[] {
+    const out: StaffExamLeaveRecord[] = [];
+    list.forEach(rec => {
+      const hit = out.find(o => sameName(o.name, rec.name));
+      if (!hit) {
+        out.push({ ...rec, leaveDates: [...rec.leaveDates] });
+        return;
+      }
+      const papers = [...getRecordPapers(hit), ...getRecordPapers(rec)];
+      const levels = Array.from(new Set([...levelsOfRecord(hit), ...levelsOfRecord(rec)])).sort((x, y) => LEVEL_ORDER.indexOf(x) - LEVEL_ORDER.indexOf(y));
+      const dates = Array.from(new Set([...hit.leaveDates, ...rec.leaveDates])).sort();
+      const lastExams = [hit.appearInLastExamDate, rec.appearInLastExamDate].filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+      hit.level = levels.join(' & ') || hit.level;
+      hit.papers = papers.length > 0 ? papers : hit.papers;
+      hit.subjects = levels.length > 1 ? [hit, rec].map(r => `${r.level}\n${r.subjects}`).join('\n') : `${hit.subjects}\n${rec.subjects}`;
+      hit.leaveDates = dates;
+      hit.totalLeaveDays = `${dates.length} Days`;
+      hit.leaveStartDay = dates[0] || hit.leaveStartDay;
+      hit.appearInLastExamDate = lastExams[lastExams.length - 1] || hit.appearInLastExamDate;
+    });
+    return out;
+  }
+
+  /** Leaves still on this computer waiting to reach the database, with the reason when an upload failed */
+  getPendingLocalLeaves(): { id: string; name: string; reason: string }[] {
+    return this.readLocal().map(r => ({ id: r.id, name: r.name, reason: this.pendingReasons.get(r.id) || '' }));
+  }
+
+  /** Uploads the leaves kept only in this browser. A leave leaves this computer only once it is safely in the
+   *  database (or is already there); anything that fails stays here and is reported, never thrown away. */
+  async uploadLocalLeaves(): Promise<void> {
+    const local = this.readLocal();
+    if (local.length === 0) return;
+    const merged = this.mergeByPerson(local);
+    const remaining: StaffExamLeaveRecord[] = [];
+    this.pendingReasons.clear();
+    for (const rec of merged) {
+      try {
+        await api.callBackend('examLeaveSave', { record: rec });
+      } catch (e: any) {
+        const msg: string = e?.message || 'Could not upload.';
+        // a leave for this person is already in the database: this copy is not needed
+        if (/already submitted/i.test(msg)) continue;
+        remaining.push(rec);
+        this.pendingReasons.set(
+          rec.id,
+          /not allowed/i.test(msg) ? 'This leave is not under your own name. Ask the Admin to add it.' : msg
+        );
+      }
+    }
+    this.writeLocal(remaining);
   }
 
   /** Is the Exam Leave tab switched on for everyone? (Admin turns it on for exam time.) */
@@ -401,7 +452,7 @@ class ExamLeaveService {
 
   /** The leaves the signed-in person is allowed to see (the database decides). */
   async getLeaves(): Promise<StaffExamLeaveRecord[]> {
-    await this.uploadOldLocalLeaves();
+    await this.uploadLocalLeaves();
     const list = await api.callBackend<StaffExamLeaveRecord[]>('examLeaveList', {});
     this.cache = Array.isArray(list) ? list : [];
     return this.cache;

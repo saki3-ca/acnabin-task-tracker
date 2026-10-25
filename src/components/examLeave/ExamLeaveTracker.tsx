@@ -91,6 +91,7 @@ export const ExamLeaveTracker: React.FC = () => {
   }, [allRecords, canSeeEveryone, teamUsers, currentUser]);
 
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [pendingLocal, setPendingLocal] = useState<{ id: string; name: string; reason: string }[]>([]);
   const attempt = async (action: () => Promise<unknown>) => {
     try {
       await action();
@@ -131,6 +132,7 @@ export const ExamLeaveTracker: React.FC = () => {
       const data = await examLeaveService.getLeaves();
       setRecords(data);
       setLoadError(null);
+      setPendingLocal(examLeaveService.getPendingLocalLeaves());
     } catch (err: any) {
       setLoadError(err?.message || 'Could not load exam leave.');
     } finally {
@@ -273,6 +275,17 @@ export const ExamLeaveTracker: React.FC = () => {
       {loadError && (
         <div className="auth-alert-error" style={{ margin: 0 }}>
           {loadError}
+        </div>
+      )}
+      {pendingLocal.length > 0 && (
+        <div style={{ margin: 0, padding: '10px 14px', borderRadius: '8px', background: '#FBEBC4', border: '1px solid #D9A441', color: '#7A4B00', fontSize: '12.5px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <span>
+            <strong>{pendingLocal.length} leave{pendingLocal.length === 1 ? ' is' : 's are'} saved only on this computer</strong> and nobody else can see {pendingLocal.length === 1 ? 'it' : 'them'} yet:{' '}
+            {pendingLocal.map(p => (p.reason ? `${p.name} (${p.reason})` : p.name)).join('; ')}
+          </span>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void loadLeaves()}>
+            Upload now
+          </button>
         </div>
       )}
       {/* 1. TOP ROW: 5-SLOT GRID MATCHING MANPOWER & TEAM TASKS EXACT HEIGHT & PROPORTIONS */}
