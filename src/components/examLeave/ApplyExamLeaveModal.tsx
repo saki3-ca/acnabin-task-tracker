@@ -684,7 +684,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
                 borderColor: 'var(--maroon)'
               }}
             >
-              {existingRecord ? 'Update Leave Application' : isAdmin ? 'Submit & Approve Leave' : 'Submit Leave Application'}
+              {existingRecord ? 'Update' : 'Submit'}
             </button>
           </div>
         </form>
