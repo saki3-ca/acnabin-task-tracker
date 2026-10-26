@@ -38,6 +38,15 @@ import { ApplyExamLeaveModal } from './ApplyExamLeaveModal';
 
 const formatRoutineDate = (dateStr: string, dayName: string) => `${formatShortDate(dateStr)}, ${dayName}`;
 
+/** Today's date as the selected (blue) column; before the timeline starts it is the first day, after it ends the last day. */
+const todayInTimeline = (): string => {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const first = EXAM_TIMELINE_DATES[0];
+  const last = EXAM_TIMELINE_DATES[EXAM_TIMELINE_DATES.length - 1];
+  return today < first ? first : today > last ? last : today;
+};
+
 export const ExamLeaveTracker: React.FC = () => {
   const { currentUser, allUsers } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
@@ -52,7 +61,7 @@ export const ExamLeaveTracker: React.FC = () => {
   const [selectedLevel, setSelectedLevel] = useState('');
 
   // Interactive Date Inspector
-  const [inspectedDate, setInspectedDate] = useState<string>('2026-11-12');
+  const [inspectedDate, setInspectedDate] = useState<string>(todayInTimeline);
 
   // Modals & Drawers
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
