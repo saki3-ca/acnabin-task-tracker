@@ -30,7 +30,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
   'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet', 'tenderAgentBridgeToken',
-  'firmCostingList', 'firmCostingSaveMonth', 'firmCostingThemeGet', 'firmCostingThemeSet', 'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
+  'tabAccessMine', 'tabAccessGet', 'tabAccessSet', 'firmCostingList', 'firmCostingSaveMonth', 'firmCostingThemeGet', 'firmCostingThemeSet', 'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -1884,6 +1884,37 @@ export const api = {
         const { data, error } = await supabase.rpc('app_proposal_attachment_delete', { p_session: session.token, p_id: payload.id });
         if (error) throw new Error('Could not remove the file record.');
         if (data === 'FORBIDDEN') throw new Error('Only Admin or the person who uploaded the file can delete it.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'tabAccessMine': {
+        const session = readSession();
+        if (!session) return null as T;
+        // Admin using Switch User: answer for the person being viewed (the server only allows this for an Admin)
+        const asUserId = this.isViewingAsAnother() ? (await this.getCurrentUser())?.id : undefined;
+        const { data, error } = await supabase.rpc('app_my_tabs', { p_session: session.token, p_as_user_id: asUserId || null });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Tab Access database update has not been run yet (supabase_tab_access.sql).' : 'Could not load tab access. (' + error.message + ')');
+        return (data ?? null) as T;
+      }
+
+      case 'tabAccessGet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_tab_access_get', { p_session: session.token });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Tab Access database update has not been run yet (supabase_tab_access.sql). Please run it first.' : 'Could not load tab access. (' + error.message + ')');
+        if (data === null) throw new Error('Only Admin can see tab access.');
+        return data as T;
+      }
+
+      case 'tabAccessSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_tab_access_set', { p_session: session.token, p_tab_key: payload.tab, p_mode: payload.mode, p_user_ids: payload.userIds, p_except_ids: payload.exceptIds });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Tab Access database update has not been run yet (supabase_tab_access.sql). Please run it first.' : 'Could not save. (' + error.message + ')');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can change tab access.');
+        if (data === 'INVALID_INPUT') throw new Error('That choice is not valid.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }

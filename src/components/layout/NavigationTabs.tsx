@@ -10,6 +10,8 @@ import { manpowerAccessService } from '../../services/manpowerAccessService';
 import { proposalService } from '../../services/proposalService';
 import { tenderAgentService } from '../../services/tenderAgentService';
 import { examLeaveService } from '../../services/examLeaveService';
+import { tabAccessService } from '../../services/tabAccessService';
+import { MyTabAccess, TabAccessKey } from '../../types';
 
 export type TabKey = 'own' | 'team' | 'manpower' | 'firm-costing' | 'exam-leave' | 'invoices' | 'proposals' | 'tenders' | 'requests' | 'notifications' | 'profile' | 'admin';
 
@@ -17,6 +19,20 @@ interface NavigationTabsProps {
   activeTab: TabKey;
   onSelectTab: (tab: TabKey) => void;
 }
+
+/**
+ * The tab setting Admin saved: true / false when a choice exists, undefined while none is saved (the old rule then applies).
+ * ALL = everyone, ADMIN = only Admin, INDIVIDUAL = the people on the list, NONE = nobody.
+ */
+const savedChoice = (mine: MyTabAccess | null, key: TabAccessKey, isAdmin: boolean): boolean | undefined => {
+  const m = mine?.[key];
+  // NONE switches the tab off for everybody, Admin too
+  if (m?.mode === 'NONE') return false;
+  if (isAdmin) return true;
+  if (!m || !m.mode) return undefined;
+  if (m.mode === 'EXCEPT') return !m.excluded;
+  return m.mode === 'ALL' ? true : m.mode === 'ADMIN' ? false : m.listed;
+};
 
 export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   activeTab,
@@ -107,13 +123,38 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   }, [checkManpowerAccess]);
   useLivePolling(() => checkManpowerAccess(), 60000, Boolean(currentUser));
 
+  // The ALL / ADMIN / Individual choice Admin saved for each tab (none saved = the old rules above)
+  const [mine, setMine] = useState<MyTabAccess | null>(null);
+  const checkMine = useCallback(async () => {
+    if (!currentUser) return;
+    setMine(await tabAccessService.mine().catch(() => null));
+  }, [currentUser?.id]);
+  useEffect(() => {
+    void checkMine();
+  }, [checkMine]);
+  useLivePolling(() => checkMine(), 60000, Boolean(currentUser));
+
+  const choice = (key: TabAccessKey) => savedChoice(mine, key, isAdminUser);
+  // Admin took a tab away while someone is on it: send them home
+  useEffect(() => {
+    const tabOf: Partial<Record<TabKey, TabAccessKey>> = { manpower: 'manpower', 'firm-costing': 'firm_costing', 'exam-leave': 'exam_leave', invoices: 'invoices', proposals: 'proposals', tenders: 'tenders' };
+    const key = tabOf[activeTab];
+    if (key && choice(key) === false) onSelectTab('own');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mine, activeTab]);
+
   if (!currentUser) return null;
 
   // Team Tasks: In Charge and above, and Team Leaders (students with a team assigned)
   const showTeamTasksTab = canViewTeamTasks(currentUser);
 
   // Manpower: Admin, Assistant Director and above, In Charge to Manager (own clients only) or anyone the Admin added
-  const showManpowerTab = canViewManpower(currentUser) || canViewManpowerScoped(currentUser) || manpowerGranted;
+  const showManpowerTab = choice('manpower') ?? (canViewManpower(currentUser) || canViewManpowerScoped(currentUser) || manpowerGranted);
+  const showFirmCostingTab = choice('firm_costing') ?? canViewFirmCosting(currentUser);
+  const showExamLeaveTab = choice('exam_leave') ?? Boolean(examLeaveOn);
+  const showInvoicesTab = choice('invoices') ?? invoiceAccess;
+  const showProposalsTab = choice('proposals') ?? proposalAccess;
+  const showTendersTab = choice('tenders') ?? tenderAccess;
 
   // Task Requests, Notifications & My Profile: available for all practice users
   const showRequestsTab = currentUser.role !== 'ADMIN';
@@ -207,7 +248,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       )}
 
       {/* Firm Costing: Admin, Assistant Director and above */}
-      {canViewFirmCosting(currentUser) && (
+      {showFirmCostingTab && (
         <button
           className={`tab-btn ${activeTab === 'firm-costing' ? 'active' : ''}`}
           onClick={() => onSelectTab('firm-costing')}
@@ -218,7 +259,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       )}
 
       {/* Exam Leave: only while Admin has it switched on */}
-      {examLeaveOn && (
+      {showExamLeaveTab && (
       <button
         className={`tab-btn ${activeTab === 'exam-leave' ? 'active' : ''}`}
         onClick={() => onSelectTab('exam-leave')}
@@ -229,7 +270,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       )}
 
       {/* Invoices: only for people the Admin chose */}
-      {invoiceAccess && (
+      {showInvoicesTab && (
         <button
           className={`tab-btn ${activeTab === 'invoices' ? 'active' : ''}`}
           onClick={() => onSelectTab('invoices')}
@@ -240,7 +281,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       )}
 
       {/* Proposal Tracker: only for people the Admin chose */}
-      {proposalAccess && (
+      {showProposalsTab && (
         <button
           className={`tab-btn ${activeTab === 'proposals' ? 'active' : ''}`}
           onClick={() => onSelectTab('proposals')}
@@ -251,7 +292,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
       )}
 
       {/* Tender Agent: only for people the Admin chose */}
-      {tenderAccess && (
+      {showTendersTab && (
         <button
           className={`tab-btn ${activeTab === 'tenders' ? 'active' : ''}`}
           onClick={() => onSelectTab('tenders')}

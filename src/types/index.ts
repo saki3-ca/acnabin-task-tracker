@@ -334,6 +334,15 @@ export interface ProposalAttachment {
   uploadedAt: string;
 }
 
+/** Tabs whose access Admin sets (My Tasks, Task Requests, Notifications, My Profile and Team Tasks are basic) */
+export type TabAccessKey = 'manpower' | 'firm_costing' | 'exam_leave' | 'invoices' | 'proposals' | 'tenders';
+/** ALL = everyone, ADMIN = only Admin, INDIVIDUAL = Admin plus the people on the list, EXCEPT = everyone but the people on the other list, NONE = nobody (switched off) */
+export type TabAccessMode = 'ALL' | 'ADMIN' | 'INDIVIDUAL' | 'EXCEPT' | 'NONE';
+/** What the signed-in person gets for a tab: mode null = Admin has not chosen yet (the old rule applies) */
+export type MyTabAccess = Record<TabAccessKey, { mode: TabAccessMode | null; listed: boolean; excluded: boolean }>;
+/** Admin view of one tab */
+export interface TabAccessEntry { mode: TabAccessMode | null; userIds: string[]; exceptIds: string[] }
+
 /** One client's figures for one month in the Firm Costing dashboard. Invoice value includes VAT and tax. */
 export interface FirmCostingRow {
   /** YYYY-MM */

@@ -8,7 +8,7 @@ import { adminService } from '../../services/adminService';
 import { Designation, ManagerAccessItem, ManagerStudentItem, Role, User } from '../../types';
 import { Modal } from '../ui/Modal';
 import { StaffImport } from './StaffImport';
-import { ProposalAccess } from './ProposalAccess';
+import { TabAccessManager } from './TabAccessManager';
 
 type Section = 'users' | 'access' | 'managers' | 'import';
 const SECTIONS: { key: Section; label: string }[] = [
@@ -226,7 +226,7 @@ export const AdminPanel: React.FC = () => {
         ))}
       </div>
 
-      {section === 'access' && <ProposalAccess />}
+      {section === 'access' && <TabAccessManager />}
 
       {section === 'import' && <StaffImport />}
 
