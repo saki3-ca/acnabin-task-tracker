@@ -654,7 +654,7 @@ const FullManpowerView: React.FC = () => {
             {effectiveIncludeAllHr ? 'TOTAL MANPOWER' : 'ACTIVE MANPOWER'}
           </span>
           <span className="stat-pill-value">
-            {String(viewMode === 'summary' ? grandTotalManpower : records.length).padStart(2, '0')}
+            {String(viewMode === 'summary' ? grandTotalManpower : filteredDetails.length).padStart(2, '0')}
           </span>
         </div>
 
@@ -662,7 +662,7 @@ const FullManpowerView: React.FC = () => {
         <div className="stat-pill">
           <span className="stat-pill-label">TOTAL MONTHLY SALARY</span>
           <span className="stat-pill-value" style={{ color: 'var(--navy, #1B2A6B)' }}>
-            {formatBDT(viewMode === 'summary' ? grandTotalSalary : records.reduce((s, r) => s + r.salary, 0))}
+            {formatBDT(viewMode === 'summary' ? grandTotalSalary : filteredDetails.reduce((s, r) => s + r.salary, 0))}
           </span>
         </div>
 
@@ -670,7 +670,7 @@ const FullManpowerView: React.FC = () => {
         <div className="stat-pill">
           <span className="stat-pill-label">TOTAL CONVEYANCE</span>
           <span className="stat-pill-value" style={{ color: '#03543F' }}>
-            {formatBDT(viewMode === 'summary' ? grandTotalConveyance : records.reduce((s, r) => s + r.conveyance, 0))}
+            {formatBDT(viewMode === 'summary' ? grandTotalConveyance : filteredDetails.reduce((s, r) => s + r.conveyance, 0))}
           </span>
         </div>
 
@@ -678,7 +678,7 @@ const FullManpowerView: React.FC = () => {
         <div className="stat-pill">
           <span className="stat-pill-label">GRAND TOTAL COST</span>
           <span className="stat-pill-value" style={{ color: 'var(--maroon, #800000)' }}>
-            {formatBDT(viewMode === 'summary' ? grandTotalCost : records.reduce((s, r) => s + r.total, 0))}
+            {formatBDT(viewMode === 'summary' ? grandTotalCost : filteredDetails.reduce((s, r) => s + r.total, 0))}
           </span>
         </div>
 
