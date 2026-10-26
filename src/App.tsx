@@ -29,6 +29,7 @@ import { TenderAgentView } from './components/tenders/TenderAgentView';
 import { InvoiceTracker } from './components/invoices/InvoiceTracker';
 import { ProposalTracker } from './components/proposals/ProposalTracker';
 import { UploadPanel } from './components/proposals/UploadPanel';
+import { FirmCosting } from './components/firmCosting/FirmCosting';
 import { ExamLeaveTracker } from './components/examLeave/ExamLeaveTracker';
 
 const MainApp: React.FC = () => {
@@ -300,6 +301,8 @@ const MainApp: React.FC = () => {
       {activeTab === 'manpower' && (
         <ManpowerView />
       )}
+
+      {activeTab === 'firm-costing' && <FirmCosting />}
 
       {/* Central Exam Leave Management */}
       {activeTab === 'exam-leave' && <ExamLeaveTracker />}

@@ -151,6 +151,11 @@ export function canViewManpower(user: User | null): boolean {
   return user.role === 'ADMIN' || isAssistantDirectorOrAbove(user.designation);
 }
 
+/** Firm Costing (client-wise revenue, cost and profit): Admin, Assistant Director and above. */
+export function canViewFirmCosting(user: User | null): boolean {
+  return canViewManpower(user);
+}
+
 /** In Charge to Manager (below Assistant Director): the Manpower tab, limited to their own clients and with no money. */
 export function canViewManpowerScoped(user: User | null): boolean {
   if (!user || user.role === 'ADMIN') return false;

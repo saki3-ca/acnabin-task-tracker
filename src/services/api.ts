@@ -30,7 +30,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
   'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet', 'tenderAgentBridgeToken',
-  'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
+  'firmCostingList', 'firmCostingSaveMonth', 'firmCostingThemeGet', 'firmCostingThemeSet', 'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -1885,6 +1885,46 @@ export const api = {
         if (error) throw new Error('Could not remove the file record.');
         if (data === 'FORBIDDEN') throw new Error('Only Admin or the person who uploaded the file can delete it.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'firmCostingThemeGet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_firm_costing_theme_get', { p_session: session.token });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Firm Costing theme update has not been run yet (supabase_firm_costing_theme.sql).' : 'Could not load the theme. (' + error.message + ')');
+        return (data || '') as T;
+      }
+
+      case 'firmCostingThemeSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_firm_costing_theme_set', { p_session: session.token, p_theme: payload.theme });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Firm Costing theme update has not been run yet (supabase_firm_costing_theme.sql). Please run it first.' : 'Could not save the theme. (' + error.message + ')');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can change the theme.');
+        if (data === 'INVALID_INPUT') throw new Error('Unknown theme.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'firmCostingList': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_firm_costing_list', { p_session: session.token });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Firm Costing database update has not been run yet (supabase_firm_costing.sql). Please tell Admin.' : 'Could not load Firm Costing. (' + error.message + ')');
+        if (data === null) throw new Error('You do not have access to Firm Costing.');
+        return data as T;
+      }
+
+      case 'firmCostingSaveMonth': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_firm_costing_save_month', { p_session: session.token, p_month: payload.month, p_rows: payload.rows });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Firm Costing database update has not been run yet (supabase_firm_costing.sql). Please tell Admin.' : 'Could not save. (' + error.message + ')');
+        if (data === 'INVALID_INPUT') throw new Error('Some details are missing. Please check the rows.');
+        if (data === 'NO_ACCESS') throw new Error('You are not allowed to change Firm Costing, or your login has expired.');
         return { success: true } as T;
       }
 

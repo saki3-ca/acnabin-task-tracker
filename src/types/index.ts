@@ -334,6 +334,21 @@ export interface ProposalAttachment {
   uploadedAt: string;
 }
 
+/** One client's figures for one month in the Firm Costing dashboard. Invoice value includes VAT and tax. */
+export interface FirmCostingRow {
+  /** YYYY-MM */
+  month: string;
+  clientId: string;
+  clientName: string;
+  /** invoice number or note that tells several lines of one client apart */
+  note?: string;
+  engagement: 'RECURRING' | 'ONE_TIME';
+  invoiceValue: number;
+  vat: number;
+  tax: number;
+  budget: number;
+}
+
 /** One invoice. Money and dates arrive as text ('' = empty); dates are YYYY-MM-DD. */
 export interface Invoice {
   id: string;

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Bell, Briefcase, CheckSquare, ClipboardList, FileText, GraduationCap, Receipt, Search, Shield, User as UserIcon, Users } from 'lucide-react';
+import { Bell, BarChart3, Briefcase, CheckSquare, ClipboardList, FileText, GraduationCap, Receipt, Search, Shield, User as UserIcon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useLivePolling } from '../../lib/useLivePolling';
-import { canViewManpower, canViewManpowerScoped, canViewTeamTasks } from '../../lib/permissions';
+import { canViewFirmCosting, canViewManpower, canViewManpowerScoped, canViewTeamTasks } from '../../lib/permissions';
 import { api } from '../../services/api';
 import { invoiceService } from '../../services/invoiceService';
 import { manpowerAccessService } from '../../services/manpowerAccessService';
@@ -11,7 +11,7 @@ import { proposalService } from '../../services/proposalService';
 import { tenderAgentService } from '../../services/tenderAgentService';
 import { examLeaveService } from '../../services/examLeaveService';
 
-export type TabKey = 'own' | 'team' | 'manpower' | 'exam-leave' | 'invoices' | 'proposals' | 'tenders' | 'requests' | 'notifications' | 'profile' | 'admin';
+export type TabKey = 'own' | 'team' | 'manpower' | 'firm-costing' | 'exam-leave' | 'invoices' | 'proposals' | 'tenders' | 'requests' | 'notifications' | 'profile' | 'admin';
 
 interface NavigationTabsProps {
   activeTab: TabKey;
@@ -203,6 +203,17 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
         >
           <Briefcase size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           Manpower
+        </button>
+      )}
+
+      {/* Firm Costing: Admin, Assistant Director and above */}
+      {canViewFirmCosting(currentUser) && (
+        <button
+          className={`tab-btn ${activeTab === 'firm-costing' ? 'active' : ''}`}
+          onClick={() => onSelectTab('firm-costing')}
+        >
+          <BarChart3 size={15} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Firm Costing
         </button>
       )}
 
