@@ -60,11 +60,12 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [remarks, setRemarks] = useState<string>('');
 
-  // Leave days per paper. Student: PL and AL = 5 / 4 / 3 (1st / 2nd / 3rd+ attempt), CL = 4 / 3 / 2. Employee: 2.
+  // Leave days per paper (1st / 2nd / 3rd+ attempt). Student: AL = 10 / 8 / 6, PL = 5 / 4 / 3, CL = 4 / 3 / 2. Employee: 2.
+  const STUDENT_DAYS: Record<ExamLevel, [number, number, number]> = { AL: [10, 8, 6], PL: [5, 4, 3], CL: [4, 3, 2] };
   const daysFor = (level: ExamLevel, attempt: string, type: 'Student' | 'Employee'): number => {
     if (type === 'Employee') return 2;
-    const base = level === 'CL' ? 4 : 5;
-    return attempt === '1st Attempt' ? base : attempt === '2nd Attempt' ? base - 1 : base - 2;
+    const [first, second, rest] = STUDENT_DAYS[level] ?? STUDENT_DAYS.PL;
+    return attempt === '1st Attempt' ? first : attempt === '2nd Attempt' ? second : rest;
   };
 
   // Auto-calculate leave dates for the chosen papers.
@@ -348,7 +349,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
           <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)', marginBottom: '16px', background: '#F8FAFC', padding: '6px 10px', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
             {candidateType === 'Student' ? (
               <span>
-                <strong>Articled Student rule:</strong> PL and AL: 1st attempt <strong>5 days</strong>, 2nd <strong>4</strong>, 3rd+ <strong>3</strong>. CL: 1st attempt <strong>4 days</strong>, 2nd <strong>3</strong>, 3rd+ <strong>2</strong>. Each paper's days end on its exam day; the total is the sum of all papers (3 papers on the 1st attempt = 15 days). You can still adjust days by hand.
+                <strong>Articled Student rule:</strong> AL: 1st attempt <strong>10 days</strong>, 2nd <strong>8</strong>, 3rd+ <strong>6</strong>. PL: 1st attempt <strong>5 days</strong>, 2nd <strong>4</strong>, 3rd+ <strong>3</strong>. CL: 1st attempt <strong>4 days</strong>, 2nd <strong>3</strong>, 3rd+ <strong>2</strong>. Each paper's days end on its exam day; the total is the sum of all papers (3 PL papers on the 1st attempt = 15 days). You can still adjust days by hand.
               </span>
             ) : (
               <span>
