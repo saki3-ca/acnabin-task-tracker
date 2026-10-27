@@ -44,7 +44,15 @@ var TABLES = [
   'invoices',
   'invoice_access',
   'invoice_attachments',
-  'invoice_settings'
+  'invoice_settings',
+  'tender_agent_access',
+  'exam_leaves',
+  'app_flags',
+  'firm_costing',
+  'firm_costing_settings',
+  'tab_access_mode',
+  'tab_access_users',
+  'tab_access_except'
 ];
 var PAGE_SIZE = 1000;
 var FOLDER_NAME = 'ACNABIN Task Tracker Backups';
