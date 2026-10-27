@@ -225,7 +225,7 @@ export const AdminPanel: React.FC = () => {
             style={{
               padding: '8px 16px', fontSize: '13px', fontWeight: 700, borderRadius: '20px', cursor: 'pointer',
               border: '1px solid ' + (section === sec.key ? 'var(--maroon, #800000)' : 'var(--line)'),
-              background: section === sec.key ? 'var(--maroon, #800000)' : '#fff',
+              background: section === sec.key ? 'var(--maroon, #800000)' : 'var(--ui-surface)',
               color: section === sec.key ? '#fff' : 'var(--ink)'
             }}
           >

@@ -156,6 +156,36 @@ html[data-ui-theme="glass"] {
   --ui-btn-secondary-border: rgba(255, 255, 255, 0.25);
   --ui-btn-secondary-text: #FFFFFF;
   --ui-btn-secondary-hover: rgba(255, 255, 255, 0.20);
+
+  /* Legacy Base Tokens - Essential for text readability across existing component inline styles */
+  --ink: #FFFFFF;
+  --ink-soft: rgba(255, 255, 255, 0.85);
+  --ink-muted: rgba(255, 255, 255, 0.70);
+  --navy: #c9a4eb;
+  --navy-dark: #b58ee0;
+  --navy-light: rgba(201, 164, 235, 0.20);
+  --maroon: #f68b8b;
+  --maroon-dark: #e07272;
+  --maroon-light: rgba(246, 139, 139, 0.20);
+  --teal: #77dfc0;
+  --teal-dark: #5fc9aa;
+  --teal-light: rgba(119, 223, 192, 0.20);
+  --cream: transparent;
+  --cream-card: rgba(255, 255, 255, 0.10);
+  --cream-input: rgba(255, 255, 255, 0.12);
+  --line: rgba(255, 255, 255, 0.20);
+  --line-strong: rgba(255, 255, 255, 0.30);
+  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.10);
+
+  /* Status Pill overrides for Glass theme */
+  --status-pending-bg: rgba(253, 224, 71, 0.20);
+  --status-pending-text: #fef08a;
+  --status-progress-bg: rgba(133, 199, 235, 0.22);
+  --status-progress-text: #bce6fb;
+  --status-completed-bg: rgba(119, 223, 192, 0.22);
+  --status-completed-text: #77dfc0;
+  --status-overdue-bg: rgba(246, 139, 139, 0.25);
+  --status-overdue-text: #fca5a5;
 }
 
 /* Fallback for browsers without backdrop-filter */
@@ -753,6 +783,41 @@ html[data-ui-theme="glass"] .tab-btn.admin-tab.active {
   color: #C53030;
 }
 
+/* Glass Theme Stat Pills */
+html[data-ui-theme="glass"] .stat-pill {
+  background: var(--ui-surface) !important;
+  backdrop-filter: var(--ui-blur) !important;
+  -webkit-backdrop-filter: var(--ui-blur) !important;
+  border: 1px solid var(--ui-border) !important;
+  border-radius: var(--ui-radius-control) !important;
+  box-shadow: var(--ui-shadow) !important;
+}
+
+html[data-ui-theme="glass"] .stat-pill:hover {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+html[data-ui-theme="glass"] .stat-pill.teal-border {
+  border-color: var(--ui-accent) !important;
+}
+
+html[data-ui-theme="glass"] .stat-pill.navy-border {
+  border-color: var(--ui-accent-purple) !important;
+}
+
+html[data-ui-theme="glass"] .stat-pill-label {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="glass"] .stat-pill-value {
+  color: #ffffff !important;
+}
+
+html[data-ui-theme="glass"] .stat-pill-value.overdue {
+  color: var(--ui-accent-red) !important;
+}
+
 /* Section Banners - Unified Integrated Card Header */
 .banner-strip {
   min-height: 46px;
@@ -806,6 +871,19 @@ html[data-ui-theme="glass"] .tab-btn.admin-tab.active {
 .banner-navy {
   background: linear-gradient(135deg, #152538 0%, #1E344F 50%, #294668 100%);
   border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+html[data-ui-theme="glass"] .banner-maroon {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.40) 0%, rgba(185, 28, 28, 0.50) 100%);
+  border-bottom: 1px solid var(--ui-border);
+}
+html[data-ui-theme="glass"] .banner-teal {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.40) 0%, rgba(13, 148, 136, 0.50) 100%);
+  border-bottom: 1px solid var(--ui-border);
+}
+html[data-ui-theme="glass"] .banner-navy {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.40) 0%, rgba(79, 70, 229, 0.50) 100%);
+  border-bottom: 1px solid var(--ui-border);
 }
 
 /* Modern Data Table Card */
@@ -950,6 +1028,21 @@ html[data-ui-theme="glass"] .table-row-overdue {
   background-color: rgba(246, 139, 139, 0.15) !important;
 }
 
+html[data-ui-theme="glass"] .data-table td {
+  color: #ffffff;
+}
+
+/* Ensure sticky cells in tables (like ScopedManpowerView and InvoiceTracker) stay dark tinted on glass */
+html[data-ui-theme="glass"] .data-table td[style*="background: #fff"],
+html[data-ui-theme="glass"] .data-table td[style*="background: rgb(255, 255, 255)"],
+html[data-ui-theme="glass"] .data-table td[style*="background: white"],
+html[data-ui-theme="glass"] .data-table th[style*="background: #fff"],
+html[data-ui-theme="glass"] .data-table th[style*="background: rgb(255, 255, 255)"],
+html[data-ui-theme="glass"] .data-table th[style*="background: white"] {
+  background: rgba(26, 30, 62, 0.92) !important;
+  color: #ffffff !important;
+}
+
 /* Status & Priority Pills */
 .status-pill {
   display: inline-flex;
@@ -1003,6 +1096,22 @@ html[data-ui-theme="glass"] .table-row-overdue {
   color: #4B5563;
 }
 
+html[data-ui-theme="glass"] .priority-pill.high {
+  background: rgba(246, 139, 139, 0.25);
+  color: #fca5a5;
+  border: 1px solid rgba(246, 139, 139, 0.40);
+}
+html[data-ui-theme="glass"] .priority-pill.medium {
+  background: rgba(253, 224, 71, 0.20);
+  color: #fef08a;
+  border: 1px solid rgba(253, 224, 71, 0.40);
+}
+html[data-ui-theme="glass"] .priority-pill.low {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+}
+
 /* Filter Bars */
 .filter-bar {
   background: var(--ui-surface);
@@ -1018,9 +1127,16 @@ html[data-ui-theme="glass"] .table-row-overdue {
 }
 
 html[data-ui-theme="glass"] .filter-bar {
-  backdrop-filter: var(--ui-blur);
-  -webkit-backdrop-filter: var(--ui-blur);
-  box-shadow: var(--ui-shadow);
+  background: var(--ui-surface) !important;
+  backdrop-filter: var(--ui-blur) !important;
+  -webkit-backdrop-filter: var(--ui-blur) !important;
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: var(--ui-shadow) !important;
+  color: #ffffff;
+}
+
+html[data-ui-theme="glass"] .filter-label {
+  color: var(--ui-text-soft);
 }
 
 .filter-group {
@@ -1097,10 +1213,21 @@ html[data-ui-theme="glass"] option {
   animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-html[data-ui-theme="glass"] .modal-dialog {
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+html[data-ui-theme="glass"] .modal-dialog,
+html[data-ui-theme="glass"] .modal-backdrop > div {
+  background: var(--ui-modal-bg) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45) !important;
+  color: #ffffff !important;
+}
+
+html[data-ui-theme="glass"] .modal-header h2,
+html[data-ui-theme="glass"] .modal-body,
+html[data-ui-theme="glass"] .modal-body label,
+html[data-ui-theme="glass"] .form-field label {
+  color: #ffffff !important;
 }
 
 @keyframes modalIn {
@@ -1181,6 +1308,12 @@ html[data-ui-theme="glass"] .modal-dialog {
   font-size: 12.5px;
   color: var(--ui-text);
   line-height: 1.4;
+}
+
+html[data-ui-theme="glass"] .comment-box {
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 3px solid var(--ui-accent-2);
+  color: #ffffff;
 }
 
 /* Client Card Grid */
@@ -1287,6 +1420,18 @@ html[data-ui-theme="glass"] .auth-card {
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 12.5px;
+}
+
+html[data-ui-theme="glass"] .auth-alert-error {
+  background: var(--ui-danger-bg);
+  border-color: var(--ui-danger-border);
+  color: var(--ui-danger);
+}
+
+html[data-ui-theme="glass"] .auth-alert-success {
+  background: rgba(119, 223, 192, 0.20);
+  border-color: rgba(119, 223, 192, 0.40);
+  color: #77dfc0;
 }
 
 /* Toast Notifications */
