@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Mail, Phone, User as UserIcon } from 'lucide-react';
 import { User } from '../../types';
+import { useAppTheme } from '../../context/ThemeContext';
 
 interface KeyPersonCellProps {
   primary?: User;
@@ -9,6 +10,8 @@ interface KeyPersonCellProps {
 
 /** Name that opens a small contact card (phone + email) when clicked. */
 const PersonLink: React.FC<{ person: User; role: string; muted?: boolean }> = ({ person, role, muted }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -53,19 +56,19 @@ const PersonLink: React.FC<{ person: User; role: string; muted?: boolean }> = ({
       {icon}
       {value ? (
         <>
-          <a href={href} style={{ flex: 1, color: 'var(--navy)', wordBreak: 'break-all' }}>{value}</a>
+          <a href={href} style={{ flex: 1, color: isGlass ? '#c9a4eb' : 'var(--navy)', wordBreak: 'break-all' }}>{value}</a>
           <button
             type="button"
             onClick={() => copy(value, key)}
             title="Copy"
             aria-label={`Copy ${key}`}
-            style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--ink-muted)', padding: 2, display: 'inline-flex' }}
+            style={{ border: 'none', background: 'none', cursor: 'pointer', color: isGlass ? 'rgba(255, 255, 255, 0.65)' : 'var(--ink-muted)', padding: 2, display: 'inline-flex' }}
           >
-            {copied === key ? <Check size={13} color="#03543F" /> : <Copy size={13} />}
+            {copied === key ? <Check size={13} color={isGlass ? '#77dfc0' : '#03543F'} /> : <Copy size={13} />}
           </button>
         </>
       ) : (
-        <span style={{ color: 'var(--ink-muted)' }}>Not provided</span>
+        <span style={{ color: isGlass ? 'rgba(255, 255, 255, 0.50)' : 'var(--ink-muted)' }}>Not provided</span>
       )}
     </div>
   );
@@ -88,10 +91,10 @@ const PersonLink: React.FC<{ person: User; role: string; muted?: boolean }> = ({
           textAlign: 'left',
           fontSize: muted ? '11.5px' : '13px',
           fontWeight: muted ? 500 : 700,
-          color: muted ? 'var(--ink-muted)' : '#0F5E57'
+          color: muted ? (isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)') : (isGlass ? '#FFFFFF' : '#0F5E57')
         }}
       >
-        {muted ? <span style={{ fontSize: '10px', textTransform: 'uppercase' }}>2nd</span> : <UserIcon size={13} />}
+        {muted ? <span style={{ fontSize: '10px', textTransform: 'uppercase', color: isGlass ? 'rgba(255, 255, 255, 0.65)' : undefined }}>2nd</span> : <UserIcon size={13} color={isGlass ? '#77dfc0' : undefined} />}
         <span style={{ textDecoration: 'underline dotted' }}>{person.name}</span>
       </button>
       {pos && (
@@ -103,21 +106,24 @@ const PersonLink: React.FC<{ person: User; role: string; muted?: boolean }> = ({
             left: pos.left,
             width: '268px',
             zIndex: 1000,
-            background: '#fff',
-            border: '1px solid var(--border, #E2E8F0)',
+            background: isGlass ? 'rgba(24, 28, 52, 0.95)' : '#fff',
+            backdropFilter: isGlass ? 'blur(16px)' : undefined,
+            WebkitBackdropFilter: isGlass ? 'blur(16px)' : undefined,
+            border: isGlass ? '1px solid rgba(255, 255, 255, 0.20)' : '1px solid var(--border, #E2E8F0)',
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
+            boxShadow: isGlass ? '0 12px 36px rgba(0,0,0,0.45)' : '0 8px 24px rgba(0,0,0,0.14)',
             padding: '10px 12px',
-            textAlign: 'left'
+            textAlign: 'left',
+            color: isGlass ? '#FFFFFF' : undefined
           }}
         >
-          <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: '13px' }}>{person.name}</div>
-          <div style={{ fontSize: '11px', color: 'var(--ink-muted)', marginBottom: '6px' }}>
+          <div style={{ fontWeight: 700, color: isGlass ? '#FFFFFF' : 'var(--ink)', fontSize: '13px' }}>{person.name}</div>
+          <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginBottom: '6px' }}>
             {role}{person.designation ? ` · ${person.designation}` : ''}
           </div>
-          <div style={{ borderTop: '1px solid var(--border, #E2E8F0)', paddingTop: '4px' }}>
-            {row(<Phone size={13} color="var(--ink-soft)" />, person.mobile, 'phone', `tel:${person.mobile}`)}
-            {row(<Mail size={13} color="var(--ink-soft)" />, person.email, 'email', `mailto:${person.email}`)}
+          <div style={{ borderTop: isGlass ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid var(--border, #E2E8F0)', paddingTop: '4px' }}>
+            {row(<Phone size={13} color={isGlass ? '#77dfc0' : 'var(--ink-soft)'} />, person.mobile, 'phone', `tel:${person.mobile}`)}
+            {row(<Mail size={13} color={isGlass ? '#c9a4eb' : 'var(--ink-soft)'} />, person.email, 'email', `mailto:${person.email}`)}
           </div>
         </div>
       )}

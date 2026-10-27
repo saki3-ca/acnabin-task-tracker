@@ -88,7 +88,7 @@ export const TaskFilterBar: React.FC<TaskFilterBarProps> = ({ onOpenAssignModal,
   return (
     <div
       className="filter-bar"
-      style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--line)' }}
+      style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between', background: 'var(--ui-surface)', padding: '12px 18px', borderRadius: 'var(--ui-radius-control)', border: '1px solid var(--ui-border)' }}
     >
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', flex: 1 }}>
         <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 240px' }}>

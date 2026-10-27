@@ -3,6 +3,7 @@ import { DateOrder } from '../../lib/proposals';
 import { parseInvoiceSheet, ParsedInvoiceSheet } from '../../lib/invoiceSheet';
 import { invoiceService } from '../../services/invoiceService';
 import { InvoiceImportResult } from '../../types';
+import { useAppTheme } from '../../context/ThemeContext';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
 
 /** Admin only: copy old invoices from a CSV file. Invoice numbers that already exist are skipped. */
 export const InvoiceImport: React.FC<Props> = ({ isOpen, onClose, onDone }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const fileRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const [fileName, setFileName] = useState('');
@@ -118,7 +121,14 @@ export const InvoiceImport: React.FC<Props> = ({ isOpen, onClose, onDone }) => {
 
         {error && <div className="auth-alert-error" style={{ margin: 0 }}>{error}</div>}
         {done && (
-          <div style={{ fontSize: '13px', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
+          <div style={{
+            fontSize: '13px',
+            color: isGlass ? '#77dfc0' : '#166534',
+            background: isGlass ? 'rgba(119, 223, 192, 0.18)' : '#F0FDF4',
+            border: isGlass ? '1px solid rgba(119, 223, 192, 0.35)' : '1px solid #BBF7D0',
+            borderRadius: '6px',
+            padding: '8px 10px'
+          }}>
             Import finished. {summary(done)}
           </div>
         )}
@@ -126,7 +136,7 @@ export const InvoiceImport: React.FC<Props> = ({ isOpen, onClose, onDone }) => {
         {preview && (
           <div>
             <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>Check: {summary(preview)}</div>
-            <div style={{ maxHeight: '260px', overflow: 'auto', border: '1px solid var(--line)', borderRadius: '6px' }}>
+            <div style={{ maxHeight: '260px', overflow: 'auto', border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)', borderRadius: '6px' }}>
               <table className="data-table">
                 <thead><tr><th>Invoice No.</th><th>Client</th><th>Result</th></tr></thead>
                 <tbody>
@@ -134,7 +144,7 @@ export const InvoiceImport: React.FC<Props> = ({ isOpen, onClose, onDone }) => {
                     <tr key={i}>
                       <td style={{ textAlign: 'left' }}>{r.invoiceNo}</td>
                       <td style={{ textAlign: 'left' }}>{r.client}</td>
-                      <td style={{ fontWeight: 600, color: r.result === 'NEW' ? '#166534' : r.result === 'DUPLICATE' ? '#64748B' : '#B91C1C' }}>
+                      <td style={{ fontWeight: 600, color: r.result === 'NEW' ? (isGlass ? '#77dfc0' : '#166534') : r.result === 'DUPLICATE' ? (isGlass ? 'rgba(255, 255, 255, 0.65)' : '#64748B') : (isGlass ? '#f68b8b' : '#B91C1C') }}>
                         {r.result === 'NEW' ? 'New' : r.result === 'DUPLICATE' ? 'Already there' : r.error || 'Problem'}
                       </td>
                     </tr>

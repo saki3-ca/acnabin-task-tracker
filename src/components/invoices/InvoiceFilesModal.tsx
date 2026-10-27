@@ -5,6 +5,7 @@ import { uploadQueue } from '../../lib/uploadQueue';
 import { invoiceService } from '../../services/invoiceService';
 import { Invoice, InvoiceAttachment } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
 import { Modal } from '../ui/Modal';
 
 interface Props {
@@ -22,6 +23,8 @@ const isLink = (s: string) => /^https?:\/\//i.test((s || '').trim());
 /** The challan files of one invoice (VDS or TDS). Old data keeps its Drive link at the top. */
 export const InvoiceFilesModal: React.FC<Props> = ({ invoice, kind, files, driveUrl, isAdmin, onClose, onChanged }) => {
   const { currentUser } = useAuth();
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const [working, setWorking] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -72,14 +75,19 @@ export const InvoiceFilesModal: React.FC<Props> = ({ invoice, kind, files, drive
     <Modal isOpen={Boolean(invoice)} onClose={onClose} title={`${kind} challan files`} maxWidth="560px">
       <div className="modal-body">
         <div style={{ fontSize: '13px', fontWeight: 600 }}>{invoice?.invoiceNo}</div>
-        <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '-6px' }}>{invoice?.client}</div>
+        <div style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)', marginTop: '-6px' }}>{invoice?.client}</div>
 
         {legacy && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: '8px', background: '#F8FAFC' }}>
-            <ExternalLink size={16} color="var(--navy)" />
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px',
+            border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)',
+            borderRadius: isGlass ? '6px' : '8px',
+            background: isGlass ? 'rgba(255, 255, 255, 0.08)' : '#F8FAFC'
+          }}>
+            <ExternalLink size={16} color={isGlass ? '#c9a4eb' : 'var(--navy)'} />
             <div style={{ flex: 1, minWidth: 0, fontSize: '13px', overflowWrap: 'anywhere' }}>
               {isLink(legacy) ? (
-                <a href={legacy} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>Existing Google Drive link ↗</a>
+                <a href={legacy} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: isGlass ? '#c9a4eb' : undefined }}>Existing Google Drive link ↗</a>
               ) : (
                 <span>{legacy}</span>
               )}
@@ -87,19 +95,24 @@ export const InvoiceFilesModal: React.FC<Props> = ({ invoice, kind, files, drive
           </div>
         )}
 
-        {files.length === 0 && !legacy && <div style={{ fontSize: '13px', color: 'var(--ink-muted)' }}>No files attached.</div>}
+        {files.length === 0 && !legacy && <div style={{ fontSize: '13px', color: isGlass ? 'rgba(255, 255, 255, 0.60)' : 'var(--ink-muted)' }}>No files attached.</div>}
         {files.map(a => (
-          <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: '8px', background: '#FAF8F5' }}>
-            <FileText size={16} color="var(--navy)" />
+          <div key={a.id} style={{
+            display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px',
+            border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)',
+            borderRadius: isGlass ? '6px' : '8px',
+            background: isGlass ? 'rgba(255, 255, 255, 0.08)' : '#FAF8F5'
+          }}>
+            <FileText size={16} color={isGlass ? '#77dfc0' : 'var(--navy)'} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '13px', overflowWrap: 'anywhere' }}>{a.fileName}</div>
-              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)' }}>{fmtSize(a.size)}{a.uploadedBy ? ` · ${a.uploadedBy}` : ''}</div>
+              <div style={{ fontSize: '13px', overflowWrap: 'anywhere', color: isGlass ? '#FFFFFF' : undefined }}>{a.fileName}</div>
+              <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.65)' : 'var(--ink-muted)' }}>{fmtSize(a.size)}{a.uploadedBy ? ` · ${a.uploadedBy}` : ''}</div>
             </div>
             <button className="btn btn-secondary btn-sm" disabled={working !== null} onClick={() => download(a)} title="Download">
               {working === a.id ? `${Math.round(progress * 100)}%` : <Download size={14} />}
             </button>
             {(isAdmin || (a.uploadedById && a.uploadedById === currentUser?.id)) && (
-              <button className="btn btn-secondary btn-sm" disabled={working !== null} onClick={() => remove(a)} title={isAdmin ? 'Delete (Admin)' : 'Delete the file you uploaded'} style={{ color: '#B91C1C' }}>
+              <button className="btn btn-secondary btn-sm" disabled={working !== null} onClick={() => remove(a)} title={isAdmin ? 'Delete (Admin)' : 'Delete the file you uploaded'} style={{ color: isGlass ? '#f68b8b' : '#B91C1C' }}>
                 <Trash2 size={14} />
               </button>
             )}

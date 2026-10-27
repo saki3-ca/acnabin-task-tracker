@@ -1,16 +1,24 @@
 import React, { useRef, useState } from 'react';
 import { FileUp } from 'lucide-react';
 import { parseCsv, normalizeStaffSheet, StaffRow } from '../../lib/staffSheet';
+import { useAppTheme } from '../../context/ThemeContext';
 import { staffService } from '../../services/staffService';
 import { StaffImportResult, StaffImportRowResult } from '../../types';
 
 const BATCH = 400; // the database accepts up to 500 rows per call
 
-const STATUS_COLOR: Record<string, string> = {
+const STATUS_COLOR_CLASSIC: Record<string, string> = {
   NEW: '#166534',
   UPDATED: '#1D4ED8',
   UNCHANGED: '#64748B',
   ERROR: '#B91C1C'
+};
+
+const STATUS_COLOR_GLASS: Record<string, string> = {
+  NEW: '#77dfc0',
+  UPDATED: '#c9a4eb',
+  UNCHANGED: 'rgba(255, 255, 255, 0.65)',
+  ERROR: '#f68b8b'
 };
 
 const merge = (parts: StaffImportResult[]): StaffImportResult => {
@@ -28,6 +36,9 @@ const merge = (parts: StaffImportResult[]): StaffImportResult => {
 };
 
 export const StaffImport: React.FC = () => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
+  const statusColor = isGlass ? STATUS_COLOR_GLASS : STATUS_COLOR_CLASSIC;
   const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<StaffRow[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -107,10 +118,10 @@ export const StaffImport: React.FC = () => {
 
   return (
     <div className="table-card" style={{ padding: '20px' }}>
-      <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+      <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isGlass ? '#FFFFFF' : 'var(--navy)' }}>
         <FileUp size={18} /> Import Staff Sheet
       </h3>
-      <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '14px' }}>
+      <p style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)', marginTop: '4px', marginBottom: '14px' }}>
         Upload the staff sheet (File → Download → CSV). Each person is matched by STD / EMP ID. Blank cells never erase saved data.
         Always run the preview first: nothing is saved until you press Import.
       </p>
@@ -131,17 +142,17 @@ export const StaffImport: React.FC = () => {
         )}
       </div>
 
-      {fileName && <div style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>{fileName}: {rows.length} staff rows read.</div>}
+      {fileName && <div style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)' }}>{fileName}: {rows.length} staff rows read.</div>}
       {error && <div className="auth-alert-error" style={{ marginTop: '10px' }}>{error}</div>}
       {done && (
-        <div style={{ marginTop: '10px', fontSize: '12.5px', color: '#166534', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
+        <div style={{ marginTop: '10px', fontSize: '12.5px', color: isGlass ? '#77dfc0' : '#166534', background: isGlass ? 'rgba(119, 223, 192, 0.20)' : '#F0FDF4', border: isGlass ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid #BBF7D0', borderRadius: '6px', padding: '8px 10px' }}>
           Import finished. {summary(done)}
         </div>
       )}
 
       {warnings.length > 0 && (
         <details style={{ marginTop: '10px', fontSize: '12px' }}>
-          <summary style={{ cursor: 'pointer', color: '#B45309' }}>{warnings.length} things to check in the sheet</summary>
+          <summary style={{ cursor: 'pointer', color: isGlass ? '#fef08a' : '#B45309' }}>{warnings.length} things to check in the sheet</summary>
           <ul style={{ margin: '6px 0 0 18px' }}>
             {warnings.map((w, i) => <li key={i}>{w}</li>)}
           </ul>
@@ -150,8 +161,8 @@ export const StaffImport: React.FC = () => {
 
       {preview && (
         <div style={{ marginTop: '12px' }}>
-          <div style={{ fontSize: '12.5px', fontWeight: 600, marginBottom: '6px' }}>Preview: {summary(preview)}</div>
-          <div style={{ maxHeight: '320px', overflow: 'auto', border: '1px solid var(--line)', borderRadius: '6px' }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 600, marginBottom: '6px', color: isGlass ? '#ffffff' : undefined }}>Preview: {summary(preview)}</div>
+          <div style={{ maxHeight: '320px', overflow: 'auto', border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)', borderRadius: '6px' }}>
             <table className="data-table">
               <thead>
                 <tr><th>ID</th><th>Name</th><th>Result</th><th>Account</th><th>Changes / problem</th></tr>
@@ -160,8 +171,8 @@ export const StaffImport: React.FC = () => {
                 {shown.map(r => (
                   <tr key={r.emp_id}>
                     <td>{r.emp_id}</td>
-                    <td>{r.name}{r.nameMismatch && <span title="The account name is different from the sheet name" style={{ color: '#B45309' }}> ⚠ name differs</span>}</td>
-                    <td style={{ color: STATUS_COLOR[r.status], fontWeight: 600 }}>{r.status}</td>
+                    <td>{r.name}{r.nameMismatch && <span title="The account name is different from the sheet name" style={{ color: isGlass ? '#fef08a' : '#B45309' }}> ⚠ name differs</span>}</td>
+                    <td style={{ color: statusColor[r.status], fontWeight: 600 }}>{r.status}</td>
                     <td>{r.linked ? 'Linked' : r.account ? 'Not linked' : 'No account yet'}</td>
                     <td style={{ fontSize: '11.5px' }}>{r.error || (r.changed || []).join(', ')}</td>
                   </tr>

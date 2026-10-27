@@ -112,16 +112,16 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
 
       {/* Deadline */}
       <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
-        <div style={{ fontWeight: overdue ? 700 : 500, color: overdue ? '#C53030' : 'var(--ink)' }}>
+        <div className={overdue ? 'deadline-overdue-text' : ''} style={{ fontWeight: overdue ? 700 : 500, color: overdue ? '#C53030' : 'var(--ink)' }}>
           {fmtDate(task.deadline)}
         </div>
         {overdue && (
-          <span style={{ fontSize: '10.5px', color: '#991B1B', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
+          <span className="deadline-overdue-subtext" style={{ fontSize: '10.5px', color: '#991B1B', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
             <AlertCircle size={12} /> Overdue by {Math.abs(daysLeft || 0)}d
           </span>
         )}
         {!overdue && nearDeadline && (
-          <span style={{ fontSize: '10.5px', color: '#B45309', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
+          <span className="deadline-near-subtext" style={{ fontSize: '10.5px', color: '#B45309', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', marginTop: '2px' }}>
             <Clock size={12} /> {daysLeft === 0 ? 'Due Today' : `Due in ${daysLeft}d`}
           </span>
         )}

@@ -30,7 +30,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
   'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet', 'tenderAgentBridgeToken',
-  'tabAccessMine', 'tabAccessGet', 'tabAccessSet', 'firmCostingList', 'firmCostingSaveMonth', 'firmCostingThemeGet', 'firmCostingThemeSet', 'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
+  'taskHistoryGet', 'tabAccessMine', 'tabAccessGet', 'tabAccessSet', 'appThemeSet', 'firmCostingList', 'firmCostingSaveMonth', 'firmCostingThemeGet', 'firmCostingThemeSet', 'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -384,6 +384,13 @@ class LocalFallbackStore {
 }
 
 const fallbackStore = new LocalFallbackStore();
+
+// Who made a task change (read by the Task Log trigger). Older databases do not have these columns yet,
+// so the first "column does not exist" answer switches the stamp off for this session instead of breaking saves.
+let taskActorColumnsOk = true;
+const withTaskActor = (updates: Record<string, any>, user?: { id?: string; name?: string } | null) =>
+  taskActorColumnsOk && user ? { ...updates, last_updated_by_id: user.id, last_updated_by_name: user.name } : updates;
+const isMissingActorColumn = (err: any) => /last_updated_by/i.test(String(err?.message || ''));
 
 export const api = {
   isLiveMode: (): boolean => true,
@@ -1085,12 +1092,16 @@ export const api = {
         if (updates.assignedToId !== undefined) dbUpdates.assigned_to_id = updates.assignedToId;
         if (updates.assignedToName !== undefined) dbUpdates.assigned_to_name = updates.assignedToName;
 
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('tasks')
-          .update(dbUpdates)
+          .update(withTaskActor(dbUpdates, user))
           .eq('id', taskId)
           .select()
           .single();
+        if (error && isMissingActorColumn(error)) {
+          taskActorColumnsOk = false;
+          ({ data, error } = await supabase.from('tasks').update(dbUpdates).eq('id', taskId).select().single());
+        }
 
         if (error) throw error;
 
@@ -1137,15 +1148,18 @@ export const api = {
 
       case 'addManagerComment': {
         const { taskId, comment } = payload;
-        const { data, error } = await supabase
+        const commentUser = await this.getCurrentUser();
+        const commentUpdate = { manager_comment: comment, last_updated: new Date().toISOString() };
+        let { data, error } = await supabase
           .from('tasks')
-          .update({
-            manager_comment: comment,
-            last_updated: new Date().toISOString()
-          })
+          .update(withTaskActor(commentUpdate, commentUser))
           .eq('id', taskId)
           .select()
           .single();
+        if (error && isMissingActorColumn(error)) {
+          taskActorColumnsOk = false;
+          ({ data, error } = await supabase.from('tasks').update(commentUpdate).eq('id', taskId).select().single());
+        }
 
         if (error) throw error;
 
@@ -1898,6 +1912,20 @@ export const api = {
         return (data ?? null) as T;
       }
 
+      case 'taskHistoryGet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_task_history_get', {
+          p_session: session.token,
+          p_user_id: payload.userId || null,
+          p_only_status: Boolean(payload.onlyStatus),
+          p_limit: payload.limit ?? 200
+        });
+        if (error) throw new Error(isMissingFunction(error) ? 'The Task Log database update has not been run yet (supabase_task_history.sql). Please run it first.' : 'Could not load the task log. (' + error.message + ')');
+        if (data === null) throw new Error('Only Admin can see the task log.');
+        return data as T;
+      }
+
       case 'tabAccessGet': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again.');
@@ -1935,6 +1963,28 @@ export const api = {
         if (error) throw new Error(isMissingFunction(error) ? 'The Firm Costing theme update has not been run yet (supabase_firm_costing_theme.sql). Please run it first.' : 'Could not save the theme. (' + error.message + ')');
         if (data === 'FORBIDDEN') throw new Error('Only Admin can change the theme.');
         if (data === 'INVALID_INPUT') throw new Error('Unknown theme.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'appThemeGet': {
+        const session = readSession();
+        const { data, error } = await supabase.rpc('app_theme_get', { p_session: session?.token || null });
+        if (error) {
+          if (isMissingFunction(error)) return 'classic' as T;
+          throw new Error('Could not load app theme. (' + error.message + ')');
+        }
+        return (data || 'classic') as T;
+      }
+
+      case 'appThemeSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_theme_set', { p_session: session.token, p_theme: payload.theme });
+        if (error) throw new Error(isMissingFunction(error) ? 'The App Theme database update has not been run yet (supabase_app_theme.sql). Please run it first.' : 'Could not save the theme. (' + error.message + ')');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can change the theme.');
+        if (data === 'INVALID_INPUT') throw new Error('Unknown theme choice.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }

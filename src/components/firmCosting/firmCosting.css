@@ -82,44 +82,6 @@
 }
 .fc-stage[data-theme='classic'] .fc-theme-menu { background: rgba(255, 255, 255, 0.96); }
 
-/* Glass: bright tiles on a butter page, frosted cards. Colours from the colour cards. Bistre page, deep green cards, butter text, aureolin and lime accents. */
-.fc-stage[data-theme='glass'] {
-  --ink: #ffefb3;
-  --ink-soft: rgba(255, 239, 179, 0.75);
-  --ink-muted: rgba(255, 239, 179, 0.55);
-  --fc-stage-bg:
-    radial-gradient(520px 380px at 6% 8%, rgba(251, 227, 17, 0.85), transparent 62%),
-    radial-gradient(460px 340px at 38% 58%, rgba(122, 53, 255, 0.5), transparent 62%),
-    radial-gradient(520px 380px at 96% 10%, rgba(241, 81, 83, 0.55), transparent 62%),
-    radial-gradient(560px 400px at 90% 96%, rgba(211, 240, 10, 0.75), transparent 62%),
-    radial-gradient(480px 340px at 8% 92%, rgba(57, 255, 136, 0.5), transparent 62%),
-    #fff1b8;
-  --fc-stage-shadow: inset 0 0 0 1px rgba(1, 62, 55, 0.14), var(--shadow-md);
-  --fc-card-bg: rgba(11, 19, 43, 0.72);
-  --fc-card-border: rgba(255, 255, 255, 0.42);
-  --fc-card-shadow: 0 10px 28px rgba(60, 40, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 0 24px rgba(255, 255, 255, 0.06);
-  --fc-card-blur: blur(20px) saturate(170%);
-  --fc-input-bg: rgba(255, 239, 179, 0.1);
-  --fc-input-border: rgba(255, 239, 179, 0.28);
-  --fc-line: rgba(255, 239, 179, 0.14);
-  --fc-th-bg: rgba(255, 239, 179, 0.08);
-  --fc-hover: rgba(255, 239, 179, 0.07);
-  --fc-tile-bg: #fbe311;
-  --fc-tile-ink: #261606;
-  --fc-chip-up-bg: rgba(211, 240, 10, 0.18);
-  --fc-chip-up: #d3f00a;
-  --fc-chip-down-bg: rgba(241, 81, 83, 0.2);
-  --fc-chip-down: #ff8f90;
-  --fc-good: #B7FF72;
-  --fc-bad: #ff8f90;
-  --fc-btn-bg: #fbe311;
-  --fc-btn-ink: #261606;
-  --fc-dock-on-bg: #fbe311;
-  --fc-dock-on-ink: #261606;
-  --fc-switch-on: #d3f00a;
-  color: var(--ink);
-}
-
 .fc-glass {
   background: var(--fc-card-bg);
   -webkit-backdrop-filter: var(--fc-card-blur);
@@ -246,19 +208,6 @@
   Tones: every card says which colour slot it uses (fc-t1 ... fc-t8) and each colourful theme decides what the slot looks like.
   Classic and Glass ignore them. t1-t3 are dark (charts sit on these), t4-t6 bright accents, t7 light, t8 spare bright.
 */
-.fc-stage[data-theme='glass'] .fc-t1 { background: rgba(1, 62, 55, 0.74); }
-.fc-stage[data-theme='glass'] .fc-t2 { background: rgba(122, 53, 255, 0.72); --ink: #fff; --ink-soft: rgba(255, 255, 255, 0.85); color: #fff; }
-.fc-stage[data-theme='glass'] .fc-t9 { background: rgba(11, 19, 43, 0.78); }
-.fc-stage[data-theme='glass'] .fc-t4 { background: rgba(251, 227, 17, 0.78); --ink: #261606; --ink-soft: rgba(38, 22, 6, 0.72); color: #261606; }
-.fc-stage[data-theme='glass'] .fc-t5 { background: rgba(211, 240, 10, 0.74); --ink: #261606; --ink-soft: rgba(38, 22, 6, 0.72); color: #261606; }
-.fc-stage[data-theme='glass'] .fc-t6 { background: rgba(241, 81, 83, 0.76); --ink: #261606; --ink-soft: rgba(38, 22, 6, 0.75); color: #261606; }
-.fc-stage[data-theme='glass'] .fc-t8 { background: rgba(249, 16, 12, 0.74); --ink: #fbe311; --ink-soft: rgba(251, 227, 17, 0.8); color: #fbe311; }
-.fc-stage[data-theme='glass'] .fc-t7 {
-  background: rgba(255, 251, 234, 0.58); --ink: #013e37; --ink-soft: rgba(1, 62, 55, 0.72); --ink-muted: rgba(1, 62, 55, 0.55); color: #013e37;
-  --fc-input-bg: rgba(1, 62, 55, 0.07); --fc-input-border: rgba(1, 62, 55, 0.28); --fc-line: rgba(1, 62, 55, 0.16); --fc-hover: rgba(1, 62, 55, 0.08);
-  --fc-good: #1f6b41; --fc-bad: #b91c1c; --fc-menu-bg: #fffbea; --fc-dock-on-bg: #7A35FF; --fc-dock-on-ink: #fff; --fc-btn-bg: #FF6115; --fc-btn-ink: #fff; --fc-switch-on: #39FF88; --fc-th-bg: rgba(1, 62, 55, 0.08);
-}
-
 /* numbers on the bright tiles take the tile's own text colour, not the profit/loss colour */
 .fc-stage[data-theme='glass'] .fc-tile .fc-tile-value { color: inherit !important; }
 .fc-stage[data-theme='glass'] .fc-tile .fc-tile-label { color: inherit; }
@@ -279,3 +228,196 @@
 /* Revenue share 40% | Cost by client 60% */
 .fc-grid.fc-split-40-60 { grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); }
 @media (max-width: 900px) { .fc-grid.fc-split-40-60 { grid-template-columns: minmax(0, 1fr); } }
+
+/* ==========================================================================
+   Firm Costing — Full App Theme (Liquid Glass) Integration
+   ========================================================================== */
+/* Glass is the app's Glass look. Chosen here it works even while the rest of the app is Classic, so the stage carries the gradient itself. */
+.fc-stage[data-theme='glass'] {
+  --fc-stage-bg: linear-gradient(135deg, #4a5b8a 0%, #8b7eaa 50%, #c79db9 100%) !important;
+  --fc-stage-radius: 12px !important;
+  --fc-stage-shadow: none !important;
+  --fc-card-bg: rgba(255, 255, 255, 0.10) !important;
+  --fc-card-border: rgba(255, 255, 255, 0.20) !important;
+  --fc-card-blur: blur(16px) !important;
+  --fc-card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.10) !important;
+  --fc-card-radius: 10px !important;
+  --ink: #FFFFFF !important;
+  --ink-soft: rgba(255, 255, 255, 0.85) !important;
+  --ink-muted: rgba(255, 255, 255, 0.70) !important;
+  --fc-input-bg: rgba(255, 255, 255, 0.12) !important;
+  --fc-input-border: rgba(255, 255, 255, 0.25) !important;
+  --fc-line: rgba(255, 255, 255, 0.15) !important;
+  --fc-th-bg: rgba(255, 255, 255, 0.10) !important;
+  --fc-hover: rgba(255, 255, 255, 0.08) !important;
+  --fc-tile-bg: rgba(255, 255, 255, 0.14) !important;
+  --fc-tile-ink: #FFFFFF !important;
+  --fc-chip-up-bg: rgba(119, 223, 192, 0.20) !important;
+  --fc-chip-up: #77dfc0 !important;
+  --fc-chip-down-bg: rgba(246, 139, 139, 0.20) !important;
+  --fc-chip-down: #f68b8b !important;
+  --fc-good: #77dfc0 !important;
+  --fc-bad: #f68b8b !important;
+  --fc-btn-bg: rgba(119, 223, 192, 0.25) !important;
+  --fc-btn-ink: #77dfc0 !important;
+  --fc-dock-on-bg: rgba(255, 255, 255, 0.20) !important;
+  --fc-dock-on-ink: #FFFFFF !important;
+  --fc-switch-on: #77dfc0 !important;
+  color: #FFFFFF !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-glass,
+.fc-stage[data-theme='glass'] .fc-card {
+  background: rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.10) !important;
+  border-radius: 10px !important;
+  color: #FFFFFF !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-top {
+  background: rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.10) !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-title {
+  color: #FFFFFF !important;
+}
+.fc-stage[data-theme='glass'] .fc-title small {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-field span {
+  color: #FFFFFF !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-field select,
+.fc-stage[data-theme='glass'] .form-select,
+.fc-stage[data-theme='glass'] .form-input,
+.fc-stage[data-theme='glass'] input[type="text"],
+.fc-stage[data-theme='glass'] input[type="month"] {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-field select option,
+.fc-stage[data-theme='glass'] .form-select option {
+  background: #1e2438 !important;
+  color: #FFFFFF !important;
+}
+
+/* Neutralize legacy butter/yellow slots in liquid glass */
+.fc-stage[data-theme='glass'] .fc-t1,
+.fc-stage[data-theme='glass'] .fc-t2,
+.fc-stage[data-theme='glass'] .fc-t4,
+.fc-stage[data-theme='glass'] .fc-t5,
+.fc-stage[data-theme='glass'] .fc-t6,
+.fc-stage[data-theme='glass'] .fc-t7,
+.fc-stage[data-theme='glass'] .fc-t8,
+.fc-stage[data-theme='glass'] .fc-t9 {
+  background: rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  color: #FFFFFF !important;
+  --ink: #FFFFFF !important;
+  --ink-soft: rgba(255, 255, 255, 0.85) !important;
+  --ink-muted: rgba(255, 255, 255, 0.70) !important;
+  --fc-line: rgba(255, 255, 255, 0.15) !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-card-title {
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+.fc-stage[data-theme='glass'] .fc-card-sub {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.fc-stage[data-theme='glass'] text {
+  fill: rgba(255, 255, 255, 0.80);
+}
+
+/* KPI Stat Tiles in Liquid Glass */
+.fc-stage[data-theme='glass'] .fc-tile.teal {
+  background: rgba(119, 223, 192, 0.18) !important;
+  border-color: rgba(119, 223, 192, 0.35) !important;
+  color: #FFFFFF !important;
+}
+.fc-stage[data-theme='glass'] .fc-tile.teal .fc-tile-value {
+  color: #77dfc0 !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-tile.fc-t2 {
+  background: rgba(201, 164, 235, 0.18) !important;
+  border-color: rgba(201, 164, 235, 0.35) !important;
+  color: #FFFFFF !important;
+}
+.fc-stage[data-theme='glass'] .fc-tile.fc-t2 .fc-tile-value {
+  color: #c9a4eb !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-tile.fc-t5 {
+  background: rgba(201, 164, 235, 0.18) !important;
+  border-color: rgba(201, 164, 235, 0.35) !important;
+  color: #FFFFFF !important;
+}
+
+.fc-stage[data-theme='glass'] .fc-tile.fc-t6 {
+  background: rgba(246, 139, 139, 0.18) !important;
+  border-color: rgba(246, 139, 139, 0.35) !important;
+  color: #FFFFFF !important;
+}
+
+/* Dock menu */
+.fc-stage[data-theme='glass'] .fc-dock {
+  background: rgba(24, 28, 52, 0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35) !important;
+}
+.fc-stage[data-theme='glass'] .fc-dock button {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+.fc-stage[data-theme='glass'] .fc-dock button.on {
+  background: rgba(255, 255, 255, 0.20) !important;
+  color: #FFFFFF !important;
+}
+.fc-stage[data-theme='glass'] .fc-theme-menu {
+  background: rgba(28, 33, 56, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+.fc-stage[data-theme='glass'] .fc-theme-menu button {
+  color: #FFFFFF !important;
+}
+.fc-stage[data-theme='glass'] .fc-theme-menu .head {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+
+/* Projection pills */
+.fc-stage[data-theme='glass'] .fc-proj-pills .stat-pill {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.20) !important;
+  color: #FFFFFF !important;
+}
+.fc-stage[data-theme='glass'] .fc-proj-pills .stat-pill-label {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+.fc-stage[data-theme='glass'] .fc-proj-pills .stat-pill-value {
+  color: #FFFFFF !important;
+}
+
+/* Whole app in Glass: the page behind already has the gradient */
+html[data-ui-theme="glass"] .fc-stage[data-theme='glass'] {
+  --fc-stage-bg: transparent !important;
+  --fc-stage-radius: 0 !important;
+}

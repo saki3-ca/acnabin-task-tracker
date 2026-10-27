@@ -5,6 +5,7 @@ import { adminService } from '../../services/adminService';
 import { taskRequestService } from '../../services/taskRequestService';
 import { canViewAllClients, getEligibleTaskRequestRecipients, getSelectableClients, isAssistantDirectorOrAbove } from '../../lib/permissions';
 import { Priority } from '../../types';
+import { useAppTheme } from '../../context/ThemeContext';
 import { Modal } from '../ui/Modal';
 
 interface RequestTaskModalProps {
@@ -15,6 +16,8 @@ interface RequestTaskModalProps {
 export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onClose }) => {
   const { currentUser, allClients, allUsers } = useAuth();
   const { refreshRequests, refreshNotifications } = useNotifications();
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
 
   const canSeeAll = canViewAllClients(currentUser);
   const isStudent = currentUser?.designation === 'Student';
@@ -185,7 +188,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
         </option>
 
         {isStudent && peers.length > 0 && (
-          <optgroup label="Fellow Students (Same Client)">
+          <optgroup label="Fellow Students (Same Client)" style={{ background: isGlass ? '#1a1e3e' : undefined, color: isGlass ? '#77dfc0' : undefined }}>
             {peers.map(p => (
               <option key={p.id} value={p.id}>
                 {p.name} (Student)
@@ -195,7 +198,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
         )}
 
         {isStudent && superiors.length > 0 && (
-          <optgroup label="Engagement Leadership (In-Charge to Manager)">
+          <optgroup label="Engagement Leadership (In-Charge to Manager)" style={{ background: isGlass ? '#1a1e3e' : undefined, color: isGlass ? '#77dfc0' : undefined }}>
             {superiors.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.designation})
@@ -205,7 +208,7 @@ export const RequestTaskModal: React.FC<RequestTaskModalProps> = ({ isOpen, onCl
         )}
 
         {!isStudent && superiors.length > 0 && (
-          <optgroup label={isADPlus ? 'Senior Management (AD to Partner)' : 'Superiors'}>
+          <optgroup label={isADPlus ? 'Senior Management (AD to Partner)' : 'Superiors'} style={{ background: isGlass ? '#1a1e3e' : undefined, color: isGlass ? '#77dfc0' : undefined }}>
             {superiors.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.designation})

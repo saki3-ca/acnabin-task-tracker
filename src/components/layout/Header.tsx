@@ -1,16 +1,19 @@
 import React from 'react';
-import { FileText, LogOut, Plus, RefreshCw, UserCheck } from 'lucide-react';
+import { Bell, FileText, LogOut, Plus, RefreshCw, UserCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { BRAND } from '../../lib/constants';
 import { canRequestTask, hasTeamAccess, isTeamLeader } from '../../lib/permissions';
 
 interface HeaderProps {
   onOpenAddTask: () => void;
   onOpenRequestTask?: () => void;
+  onOpenNotifications?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAddTask, onOpenRequestTask }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenAddTask, onOpenRequestTask, onOpenNotifications }) => {
   const { currentUser, allUsers, switchUser, logout } = useAuth();
+  const { unreadCount } = useNotifications();
 
   if (!currentUser) return null;
 
@@ -100,6 +103,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddTask, onOpenRequestTask
 
         {/* Actions Nav */}
         <div className="user-actions-nav">
+          {onOpenNotifications && (
+            <button
+              type="button"
+              className="glass-bell-btn"
+              onClick={onOpenNotifications}
+              title={`Notifications (${unreadCount} unread)`}
+              aria-label="View notifications"
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </button>
+          )}
           {showRequestBtn && onOpenRequestTask && (
             <button
               className="btn btn-secondary btn-sm"

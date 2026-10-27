@@ -77,29 +77,28 @@ const vividLight: FcColors = {
   palette: ['#013e37', '#7A35FF', '#FF6115', '#39FF88', '#B7FF72', '#f15153', '#fbe311', '#0B132B', '#9D6BFF', '#7FE0C0', '#ff9a62', '#8fd14f']
 };
 
-/** From the colour cards: Aureolin #fbe311, Bistre #261606, Lime #d3f00a, Imperial Red #f15153, Butter #ffefb3, Green #013e37 */
+/** Liquid glass palette: Mint #77dfc0, Lavender #c9a4eb, Coral #f68b8b, Amber #fef08a */
 const glass: FcColors = {
-  revenue: '#fbe311',
-  cost: '#7A35FF',
-  gain: '#d3f00a',
-  loss: '#f15153',
-  warn: '#fbe311',
-  grid: 'rgba(255,239,179,0.16)',
-  text: 'rgba(255,239,179,0.72)',
-  ink: '#ffefb3',
-  track: 'rgba(255,239,179,0.16)',
-  stripe: 'rgba(255,239,179,0.06)',
-  gap: 'rgba(0,0,0,0.4)',
-  pill: false,
-  light: vividLight,
-  palette: ['#fbe311', '#FF6115', '#39FF88', '#B7FF72', '#9D6BFF', '#f15153', '#ffefb3', '#7FE0C0', '#ff9a62', '#d3f00a', '#e8b4ff', '#8fd14f']
+  revenue: '#77dfc0',
+  cost: '#c9a4eb',
+  gain: '#77dfc0',
+  loss: '#f68b8b',
+  warn: '#fef08a',
+  grid: 'rgba(255, 255, 255, 0.15)',
+  text: 'rgba(255, 255, 255, 0.75)',
+  ink: '#FFFFFF',
+  track: 'rgba(255, 255, 255, 0.14)',
+  stripe: 'rgba(255, 255, 255, 0.05)',
+  gap: 'rgba(0, 0, 0, 0.35)',
+  pill: true,
+  palette: ['#77dfc0', '#c9a4eb', '#f68b8b', '#fef08a', '#60a5fa', '#34d399', '#a78bfa', '#f472b6', '#38bdf8', '#818cf8']
 };
 
 export const THEME_COLORS: Record<FcTheme, FcColors> = { classic, glass };
 
 export const THEMES: { id: FcTheme; label: string; note: string }[] = [
   { id: 'classic', label: 'Classic', note: 'Soft frosted white on warm cream, maroon and teal' },
-  { id: 'glass', label: 'Glass', note: 'Bright tiles on a butter page, frosted cards' }
+  { id: 'glass', label: 'Glass', note: 'The app Glass look: frosted panels on a soft gradient' }
 ];
 
 export const isFcTheme = (v: unknown): v is FcTheme => v === 'classic' || v === 'glass';

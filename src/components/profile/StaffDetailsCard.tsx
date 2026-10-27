@@ -31,7 +31,7 @@ const fmtMoney = (n?: number | null): React.ReactNode =>
     </span>
   );
 
-const HAIRLINE = '#EAE3D9';
+const HAIRLINE = 'var(--line-soft)';
 
 /** One "label ..... value" line. Empty values show a soft dash. */
 const Row: React.FC<{ label: string; children: React.ReactNode; last?: boolean }> = ({ label, children, last }) => (
@@ -58,14 +58,9 @@ const Panel: React.FC<{ title: string; icon: React.ReactNode; wide?: boolean; ch
   footer
 }) => (
   <section
+    className="staff-panel"
     style={{
-      gridColumn: wide ? '1 / -1' : undefined,
-      background: '#FFFFFF',
-      border: '1px solid var(--line)',
-      borderRadius: '10px',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
+      gridColumn: wide ? '1 / -1' : undefined
     }}
   >
     <header
@@ -110,7 +105,7 @@ const Panel: React.FC<{ title: string; icon: React.ReactNode; wide?: boolean; ch
 
 /** A highlighted figure on top of the card. */
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div style={{ flex: '1 1 150px', minWidth: 0, padding: '12px 16px', borderLeft: '3px solid var(--maroon)', background: '#FFFFFF', borderRadius: '6px', border: '1px solid var(--line)', borderLeftWidth: '3px', borderLeftColor: 'var(--maroon)' }}>
+  <div className="staff-stat-box">
     <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--ink-muted)', letterSpacing: '0.7px', textTransform: 'uppercase' }}>{label}</div>
     <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--navy)', marginTop: '3px', wordBreak: 'break-word' }}>{value}</div>
   </div>
@@ -192,7 +187,7 @@ export const StaffDetailsCard: React.FC<Props> = ({ refreshKey = 0 }) => {
 
   return (
     <div style={{ borderTop: '1px solid var(--line)' }}>
-      <div style={{ padding: '18px 20px 14px', background: '#FFFFFF' }}>
+      <div className="staff-details-body">
         {/* Key figures */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
           <Stat label={yearLabel} value={show(yearValue)} />

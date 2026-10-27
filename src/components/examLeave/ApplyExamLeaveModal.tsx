@@ -303,6 +303,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
 
   return (
     <div
+      className="modal-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -316,6 +317,7 @@ export const ApplyExamLeaveModal: React.FC<ApplyExamLeaveModalProps> = ({
       onClick={onClose}
     >
       <div
+        className="modal-dialog"
         style={{
           background: '#ffffff',
           borderRadius: '12px',

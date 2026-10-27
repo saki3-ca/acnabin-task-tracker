@@ -25,6 +25,8 @@ import { clientService } from '../../services/clientService';
 import { useNotifications } from '../../context/NotificationContext';
 import { ClientLabel } from '../ui/ClientLabel';
 import { StaffDetailsCard } from './StaffDetailsCard';
+import { ThemeSettingsCard } from './ThemeSettingsCard';
+import { useAppTheme } from '../../context/ThemeContext';
 import { academicYearFromStart, employmentYearFromJoining, isEmployeeProfile, PRINCIPALS, canonicalPrincipal } from '../../lib/academicYear';
 import { titleCaseWords } from '../../lib/text';
 import { staffService } from '../../services/staffService';
@@ -86,6 +88,8 @@ interface ProfileViewProps {
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const { currentUser, allClients, allUsers, refreshContextData } = useAuth();
   const { myTasks, teamTasks, myStats } = useTasks();
 
@@ -682,8 +686,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                           justifyContent: 'space-between',
                           gap: '6px 8px',
                           flexWrap: 'wrap',
-                          background: isPrimary ? '#F0FDF4' : '#F8FAFC',
-                          border: `1.5px solid ${isPrimary ? '#10B981' : '#E2E8F0'}`,
+                          background: isGlass ? (isPrimary ? 'rgba(119, 223, 192, 0.16)' : 'rgba(255, 255, 255, 0.06)') : (isPrimary ? '#F0FDF4' : '#F8FAFC'),
+                          border: isGlass ? (isPrimary ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid rgba(255, 255, 255, 0.16)') : `1.5px solid ${isPrimary ? '#10B981' : '#E2E8F0'}`,
                           borderRadius: '8px',
                           padding: '5px 10px'
                         }}
@@ -694,8 +698,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                               style={{
                                 fontSize: '10px',
                                 fontWeight: 700,
-                                background: isPrimary ? '#059669' : '#E2E8F0',
-                                color: isPrimary ? '#ffffff' : '#64748B',
+                                background: isGlass ? (isPrimary ? 'rgba(119, 223, 192, 0.25)' : 'rgba(255, 255, 255, 0.12)') : (isPrimary ? '#059669' : '#E2E8F0'),
+                                color: isGlass ? (isPrimary ? '#77dfc0' : 'rgba(255, 255, 255, 0.80)') : (isPrimary ? '#ffffff' : '#64748B'),
                                 padding: '2px 8px',
                                 borderRadius: '12px',
                                 flexShrink: 0
@@ -704,7 +708,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                               {isPrimary ? '★ PRIMARY' : 'SECONDARY'}
                             </span>
                           )}
-                          <span style={{ fontSize: '12.5px', fontWeight: isPrimary ? 700 : 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: '12.5px', fontWeight: isPrimary ? 700 : 500, color: isGlass ? '#ffffff' : 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             <ClientLabel id={c.id} name={c.name} />
                           </span>
                         </div>
@@ -716,7 +720,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                                 const target = prev.find(x => x.id === c.id);
                                 return target ? [target, ...prev.filter(x => x.id !== c.id)] : prev;
                               })}
-                              style={{ background: '#fff', border: '1px solid #10B981', color: '#059669', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                              style={{ background: isGlass ? 'rgba(119, 223, 192, 0.15)' : '#fff', border: isGlass ? '1px solid rgba(119, 223, 192, 0.45)' : '1px solid #10B981', color: isGlass ? '#77dfc0' : '#059669', borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                               title="Make this client the Primary client"
                             >
                               ★ Make Primary
@@ -725,7 +729,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                           <button
                             type="button"
                             onClick={() => setEditClients(prev => prev.filter(x => x.id !== c.id))}
-                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--maroon)', fontWeight: 700, padding: '0 4px', lineHeight: 1, fontSize: '16px' }}
+                            style={{ border: 'none', background: 'none', cursor: 'pointer', color: isGlass ? '#f68b8b' : 'var(--maroon)', fontWeight: 700, padding: '0 4px', lineHeight: 1, fontSize: '16px' }}
                             title="Remove client"
                           >×</button>
                         </div>
@@ -733,7 +737,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     );
                   })}
                   {editClients.length > 1 && (
-                    <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
+                    <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.65)' : 'var(--ink-muted)', fontStyle: 'italic' }}>
                       The Primary client is the one counted in Manpower summary and Excel exports.
                     </div>
                   )}
@@ -757,10 +761,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     left: 0,
                     right: 0,
                     zIndex: 100,
-                    background: '#fff',
-                    border: '1px solid var(--line)',
+                    background: isGlass ? 'rgba(24, 28, 52, 0.98)' : '#fff',
+                    border: isGlass ? '1px solid rgba(255, 255, 255, 0.20)' : '1px solid var(--line)',
+                    backdropFilter: isGlass ? 'blur(16px)' : undefined,
+                    WebkitBackdropFilter: isGlass ? 'blur(16px)' : undefined,
                     borderRadius: '6px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                    boxShadow: isGlass ? '0 12px 36px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.12)',
                     margin: 0,
                     padding: '4px 0',
                     listStyle: 'none',
@@ -772,8 +778,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                     <li
                       key={c.id}
                       onMouseDown={() => addEditClient(c)}
-                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-alt, #F5F3EF)')}
+                      style={{ padding: '8px 14px', cursor: 'pointer', fontSize: '13px', color: isGlass ? '#ffffff' : 'var(--ink)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = isGlass ? 'rgba(255, 255, 255, 0.12)' : 'var(--surface-alt, #F5F3EF)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                     >
                       <ClientLabel id={c.id} name={c.name} />
@@ -812,7 +818,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
           </span>
         </div>
 
-        <div style={{ padding: '20px', background: '#FFFFFF' }}>
+        <div className="profile-card-body">
           {/* Identity Bar */}
           <div
             style={{
@@ -872,8 +878,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: '12px',
-                      background: currentUser.status === 'ACTIVE' ? '#DEF7EC' : '#FDE8E8',
-                      color: currentUser.status === 'ACTIVE' ? '#03543F' : '#9B1C1C'
+                      background: isGlass ? (currentUser.status === 'ACTIVE' ? 'rgba(119, 223, 192, 0.20)' : 'rgba(246, 139, 139, 0.20)') : (currentUser.status === 'ACTIVE' ? '#DEF7EC' : '#FDE8E8'),
+                      color: isGlass ? (currentUser.status === 'ACTIVE' ? '#77dfc0' : '#f68b8b') : (currentUser.status === 'ACTIVE' ? '#03543F' : '#9B1C1C'),
+                      border: isGlass ? (currentUser.status === 'ACTIVE' ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid rgba(246, 139, 139, 0.40)') : undefined
                     }}
                   >
                     {currentUser.status}
@@ -910,8 +917,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
             </div>
 
-            {/* Edit Profile Action Button */}
-            <div>
+            {/* Theme + Edit Profile Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <ThemeSettingsCard />
               <button
                 type="button"
                 onClick={openEditModal}
@@ -925,7 +933,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   fontWeight: 600,
                   borderRadius: '6px',
                   border: '1.5px solid var(--line-strong)',
-                  background: '#ffffff',
+                  background: 'var(--ui-surface)',
                   color: 'var(--ink)',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                   cursor: 'pointer'
@@ -946,139 +954,69 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
             }}
           >
             <div
+              className="profile-stat-box stat-blue"
               onClick={() => {
                 const el = document.getElementById('profile-assigned-clients-section');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              style={{
-                background: '#EFF6FF',
-                padding: '8px 12px',
-                height: '74px',
-                boxSizing: 'border-box',
-                borderRadius: '8px',
-                border: '1px solid #BFDBFE',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-              }}
               title="View assigned client engagements below"
             >
-              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div className="stat-label" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Assigned Clients
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1E40AF', marginTop: '3px', lineHeight: 1.1 }}>
+              <div className="stat-val" style={{ fontSize: '24px', fontWeight: 800, marginTop: '3px', lineHeight: 1.1 }}>
                 {canSeeAll ? 'All' : assignedClientsList.length}
               </div>
             </div>
 
             <div
+              className="profile-stat-box stat-purple"
               onClick={() => onNavigateToTasks?.()}
-              style={{
-                background: '#FAF5FF',
-                padding: '8px 12px',
-                height: '74px',
-                boxSizing: 'border-box',
-                borderRadius: '8px',
-                border: '1px solid #E9D5FF',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-              }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#6B21A8', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div className="stat-label" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Total Active Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#6B21A8', marginTop: '3px', lineHeight: 1.1 }}>
+              <div className="stat-val" style={{ fontSize: '24px', fontWeight: 800, marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.total}
               </div>
             </div>
 
             <div
+              className="profile-stat-box stat-green"
               onClick={() => setIsCompletedModalOpen(true)}
-              style={{
-                background: '#F0FDF4',
-                padding: '8px 12px',
-                height: '74px',
-                boxSizing: 'border-box',
-                borderRadius: '8px',
-                border: '1px solid #86EFAC',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-              }}
               title="Click to open completed tasks window"
             >
-              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div className="stat-label" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Completed Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#166534', marginTop: '3px', lineHeight: 1.1 }}>
+              <div className="stat-val" style={{ fontSize: '24px', fontWeight: 800, marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.completed}
               </div>
             </div>
 
             <div
+              className="profile-stat-box stat-yellow"
               onClick={() => onNavigateToTasks?.()}
-              style={{
-                background: '#FFFBEB',
-                padding: '8px 12px',
-                height: '74px',
-                boxSizing: 'border-box',
-                borderRadius: '8px',
-                border: '1px solid #FDE68A',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-              }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div className="stat-label" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Pending / In Progress
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#92400E', marginTop: '3px', lineHeight: 1.1 }}>
+              <div className="stat-val" style={{ fontSize: '24px', fontWeight: 800, marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.pending + myStats.inProgress}
               </div>
             </div>
 
             <div
+              className="profile-stat-box stat-red"
               onClick={() => onNavigateToTasks?.()}
-              style={{
-                background: '#FEF2F2',
-                padding: '8px 12px',
-                height: '74px',
-                boxSizing: 'border-box',
-                borderRadius: '8px',
-                border: '1px solid #FECACA',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-              }}
               title="Navigate to My Tasks panel"
             >
-              <div style={{ fontSize: '10.5px', fontWeight: 700, color: '#991B1B', textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
+              <div className="stat-label" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', lineHeight: 1.2 }}>
                 Overdue Tasks
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#991B1B', marginTop: '3px', lineHeight: 1.1 }}>
+              <div className="stat-val" style={{ fontSize: '24px', fontWeight: 800, marginTop: '3px', lineHeight: 1.1 }}>
                 {myStats.overdue}
               </div>
             </div>
@@ -1110,9 +1048,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 gap: '5px',
                 fontSize: '11.5px',
                 fontWeight: 700,
-                color: '#0F5E57',
-                background: '#FFFFFF',
-                border: 'none',
+                color: isGlass ? '#FFFFFF' : '#0F5E57',
+                background: isGlass ? 'rgba(255, 255, 255, 0.20)' : '#FFFFFF',
+                border: isGlass ? '1px solid rgba(255, 255, 255, 0.35)' : 'none',
                 padding: '4px 10px',
                 borderRadius: '12px',
                 cursor: 'pointer'
@@ -1146,9 +1084,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               borderRadius: '6px',
               fontSize: '12.5px',
               fontWeight: 600,
-              background: clientNotice.type === 'success' ? '#DEF7EC' : '#FDE8E8',
-              color: clientNotice.type === 'success' ? '#03543F' : '#9B1C1C',
-              border: `1px solid ${clientNotice.type === 'success' ? '#31C48D' : '#F98080'}`
+              background: isGlass ? (clientNotice.type === 'success' ? 'rgba(119, 223, 192, 0.20)' : 'rgba(246, 139, 139, 0.20)') : (clientNotice.type === 'success' ? '#DEF7EC' : '#FDE8E8'),
+              color: isGlass ? (clientNotice.type === 'success' ? '#77dfc0' : '#f68b8b') : (clientNotice.type === 'success' ? '#03543F' : '#9B1C1C'),
+              border: isGlass ? (clientNotice.type === 'success' ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid rgba(246, 139, 139, 0.40)') : `1px solid ${clientNotice.type === 'success' ? '#31C48D' : '#F98080'}`
             }}
           >
             {clientNotice.text}
@@ -1195,23 +1133,23 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
 
                   return (
                     <tr key={client.id}>
-                      <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
+                      <td style={{ textAlign: 'center', fontWeight: 600, color: isGlass ? 'rgba(255, 255, 255, 0.65)' : 'var(--ink-muted)' }}>
                         {idx + 1}
                       </td>
-                      <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: 'var(--navy)' }}>
+                      <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: isGlass ? '#c9a4eb' : 'var(--navy)' }}>
                         {client.jobNumber || '—'}
                       </td>
-                      <td style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                      <td style={{ fontWeight: 600, color: isGlass ? '#FFFFFF' : 'var(--ink)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Building size={15} color="var(--ink-soft)" />
+                          <Building size={15} color={isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)'} />
                           <span>{client.name}</span>
                           {ownClientOrder.length > 1 && ownClientOrder.includes(client.id) && (
                             ownClientOrder[0] === client.id ? (
-                              <span style={{ fontSize: '9.5px', fontWeight: 700, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }} title="Primary client">
+                              <span style={{ fontSize: '9.5px', fontWeight: 700, background: isGlass ? 'rgba(119, 223, 192, 0.20)' : '#ECFDF5', color: isGlass ? '#77dfc0' : '#065F46', border: isGlass ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }} title="Primary client">
                                 ★ Primary
                               </span>
                             ) : (
-                              <span style={{ fontSize: '9px', fontWeight: 600, background: '#F1F5F9', color: '#64748B', border: '1px solid #E2E8F0', padding: '1px 5px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }} title="Secondary client">
+                              <span style={{ fontSize: '9px', fontWeight: 600, background: isGlass ? 'rgba(255, 255, 255, 0.08)' : '#F1F5F9', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : '#64748B', border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #E2E8F0', padding: '1px 5px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }} title="Secondary client">
                                 Secondary
                               </span>
                             )
@@ -1231,8 +1169,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: badgeCount > 0 ? '#EBF4FF' : '#F1F5F9',
-                            color: badgeCount > 0 ? '#1E40AF' : '#64748B'
+                            background: isGlass ? (badgeCount > 0 ? 'rgba(201, 164, 235, 0.20)' : 'rgba(255, 255, 255, 0.08)') : (badgeCount > 0 ? '#EBF4FF' : '#F1F5F9'),
+                            color: isGlass ? (badgeCount > 0 ? '#c9a4eb' : 'rgba(255, 255, 255, 0.65)') : (badgeCount > 0 ? '#1E40AF' : '#64748B'),
+                            border: isGlass ? (badgeCount > 0 ? '1px solid rgba(201, 164, 235, 0.40)' : '1px solid rgba(255, 255, 255, 0.15)') : undefined
                           }}
                         >
                           <FileText size={11} /> {badgeCount} {badgeCount === 1 ? 'task' : 'tasks'}
@@ -1248,8 +1187,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: client.status === 'ACTIVE' ? '#DEF7EC' : '#F3F4F6',
-                            color: client.status === 'ACTIVE' ? '#03543F' : '#6B7280'
+                            background: isGlass ? (client.status === 'ACTIVE' ? 'rgba(119, 223, 192, 0.20)' : 'rgba(255, 255, 255, 0.08)') : (client.status === 'ACTIVE' ? '#DEF7EC' : '#F3F4F6'),
+                            color: isGlass ? (client.status === 'ACTIVE' ? '#77dfc0' : 'rgba(255, 255, 255, 0.65)') : (client.status === 'ACTIVE' ? '#03543F' : '#6B7280'),
+                            border: isGlass ? (client.status === 'ACTIVE' ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid rgba(255, 255, 255, 0.15)') : undefined
                           }}
                         >
                           <CheckCircle2 size={11} /> {client.status}
@@ -1309,9 +1249,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   borderRadius: '6px',
                   fontSize: '12.5px',
                   fontWeight: 600,
-                  background: modalFeedback.type === 'success' ? '#DEF7EC' : '#FDE8E8',
-                  color: modalFeedback.type === 'success' ? '#03543F' : '#9B1C1C',
-                  border: `1px solid ${modalFeedback.type === 'success' ? '#31C48D' : '#F98080'}`
+                  background: isGlass ? (modalFeedback.type === 'success' ? 'rgba(119, 223, 192, 0.20)' : 'rgba(246, 139, 139, 0.20)') : (modalFeedback.type === 'success' ? '#DEF7EC' : '#FDE8E8'),
+                  color: isGlass ? (modalFeedback.type === 'success' ? '#77dfc0' : '#f68b8b') : (modalFeedback.type === 'success' ? '#03543F' : '#9B1C1C'),
+                  border: isGlass ? (modalFeedback.type === 'success' ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid rgba(246, 139, 139, 0.40)') : `1px solid ${modalFeedback.type === 'success' ? '#31C48D' : '#F98080'}`
                 }}
               >
                 {modalFeedback.text}
@@ -1325,9 +1265,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 alignItems: 'center',
                 gap: '16px',
                 padding: '12px 16px',
-                background: '#F8FAFC',
+                background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F8FAFC',
                 borderRadius: '8px',
-                border: '1px solid var(--line-soft)'
+                border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line-soft)',
+                backdropFilter: isGlass ? 'blur(12px)' : undefined,
+                WebkitBackdropFilter: isGlass ? 'blur(12px)' : undefined
               }}
             >
               <div
@@ -1358,7 +1300,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
               </div>
 
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: isGlass ? '#FFFFFF' : 'var(--ink)' }}>
                   Profile Photograph
                 </div>
 
@@ -1435,11 +1377,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
 
             {/* Personal & work information (all optional) */}
             {!isPartner && (
-            <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
-              <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: '8px',
+                background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F8FAFC',
+                border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)',
+                backdropFilter: isGlass ? 'blur(12px)' : undefined,
+                WebkitBackdropFilter: isGlass ? 'blur(12px)' : undefined
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: '12.5px', color: isGlass ? '#c9a4eb' : 'var(--navy)', marginBottom: '4px' }}>
                 Personal &amp; Work Information
               </div>
-              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginBottom: '10px' }}>
                 {infoLoading ? 'Loading your saved information…' : 'Optional. Leave a field empty to keep it as it is.'}
               </div>
 
@@ -1534,7 +1485,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   <label style={{ fontSize: '11.5px' }}>Present Address</label>
                   <input type="text" className="form-input" value={editAddress} onChange={e => setEditAddress(e.target.value)} onBlur={() => setEditAddress(a => titleCaseWords(a))} style={infoInputStyle} />
                 </div>
-                <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: 'var(--ink-muted)' }}>
+                <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.65)' : 'var(--ink-muted)' }}>
                   {conveyanceHint}
                 </div>
               </div>
@@ -1543,11 +1494,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
 
             {/* Official employee profile (full details); Partners have none */}
             {!isPartner && (
-            <div style={{ padding: '12px 14px', borderRadius: '8px', background: '#F8FAFC', border: '1px solid var(--line)' }}>
-              <div style={{ fontWeight: 700, fontSize: '12.5px', color: 'var(--navy)', marginBottom: '4px' }}>
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: '8px',
+                background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F8FAFC',
+                border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)',
+                backdropFilter: isGlass ? 'blur(12px)' : undefined,
+                WebkitBackdropFilter: isGlass ? 'blur(12px)' : undefined
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: '12.5px', color: isGlass ? '#c9a4eb' : 'var(--navy)', marginBottom: '4px' }}>
                 Official Employee Profile
               </div>
-              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginBottom: '10px' }}>
                 Optional. Leave a field empty to keep it as it is.
               </div>
               <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px 10px', alignItems: 'start' }}>
@@ -1564,13 +1524,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 {isEmployeeProfile(currentUser.empId, currentUser.designation) ? (
                   <div className="form-field" style={{ gridColumn: 'span 3' }}>
                     <label style={{ fontSize: '11.5px' }}>Employment Year</label>
-                    <input type="text" className="form-input" readOnly value={employmentYearFromJoining(editJoining) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />
+                    <input type="text" className="form-input" readOnly value={employmentYearFromJoining(editJoining) || '—'} style={{ ...infoInputStyle, background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : undefined, border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : undefined }} />
                   </div>
                 ) : (
                   <>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
                       <label style={{ fontSize: '11.5px' }}>Academic Year (Articleship)</label>
-                      <input type="text" className="form-input" readOnly value={academicYearFromStart(editArtStart, editArtEnd) || '—'} style={{ ...infoInputStyle, background: '#F1F5F9' }} />
+                      <input type="text" className="form-input" readOnly value={academicYearFromStart(editArtStart, editArtEnd) || '—'} style={{ ...infoInputStyle, background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : undefined, border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : undefined }} />
                     </div>
                     <div className="form-field" style={{ gridColumn: 'span 3' }}>
                       <label style={{ fontSize: '11.5px' }}>Articleship Start</label>
@@ -1635,7 +1595,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   value={currentUser.empId || 'N/A'}
                   disabled
                   className="form-input"
-                  style={{ background: '#F1F5F9', color: '#64748B', cursor: 'not-allowed' }}
+                  style={{ background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : '#64748B', border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : undefined, cursor: 'not-allowed' }}
                 />
               </div>
 
@@ -1646,7 +1606,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                   value={currentUser.designation}
                   disabled
                   className="form-input"
-                  style={{ background: '#F1F5F9', color: '#64748B', cursor: 'not-allowed' }}
+                  style={{ background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : '#64748B', border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : undefined, cursor: 'not-allowed' }}
                 />
               </div>
             </div>
@@ -1657,15 +1617,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                 marginTop: '6px',
                 padding: '12px 14px',
                 borderRadius: '8px',
-                background: '#FFFDF9',
-                border: '1px solid #FED7AA'
+                background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#FFFDF9',
+                border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid #FED7AA',
+                backdropFilter: isGlass ? 'blur(12px)' : undefined,
+                WebkitBackdropFilter: isGlass ? 'blur(12px)' : undefined
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '12.5px', color: '#9A3412', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '12.5px', color: isGlass ? '#fef08a' : '#9A3412', marginBottom: '8px' }}>
                 <KeyRound size={14} />
                 Change Password (Optional)
               </div>
-              <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginBottom: '10px' }}>
                 Leave password fields blank if you do not want to change your password.
               </div>
 
@@ -1779,7 +1741,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigateToTasks }) =
                       ))}
                     </select>
                     {picked && (
-                      <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--ink-soft)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ marginTop: '6px', fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Phone size={12} /> {picked.mobile || 'No number on file'}</span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Mail size={12} /> {picked.email || 'No email on file'}</span>
                       </div>
