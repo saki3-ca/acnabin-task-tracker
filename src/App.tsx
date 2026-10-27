@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { LoginForm } from './components/auth/LoginForm';
@@ -184,6 +185,7 @@ const MainApp: React.FC = () => {
       <Header 
         onOpenAddTask={() => handleOpenAddTask('own')} 
         onOpenRequestTask={() => setIsRequestModalOpen(true)}
+        onOpenNotifications={() => setActiveTab('notifications')}
       />
 
       {/* Navigation Tabs */}
@@ -371,12 +373,15 @@ const MainApp: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <TaskProvider>
-        <NotificationProvider>
-          <MainApp />
-        </NotificationProvider>
-      </TaskProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <TaskProvider>
+          <NotificationProvider>
+            <MainApp />
+          </NotificationProvider>
+        </TaskProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
+

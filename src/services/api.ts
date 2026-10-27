@@ -30,7 +30,7 @@ const NO_FALLBACK_ACTIONS = new Set(['login', 'register', 'changePassword', 'add
   'updateUser', 'saveManagerClients', 'saveManagerStudents', 'updateManpowerRecord', 'saveClientManpowerRemark', 'saveMyInfo',
   'sendTaskEmail', 'saveMyStaff', 'importStaff',
   'proposalList', 'proposalSave', 'proposalDelete', 'proposalImport', 'proposalAccessGet', 'proposalAccessSet', 'manpowerHasAccess', 'manpowerAccessGet', 'manpowerAccessSet', 'invoiceHasAccess', 'invoiceList', 'invoiceSave', 'invoiceImport', 'getManpowerScoped', 'invoiceDelete', 'invoiceAccessGet', 'invoiceAccessSet', 'invoiceSettingsGet', 'invoiceSettingsSet', 'invoiceAttachmentList', 'invoiceAttachmentAdd', 'invoiceAttachmentDelete', 'tenderAgentHasAccess', 'tenderAgentAccessGet', 'tenderAgentAccessSet', 'tenderAgentBridgeToken',
-  'tabAccessMine', 'tabAccessGet', 'tabAccessSet', 'firmCostingList', 'firmCostingSaveMonth', 'firmCostingThemeGet', 'firmCostingThemeSet', 'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
+  'tabAccessMine', 'tabAccessGet', 'tabAccessSet', 'appThemeSet', 'firmCostingList', 'firmCostingSaveMonth', 'firmCostingThemeGet', 'firmCostingThemeSet', 'examLeaveEnabledGet', 'examLeaveEnabledSet', 'examLeaveList', 'examLeaveSave', 'examLeaveDelete', 'examLeaveStatus', 'proposalPeople', 'proposalEmailAssigned', 'proposalSettingsGet', 'proposalSettingsSet', 'proposalAttachmentList', 'proposalAttachmentAdd', 'proposalAttachmentDelete']);
 const MIN_PASSWORD_LENGTH = 4;
 
 // URL slug of the deployed send-task-email Edge Function (see supabase/functions/send-task-email).
@@ -1935,6 +1935,28 @@ export const api = {
         if (error) throw new Error(isMissingFunction(error) ? 'The Firm Costing theme update has not been run yet (supabase_firm_costing_theme.sql). Please run it first.' : 'Could not save the theme. (' + error.message + ')');
         if (data === 'FORBIDDEN') throw new Error('Only Admin can change the theme.');
         if (data === 'INVALID_INPUT') throw new Error('Unknown theme.');
+        if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
+        return { success: true } as T;
+      }
+
+      case 'appThemeGet': {
+        const session = readSession();
+        const { data, error } = await supabase.rpc('app_theme_get', { p_session: session?.token || null });
+        if (error) {
+          if (isMissingFunction(error)) return 'classic' as T;
+          throw new Error('Could not load app theme. (' + error.message + ')');
+        }
+        return (data || 'classic') as T;
+      }
+
+      case 'appThemeSet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again, then try again.');
+        await this.assertSessionIsCurrentUser(session);
+        const { data, error } = await supabase.rpc('app_theme_set', { p_session: session.token, p_theme: payload.theme });
+        if (error) throw new Error(isMissingFunction(error) ? 'The App Theme database update has not been run yet (supabase_app_theme.sql). Please run it first.' : 'Could not save the theme. (' + error.message + ')');
+        if (data === 'FORBIDDEN') throw new Error('Only Admin can change the theme.');
+        if (data === 'INVALID_INPUT') throw new Error('Unknown theme choice.');
         if (data !== 'OK') throw new Error('Your login has expired. Please log out and log in again.');
         return { success: true } as T;
       }

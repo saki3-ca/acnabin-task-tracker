@@ -1,7 +1,9 @@
 import { ClientLabel } from '../ui/ClientLabel';
 import React, { useEffect, useState } from 'react';
-import { Check, Key, Shield, UserCog, Users } from 'lucide-react';
+import { Check, Eye, Key, Palette, Shield, Sparkles, UserCog, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
+import { AppTheme } from '../../services/appThemeService';
 import { DESIGNATIONS, ROLES } from '../../lib/constants';
 import { isManagementDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
@@ -10,17 +12,23 @@ import { Modal } from '../ui/Modal';
 import { StaffImport } from './StaffImport';
 import { TabAccessManager } from './TabAccessManager';
 
-type Section = 'users' | 'access' | 'managers' | 'import';
+type Section = 'users' | 'access' | 'managers' | 'import' | 'appearance';
 const SECTIONS: { key: Section; label: string }[] = [
   { key: 'users', label: 'Users & Roles' },
   { key: 'access', label: 'Tab Access' },
   { key: 'managers', label: 'Manager Access' },
-  { key: 'import', label: 'Staff Import' }
+  { key: 'import', label: 'Staff Import' },
+  { key: 'appearance', label: 'Appearance' }
 ];
-
 export const AdminPanel: React.FC = () => {
   const [section, setSection] = useState<Section>('users');
   const { allUsers, allClients, refreshContextData } = useAuth();
+  const { theme, previewTheme, saveTheme, isDevOverride } = useAppTheme();
+  const [selectedTheme, setSelectedTheme] = useState<AppTheme>(theme);
+
+  useEffect(() => {
+    setSelectedTheme(theme);
+  }, [theme]);
 
   // Local state for user edits before saving
   const [userEdits, setUserEdits] = useState<Record<string, Partial<User>>>({});
@@ -229,6 +237,121 @@ export const AdminPanel: React.FC = () => {
       {section === 'access' && <TabAccessManager />}
 
       {section === 'import' && <StaffImport />}
+
+      {section === 'appearance' && (
+        <div className="table-card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--maroon)' }}>
+                <Palette size={20} /> System Theme & Visual Appearance
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--ink-soft)', marginTop: '4px' }}>
+                Select the application theme for all practice members across the firm.
+              </p>
+            </div>
+            {isDevOverride && (
+              <span style={{ fontSize: '11px', background: 'var(--status-progress-bg)', color: 'var(--status-progress-text)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
+                Developer URL Preview Mode Active (?uiTheme={theme})
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', margin: '20px 0' }}>
+            {/* Classic Option Card */}
+            <div
+              onClick={() => setSelectedTheme('classic')}
+              style={{
+                border: `2px solid ${selectedTheme === 'classic' ? 'var(--maroon)' : 'var(--line)'}`,
+                borderRadius: '14px',
+                padding: '18px',
+                cursor: 'pointer',
+                background: selectedTheme === 'classic' ? 'var(--cream-card, #FAF7F2)' : '#fff',
+                transition: 'all 0.15s ease',
+                position: 'relative'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--ink)' }}>Classic</span>
+                {theme === 'classic' && (
+                  <span style={{ fontSize: '11px', background: 'var(--maroon)', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+                    Active
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', marginBottom: '14px', lineHeight: 1.4 }}>
+                Traditional ACNABIN theme: solid warm cream canvas, crisp high-contrast cards, maroon and teal banners, and sharp executive data tables.
+              </p>
+              <div style={{ height: '54px', borderRadius: '8px', background: '#EDE7DE', padding: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <div style={{ flex: 1, height: '100%', background: '#FAF7F2', borderRadius: '4px', border: '1px solid #D8CFC3' }} />
+                <div style={{ width: '36px', height: '100%', background: '#8B1420', borderRadius: '4px' }} />
+                <div style={{ width: '36px', height: '100%', background: '#1D8C8C', borderRadius: '4px' }} />
+              </div>
+            </div>
+
+            {/* Glass Option Card */}
+            <div
+              onClick={() => setSelectedTheme('glass')}
+              style={{
+                border: `2px solid ${selectedTheme === 'glass' ? 'var(--teal)' : 'var(--line)'}`,
+                borderRadius: '14px',
+                padding: '18px',
+                cursor: 'pointer',
+                background: selectedTheme === 'glass' ? 'rgba(29, 140, 140, 0.08)' : '#fff',
+                transition: 'all 0.15s ease',
+                position: 'relative'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--ink)' }}>Glass</span>
+                {theme === 'glass' && (
+                  <span style={{ fontSize: '11px', background: 'var(--teal)', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+                    Active
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', marginBottom: '14px', lineHeight: 1.4 }}>
+                Liquid Glass theme: 3-stop dusk gradient canvas, 16px frosted translucent panels with 1px bright edges, 24px pill curves, mint/sky accents, and dark tinted glass data tables.
+              </p>
+              <div style={{ height: '54px', borderRadius: '8px', background: 'linear-gradient(135deg, #4a5b8a 0%, #8b7eaa 50%, #c79db9 100%)', padding: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <div style={{ flex: 1, height: '100%', background: 'rgba(255, 255, 255, 0.22)', backdropFilter: 'blur(4px)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.35)' }} />
+                <div style={{ width: '36px', height: '100%', background: '#77dfc0', borderRadius: '6px' }} />
+                <div style={{ width: '36px', height: '100%', background: '#85c7eb', borderRadius: '6px' }} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                previewTheme(selectedTheme);
+                showNotice(`Previewing ${selectedTheme.toUpperCase()} theme in this browser.`);
+              }}
+            >
+              <Eye size={14} /> Preview (This Browser Only)
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              disabled={isSaving}
+              onClick={async () => {
+                setIsSaving(true);
+                try {
+                  await saveTheme(selectedTheme);
+                  showNotice(`${selectedTheme.toUpperCase()} theme saved as default for the whole firm!`);
+                } catch (err: any) {
+                  showNotice(err.message || 'Could not save theme.');
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+            >
+              <Sparkles size={14} /> {isSaving ? 'Saving…' : 'Save for Everyone'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {section === 'managers' && (
         <>
