@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { isAssistantDirectorOrAbove, isStudentLevelDesignation, normalizeBDMobile } from '../../lib/permissions';
+import { useAppTheme } from '../../context/ThemeContext';
 import { notificationService } from '../../services/notificationService';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -16,6 +17,8 @@ interface Props {
 
 export const ProfileInfoModal: React.FC<Props> = ({ salaryOnly = false, onClose, onDone }) => {
   const { currentUser, allClients } = useAuth();
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
 
   // Only student-level roles (Student, Trainee, In Charge, Supervisor) have an academic year
   const hasAcademicYear = !salaryOnly && isStudentLevelDesignation(currentUser?.designation);
@@ -133,14 +136,19 @@ export const ProfileInfoModal: React.FC<Props> = ({ salaryOnly = false, onClose,
       onClick={() => !saving && onClose()}
     >
       <div
+        className="modal-dialog"
         style={{
-          background: '#ffffff',
+          background: isGlass ? 'var(--ui-modal-bg)' : '#ffffff',
           borderRadius: '10px',
           width: '100%',
           maxWidth: '520px',
           maxHeight: '92vh',
           overflowY: 'auto',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)'
+          boxShadow: isGlass ? 'var(--ui-shadow)' : '0 20px 40px rgba(0, 0, 0, 0.25)',
+          border: isGlass ? '1px solid var(--ui-border)' : undefined,
+          backdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+          WebkitBackdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+          color: isGlass ? '#ffffff' : undefined
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -272,14 +280,24 @@ export const ProfileInfoModal: React.FC<Props> = ({ salaryOnly = false, onClose,
         <div
           style={{
             padding: '12px 18px',
-            borderTop: '1px solid var(--line)',
+            borderTop: isGlass ? '1px solid rgba(255, 255, 255, 0.10)' : '1px solid var(--line)',
             display: 'flex',
             justifyContent: 'flex-end',
             gap: '10px',
-            background: '#F8FAFC'
+            background: isGlass ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC'
           }}
         >
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={saving}
+            style={{
+              background: isGlass ? 'rgba(255, 255, 255, 0.10)' : undefined,
+              color: isGlass ? '#ffffff' : undefined,
+              border: isGlass ? '1px solid rgba(255, 255, 255, 0.20)' : undefined
+            }}
+          >
             Cancel
           </button>
           <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={saving} style={{ minWidth: '120px' }}>

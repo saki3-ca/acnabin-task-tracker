@@ -1,9 +1,8 @@
 import { ClientLabel } from '../ui/ClientLabel';
 import React, { useEffect, useState } from 'react';
-import { Check, Eye, Key, Palette, Shield, Sparkles, UserCog, Users } from 'lucide-react';
+import { Check, Key, Shield, UserCog, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
-import { AppTheme } from '../../services/appThemeService';
 import { DESIGNATIONS, ROLES } from '../../lib/constants';
 import { isManagementDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
@@ -11,24 +10,21 @@ import { Designation, ManagerAccessItem, ManagerStudentItem, Role, User } from '
 import { Modal } from '../ui/Modal';
 import { StaffImport } from './StaffImport';
 import { TabAccessManager } from './TabAccessManager';
+import { TaskLog } from './TaskLog';
 
-type Section = 'users' | 'access' | 'managers' | 'import' | 'appearance';
+type Section = 'users' | 'access' | 'managers' | 'import' | 'log';
 const SECTIONS: { key: Section; label: string }[] = [
   { key: 'users', label: 'Users & Roles' },
   { key: 'access', label: 'Tab Access' },
   { key: 'managers', label: 'Manager Access' },
   { key: 'import', label: 'Staff Import' },
-  { key: 'appearance', label: 'Appearance' }
+  { key: 'log', label: 'Task Log' }
 ];
 export const AdminPanel: React.FC = () => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const [section, setSection] = useState<Section>('users');
   const { allUsers, allClients, refreshContextData } = useAuth();
-  const { theme, previewTheme, saveTheme, isDevOverride } = useAppTheme();
-  const [selectedTheme, setSelectedTheme] = useState<AppTheme>(theme);
-
-  useEffect(() => {
-    setSelectedTheme(theme);
-  }, [theme]);
 
   // Local state for user edits before saving
   const [userEdits, setUserEdits] = useState<Record<string, Partial<User>>>({});
@@ -204,8 +200,9 @@ export const AdminPanel: React.FC = () => {
               right: '16px',
               top: '50%',
               transform: 'translateY(-50%)',
-              background: '#fff',
-              color: 'var(--teal-dark)',
+              background: isGlass ? 'rgba(255, 255, 255, 0.20)' : '#fff',
+              color: isGlass ? '#ffffff' : 'var(--teal-dark)',
+              border: isGlass ? '1px solid rgba(255, 255, 255, 0.35)' : undefined,
               padding: '2px 8px',
               borderRadius: '4px',
               fontSize: '11px'
@@ -224,9 +221,9 @@ export const AdminPanel: React.FC = () => {
             onClick={() => setSection(sec.key)}
             style={{
               padding: '8px 16px', fontSize: '13px', fontWeight: 700, borderRadius: '20px', cursor: 'pointer',
-              border: '1px solid ' + (section === sec.key ? 'var(--maroon, #800000)' : 'var(--line)'),
+              border: '1px solid ' + (section === sec.key ? 'var(--maroon, #800000)' : (isGlass ? 'rgba(255, 255, 255, 0.20)' : 'var(--line)')),
               background: section === sec.key ? 'var(--maroon, #800000)' : 'var(--ui-surface)',
-              color: section === sec.key ? '#fff' : 'var(--ink)'
+              color: section === sec.key ? '#fff' : (isGlass ? '#ffffff' : 'var(--ink)')
             }}
           >
             {sec.label}
@@ -238,129 +235,16 @@ export const AdminPanel: React.FC = () => {
 
       {section === 'import' && <StaffImport />}
 
-      {section === 'appearance' && (
-        <div className="table-card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-            <div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--maroon)' }}>
-                <Palette size={20} /> System Theme & Visual Appearance
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--ink-soft)', marginTop: '4px' }}>
-                Select the application theme for all practice members across the firm.
-              </p>
-            </div>
-            {isDevOverride && (
-              <span style={{ fontSize: '11px', background: 'var(--status-progress-bg)', color: 'var(--status-progress-text)', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
-                Developer URL Preview Mode Active (?uiTheme={theme})
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', margin: '20px 0' }}>
-            {/* Classic Option Card */}
-            <div
-              onClick={() => setSelectedTheme('classic')}
-              style={{
-                border: `2px solid ${selectedTheme === 'classic' ? 'var(--maroon)' : 'var(--line)'}`,
-                borderRadius: '14px',
-                padding: '18px',
-                cursor: 'pointer',
-                background: selectedTheme === 'classic' ? 'var(--cream-card, #FAF7F2)' : '#fff',
-                transition: 'all 0.15s ease',
-                position: 'relative'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--ink)' }}>Classic</span>
-                {theme === 'classic' && (
-                  <span style={{ fontSize: '11px', background: 'var(--maroon)', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
-                    Active
-                  </span>
-                )}
-              </div>
-              <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', marginBottom: '14px', lineHeight: 1.4 }}>
-                Traditional ACNABIN theme: solid warm cream canvas, crisp high-contrast cards, maroon and teal banners, and sharp executive data tables.
-              </p>
-              <div style={{ height: '54px', borderRadius: '8px', background: '#EDE7DE', padding: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <div style={{ flex: 1, height: '100%', background: '#FAF7F2', borderRadius: '4px', border: '1px solid #D8CFC3' }} />
-                <div style={{ width: '36px', height: '100%', background: '#8B1420', borderRadius: '4px' }} />
-                <div style={{ width: '36px', height: '100%', background: '#1D8C8C', borderRadius: '4px' }} />
-              </div>
-            </div>
-
-            {/* Glass Option Card */}
-            <div
-              onClick={() => setSelectedTheme('glass')}
-              style={{
-                border: `2px solid ${selectedTheme === 'glass' ? 'var(--teal)' : 'var(--line)'}`,
-                borderRadius: '14px',
-                padding: '18px',
-                cursor: 'pointer',
-                background: selectedTheme === 'glass' ? 'rgba(29, 140, 140, 0.08)' : '#fff',
-                transition: 'all 0.15s ease',
-                position: 'relative'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--ink)' }}>Glass</span>
-                {theme === 'glass' && (
-                  <span style={{ fontSize: '11px', background: 'var(--teal)', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
-                    Active
-                  </span>
-                )}
-              </div>
-              <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', marginBottom: '14px', lineHeight: 1.4 }}>
-                Liquid Glass theme: 3-stop dusk gradient canvas, 16px frosted translucent panels with 1px bright edges, 24px pill curves, mint/sky accents, and dark tinted glass data tables.
-              </p>
-              <div style={{ height: '54px', borderRadius: '8px', background: 'linear-gradient(135deg, #4a5b8a 0%, #8b7eaa 50%, #c79db9 100%)', padding: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <div style={{ flex: 1, height: '100%', background: 'rgba(255, 255, 255, 0.22)', backdropFilter: 'blur(4px)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.35)' }} />
-                <div style={{ width: '36px', height: '100%', background: '#77dfc0', borderRadius: '6px' }} />
-                <div style={{ width: '36px', height: '100%', background: '#85c7eb', borderRadius: '6px' }} />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                previewTheme(selectedTheme);
-                showNotice(`Previewing ${selectedTheme.toUpperCase()} theme in this browser.`);
-              }}
-            >
-              <Eye size={14} /> Preview (This Browser Only)
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              disabled={isSaving}
-              onClick={async () => {
-                setIsSaving(true);
-                try {
-                  await saveTheme(selectedTheme);
-                  showNotice(`${selectedTheme.toUpperCase()} theme saved as default for the whole firm!`);
-                } catch (err: any) {
-                  showNotice(err.message || 'Could not save theme.');
-                } finally {
-                  setIsSaving(false);
-                }
-              }}
-            >
-              <Sparkles size={14} /> {isSaving ? 'Saving…' : 'Save for Everyone'}
-            </button>
-          </div>
-        </div>
-      )}
+      {section === 'log' && <TaskLog />}
 
       {section === 'managers' && (
         <>
         {/* 1. Manager Client Access Matrix */}
         <div className="table-card" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isGlass ? '#FFFFFF' : 'var(--navy)' }}>
             <Key size={18} /> Manager Client Access Control
           </h3>
-          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
+          <p style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
             Select a manager or supervisor to configure which client audit engagements they can view and supervise.
           </p>
 
@@ -395,8 +279,9 @@ export const AdminPanel: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: item.hasAccess ? '#E6F5F5' : '#FAF8F5',
-                    border: `1px solid ${item.hasAccess ? 'var(--teal)' : 'var(--line)'}`,
+                    background: item.hasAccess ? (isGlass ? 'rgba(119, 223, 192, 0.20)' : '#E6F5F5') : (isGlass ? 'rgba(255, 255, 255, 0.05)' : '#FAF8F5'),
+                    border: isGlass ? (item.hasAccess ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid rgba(255, 255, 255, 0.16)') : `1px solid ${item.hasAccess ? 'var(--teal)' : 'var(--line)'}`,
+                    color: isGlass ? '#ffffff' : undefined,
                     padding: '8px 12px',
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -418,10 +303,10 @@ export const AdminPanel: React.FC = () => {
 
         {/* 2. Manager Student Assignments */}
         <div className="table-card" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--navy)' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isGlass ? '#FFFFFF' : 'var(--navy)' }}>
             <Users size={18} /> Manager Student Supervisory Assignments
           </h3>
-          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
+          <p style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)', marginTop: '4px', marginBottom: '16px' }}>
             Assign articled students and trainees to specific managers for team task review and task delegation.
             Only students on the selected person's clients are listed. Once someone has students assigned, their Team Tasks
             shows only those students' tasks; with nobody assigned they see the whole team as before. Picking a student here
@@ -460,7 +345,7 @@ export const AdminPanel: React.FC = () => {
           </div>
 
           {selectedManagerForStudents && managerStudents.length === 0 && (
-            <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)' }}>
+            <p style={{ fontSize: '12.5px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)' }}>
               No students or trainees share a client with this person. Give them clients first (Manager Client Access above, or their Assigned Clients).
             </p>
           )}
@@ -474,8 +359,9 @@ export const AdminPanel: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: item.isAssigned ? '#EBF0FE' : '#FAF8F5',
-                    border: `1px solid ${item.isAssigned ? 'var(--navy)' : 'var(--line)'}`,
+                    background: item.isAssigned ? (isGlass ? 'rgba(201, 164, 235, 0.22)' : '#EBF0FE') : (isGlass ? 'rgba(255, 255, 255, 0.05)' : '#FAF8F5'),
+                    border: isGlass ? (item.isAssigned ? '1px solid rgba(201, 164, 235, 0.45)' : '1px solid rgba(255, 255, 255, 0.16)') : `1px solid ${item.isAssigned ? 'var(--navy)' : 'var(--line)'}`,
+                    color: isGlass ? '#ffffff' : undefined,
                     padding: '8px 12px',
                     borderRadius: '6px',
                     cursor: 'pointer',
@@ -490,12 +376,12 @@ export const AdminPanel: React.FC = () => {
                   />
                   <div>
                     <div style={{ fontWeight: item.isAssigned ? 600 : 400 }}>{item.studentName}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>
+                    <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)' }}>
                       {item.empId}
                       {item.clientIds.length > 0 && ` · ${item.clientIds.map(clientName).join(', ')}`}
                     </div>
                     {item.outsideClients && (
-                      <div style={{ fontSize: '11px', color: 'var(--maroon)' }}>Not on this person's clients any more</div>
+                      <div style={{ fontSize: '11px', color: isGlass ? '#f68b8b' : 'var(--maroon)' }}>Not on this person's clients any more</div>
                     )}
                   </div>
                 </label>
@@ -510,12 +396,12 @@ export const AdminPanel: React.FC = () => {
         <>
         {/* 3. User Management */}
         <div className="table-card">
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '16px 20px', borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--maroon)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isGlass ? '#FFFFFF' : 'var(--maroon)' }}>
                 <UserCog size={18} /> User Accounts, Designations & Roles
               </h3>
-              <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px' }}>
+              <p style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)', marginTop: '2px' }}>
                 Update designations, security roles, primary client mapping, and account activation states.
               </p>
             </div>
@@ -548,7 +434,7 @@ export const AdminPanel: React.FC = () => {
                     <tr key={user.id}>
                       <td>
                         <div style={{ fontWeight: 600 }}>{user.name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--ink-muted)', fontFamily: 'monospace' }}>
+                        <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.65)' : 'var(--ink-muted)', fontFamily: 'monospace' }}>
                           {user.designation === 'Partner'
                             ? `# Initial: ${user.empId}`
                             : user.role === 'ADMIN'
@@ -556,7 +442,7 @@ export const AdminPanel: React.FC = () => {
                             : user.empId}
                         </div>
                       </td>
-                      <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>{user.email}</td>
+                      <td style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.85)' : 'var(--ink-soft)' }}>{user.email}</td>
                       <td>
                         <select
                           value={designation}
@@ -606,14 +492,14 @@ export const AdminPanel: React.FC = () => {
                         >
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {assignedIds.length === 0 ? (
-                              <span style={{ color: 'var(--ink-soft)' }}>+ Assign Clients</span>
+                              <span style={{ color: isGlass ? 'rgba(255, 255, 255, 0.65)' : 'var(--ink-soft)' }}>+ Assign Clients</span>
                             ) : (
-                              <span style={{ fontWeight: 600, color: 'var(--navy)' }}>
+                              <span style={{ fontWeight: 600, color: isGlass ? '#c9a4eb' : 'var(--navy)' }}>
                                 🏢 {assignedIds.length} {assignedIds.length === 1 ? 'Client' : 'Clients'}
                               </span>
                             )}
                           </span>
-                          <span style={{ fontSize: '10.5px', color: 'var(--maroon)', fontWeight: 600 }}>Edit</span>
+                          <span style={{ fontSize: '10.5px', color: isGlass ? '#77dfc0' : 'var(--maroon)', fontWeight: 600 }}>Edit</span>
                         </button>
                       </td>
                       <td>
@@ -625,7 +511,7 @@ export const AdminPanel: React.FC = () => {
                             fontSize: '11.5px',
                             padding: '4px 8px',
                             fontWeight: 600,
-                            color: status === 'ACTIVE' ? '#166534' : '#991B1B'
+                            color: status === 'ACTIVE' ? (isGlass ? '#77dfc0' : '#166534') : (isGlass ? '#f68b8b' : '#991B1B')
                           }}
                         >
                           <option value="ACTIVE">Active</option>
@@ -651,7 +537,7 @@ export const AdminPanel: React.FC = () => {
           title={`Assign Clients: ${editingClientAssignmentsUser.name}`}
         >
           <div className="modal-body">
-            <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', margin: 0 }}>
+            <p style={{ fontSize: '12.5px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)', margin: 0 }}>
               Select one or multiple client engagements for <strong>{editingClientAssignmentsUser.name}</strong> ({editingClientAssignmentsUser.empId}).
             </p>
 
@@ -671,7 +557,7 @@ export const AdminPanel: React.FC = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
-                border: '1px solid var(--line)',
+                border: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)',
                 padding: '10px',
                 borderRadius: '6px'
               }}
@@ -693,8 +579,9 @@ export const AdminPanel: React.FC = () => {
                         gap: '8px',
                         padding: '6px 8px',
                         borderRadius: '4px',
-                        background: assigned ? 'var(--navy-light, #EBF0FE)' : '#fff',
-                        border: `1px solid ${assigned ? 'var(--navy, #1B2A6B)' : 'var(--line)'}`,
+                        background: assigned ? (isGlass ? 'rgba(201, 164, 235, 0.22)' : 'var(--navy-light, #EBF0FE)') : (isGlass ? 'rgba(255, 255, 255, 0.05)' : '#fff'),
+                        border: isGlass ? (assigned ? '1px solid rgba(201, 164, 235, 0.45)' : '1px solid rgba(255, 255, 255, 0.15)') : `1px solid ${assigned ? 'var(--navy, #1B2A6B)' : 'var(--line)'}`,
+                        color: isGlass ? '#ffffff' : undefined,
                         cursor: 'pointer',
                         fontSize: '12.5px'
                       }}
@@ -708,7 +595,7 @@ export const AdminPanel: React.FC = () => {
                       />
                       <span style={{ fontWeight: assigned ? 600 : 400 }}>{client.name}</span>
                       {client.jobNumber && (
-                        <span style={{ fontSize: '11px', color: 'var(--ink-soft)', marginLeft: 'auto' }}>
+                        <span style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)', marginLeft: 'auto' }}>
                           {client.jobNumber}
                         </span>
                       )}
@@ -718,7 +605,7 @@ export const AdminPanel: React.FC = () => {
             </div>
           </div>
           <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', color: 'var(--navy)', fontWeight: 600 }}>
+            <span style={{ fontSize: '12px', color: isGlass ? '#c9a4eb' : 'var(--navy)', fontWeight: 600 }}>
               {getUserAssignedClientIds(editingClientAssignmentsUser).length} Client(s) Selected
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>

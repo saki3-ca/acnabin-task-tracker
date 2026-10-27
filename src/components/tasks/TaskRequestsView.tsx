@@ -57,19 +57,19 @@ export const TaskRequestsView: React.FC = () => {
     switch (status) {
       case 'ACCEPTED':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#E0EFEA', color: '#11534D' }}>
+          <span className="badge-status-accepted">
             Accepted
           </span>
         );
       case 'DECLINED':
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#FEE2E2', color: '#991B1B' }}>
+          <span className="badge-status-declined">
             Declined
           </span>
         );
       default:
         return (
-          <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: '#FEF3C7', color: '#92400E' }}>
+          <span className="badge-status-pending">
             Pending Review
           </span>
         );
@@ -112,7 +112,7 @@ export const TaskRequestsView: React.FC = () => {
                 </tr>
               ) : (
                 incomingRequests.map((req, idx) => (
-                  <tr key={req.id} style={{ background: req.status === 'PENDING' ? '#FFFDF9' : '#FFFFFF' }}>
+                  <tr key={req.id} className={req.status === 'PENDING' ? 'request-row-pending' : ''}>
                     <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
                       {idx + 1}
                     </td>

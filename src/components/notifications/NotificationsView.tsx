@@ -53,7 +53,7 @@ export const NotificationsView: React.FC = () => {
         type="button"
         onClick={() => deleteNotif(id)}
         title="Delete this notification (Admin)"
-        style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', padding: '5px 7px', borderRadius: 6, border: '1px solid #FCA5A5', background: '#FEF2F2', color: '#B91C1C', cursor: 'pointer', verticalAlign: 'middle' }}
+        className="notif-trash-btn"
       >
         <Trash2 size={14} />
       </button>
@@ -134,156 +134,21 @@ export const NotificationsView: React.FC = () => {
   const renderTypeBadge = (type: AppNotification['type']) => {
     switch (type) {
       case 'TASK_ASSIGNED':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#EBF4FF',
-              color: '#1E40AF',
-              border: '1px solid #BFDBFE'
-            }}
-          >
-            <UserCheck size={12} /> Task Assigned
-          </span>
-        );
+        return <span className="notif-type-badge badge-task"><UserCheck size={12} /> Task Assigned</span>;
       case 'DEADLINE_ALERT':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#FEF2F2',
-              color: '#991B1B',
-              border: '1px solid #FECACA'
-            }}
-          >
-            <AlertCircle size={12} /> Deadline Alert
-          </span>
-        );
+        return <span className="notif-type-badge badge-deadline"><AlertCircle size={12} /> Deadline Alert</span>;
       case 'MANAGER_COMMENT':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#F0FDF4',
-              color: '#166534',
-              border: '1px solid #BBF7D0'
-            }}
-          >
-            <MessageSquare size={12} /> Manager Comment
-          </span>
-        );
+        return <span className="notif-type-badge badge-comment"><MessageSquare size={12} /> Manager Comment</span>;
       case 'INFO_REQUEST':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#FFFBEB',
-              color: '#92400E',
-              border: '1px solid #FDE68A'
-            }}
-          >
-            <ClipboardList size={12} /> Info Request
-          </span>
-        );
+        return <span className="notif-type-badge badge-info"><ClipboardList size={12} /> Info Request</span>;
       case 'USER_QUERY':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#F5F3FF',
-              color: '#5B21B6',
-              border: '1px solid #DDD6FE'
-            }}
-          >
-            <MessagesSquare size={12} /> User Query
-          </span>
-        );
+        return <span className="notif-type-badge badge-query"><MessagesSquare size={12} /> User Query</span>;
       case 'QUERY_RESOLVED':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#ECFDF5',
-              color: '#065F46',
-              border: '1px solid #A7F3D0'
-            }}
-          >
-            <MessagesSquare size={12} /> Query Solved
-          </span>
-        );
+        return <span className="notif-type-badge badge-solved"><MessagesSquare size={12} /> Query Solved</span>;
       case 'TASK_REQUEST':
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#FFF1F2',
-              color: '#9F1239',
-              border: '1px solid #FECDD3'
-            }}
-          >
-            <FileText size={12} /> Task Request
-          </span>
-        );
+        return <span className="notif-type-badge badge-request"><FileText size={12} /> Task Request</span>;
       default:
-        return (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '3px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#F1F5F9',
-              color: '#334155'
-            }}
-          >
-            <Bell size={12} /> General
-          </span>
-        );
+        return <span className="notif-type-badge badge-general"><Bell size={12} /> General</span>;
     }
   };
 
@@ -487,7 +352,7 @@ export const NotificationsView: React.FC = () => {
                 </tr>
               ) : (
                 unreadList.map((notif, idx) => (
-                  <tr key={notif.id} style={{ background: '#FFFDF9' }}>
+                  <tr key={notif.id} className="notif-row-unread">
                     <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
                       {idx + 1}
                     </td>
@@ -607,6 +472,7 @@ export const NotificationsView: React.FC = () => {
                     </td>
                     <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <span
+                        className="notif-read-status"
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',

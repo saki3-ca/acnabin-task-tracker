@@ -15,6 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
 import { useTasks } from '../../context/TaskContext';
 import { daysUntilDeadline, fmtDate, isOverdue } from '../../lib/dateUtils';
 import { canCommentOnTask, canDeleteTask, canEditTask } from '../../lib/permissions';
@@ -43,14 +44,25 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   onEditTask,
   onOpenComment
 }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const isArchive = variant === 'completed';
-  const cfg = {
-    completed: { noun: 'completed', label: 'Completed', sub: 'Archived completed assignments and engagements', bg: '#F0FDF4', border: '#BBF7D0', circle: '#DCFCE7', fg: '#166534', fg2: '#15803D' },
-    overdue: { noun: 'overdue', label: 'Overdue', sub: 'Past their deadline and not completed yet', bg: '#FEF2F2', border: '#FECACA', circle: '#FEE2E2', fg: '#991B1B', fg2: '#B91C1C' },
-    pending: { noun: 'pending', label: 'Pending', sub: 'Assigned and not started yet', bg: '#FFFBEB', border: '#FDE68A', circle: '#FEF3C7', fg: '#92400E', fg2: '#B45309' },
-    inprogress: { noun: 'in-progress', label: 'In Progress', sub: 'Work has started and is not completed yet', bg: '#EFF6FF', border: '#BFDBFE', circle: '#DBEAFE', fg: '#1E40AF', fg2: '#1D4ED8' },
-    active: { noun: 'active', label: 'Active', sub: 'Pending and in-progress tasks', bg: '#F8FAFC', border: '#CBD5E1', circle: '#E2E8F0', fg: '#1A304D', fg2: '#334155' }
-  }[variant];
+
+  const cfg = isGlass
+    ? {
+        completed: { noun: 'completed', label: 'Completed', sub: 'Archived completed assignments and engagements', bg: 'rgba(119, 223, 192, 0.12)', border: 'rgba(119, 223, 192, 0.32)', circle: 'rgba(119, 223, 192, 0.22)', fg: '#77dfc0', fg2: 'rgba(255, 255, 255, 0.8)' },
+        overdue: { noun: 'overdue', label: 'Overdue', sub: 'Past their deadline and not completed yet', bg: 'rgba(246, 139, 139, 0.15)', border: 'rgba(246, 139, 139, 0.35)', circle: 'rgba(246, 139, 139, 0.25)', fg: '#fca5a5', fg2: 'rgba(255, 255, 255, 0.8)' },
+        pending: { noun: 'pending', label: 'Pending', sub: 'Assigned and not started yet', bg: 'rgba(251, 191, 36, 0.12)', border: 'rgba(251, 191, 36, 0.32)', circle: 'rgba(251, 191, 36, 0.22)', fg: '#fde047', fg2: 'rgba(255, 255, 255, 0.8)' },
+        inprogress: { noun: 'in-progress', label: 'In Progress', sub: 'Work has started and is not completed yet', bg: 'rgba(201, 164, 235, 0.14)', border: 'rgba(201, 164, 235, 0.35)', circle: 'rgba(201, 164, 235, 0.22)', fg: '#c9a4eb', fg2: 'rgba(255, 255, 255, 0.8)' },
+        active: { noun: 'active', label: 'Active', sub: 'Pending and in-progress tasks', bg: 'rgba(255, 255, 255, 0.06)', border: 'rgba(255, 255, 255, 0.18)', circle: 'rgba(255, 255, 255, 0.12)', fg: '#FFFFFF', fg2: 'rgba(255, 255, 255, 0.8)' }
+      }[variant]
+    : {
+        completed: { noun: 'completed', label: 'Completed', sub: 'Archived completed assignments and engagements', bg: '#F0FDF4', border: '#BBF7D0', circle: '#DCFCE7', fg: '#166534', fg2: '#15803D' },
+        overdue: { noun: 'overdue', label: 'Overdue', sub: 'Past their deadline and not completed yet', bg: '#FEF2F2', border: '#FECACA', circle: '#FEE2E2', fg: '#991B1B', fg2: '#B91C1C' },
+        pending: { noun: 'pending', label: 'Pending', sub: 'Assigned and not started yet', bg: '#FFFBEB', border: '#FDE68A', circle: '#FEF3C7', fg: '#92400E', fg2: '#B45309' },
+        inprogress: { noun: 'in-progress', label: 'In Progress', sub: 'Work has started and is not completed yet', bg: '#EFF6FF', border: '#BFDBFE', circle: '#DBEAFE', fg: '#1E40AF', fg2: '#1D4ED8' },
+        active: { noun: 'active', label: 'Active', sub: 'Pending and in-progress tasks', bg: '#F8FAFC', border: '#CBD5E1', circle: '#E2E8F0', fg: '#1A304D', fg2: '#334155' }
+      }[variant];
   const noun = cfg.noun;
   const emptyHint = { completed: 'When tasks are marked as "Completed", they will be safely archived here.', overdue: 'Nothing is past its deadline. Well done!', pending: 'No task is waiting to be started.', inprogress: 'No task is in progress right now.', active: 'There are no active tasks.' }[variant];
   const { currentUser, allClients } = useAuth();
@@ -106,6 +118,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '78vh' }}>
         {/* Header Summary & Filter Bar */}
         <div
+          className={`completed-modal-header variant-${variant}`}
           style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -120,6 +133,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div
+              className="header-circle"
               style={{
                 width: '32px',
                 height: '32px',
@@ -134,10 +148,10 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
               {isArchive ? <CheckCircle2 size={18} /> : variant === 'overdue' ? <AlertCircle size={18} /> : <Clock size={18} />}
             </div>
             <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: cfg.fg }}>
+              <div className="header-title" style={{ fontSize: '13.5px', fontWeight: 700, color: cfg.fg }}>
                 {tasks.length} {cfg.label} {tasks.length === 1 ? 'Task' : 'Tasks'}
               </div>
-              <div style={{ fontSize: '11.5px', color: cfg.fg2 }}>
+              <div className="header-sub" style={{ fontSize: '11.5px', color: cfg.fg2 }}>
                 {cfg.sub}
               </div>
             </div>
@@ -168,8 +182,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                   paddingTop: '6px',
                   paddingBottom: '6px',
                   fontSize: '12px',
-                  height: '34px',
-                  background: '#FFFFFF'
+                  height: '34px'
                 }}
               />
               {searchQuery && (
@@ -205,8 +218,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                     fontSize: '12px',
                     height: '34px',
                     width: 'auto',
-                    minWidth: '150px',
-                    background: '#FFFFFF'
+                    minWidth: '150px'
                   }}
                 >
                   <option value="">All Clients</option>
@@ -266,7 +278,7 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
                   const canEdit = canEditTask(currentUser, task, showTeamColumns);
 
                   return (
-                    <tr key={task.id} style={{ background: idx % 2 === 0 ? '#FFFFFF' : '#F9FBFA' }}>
+                    <tr key={task.id} className={idx % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
                       <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
                         {idx + 1}
                       </td>

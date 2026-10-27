@@ -373,15 +373,15 @@ const MainApp: React.FC = () => {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <TaskProvider>
           <NotificationProvider>
             <MainApp />
           </NotificationProvider>
         </TaskProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

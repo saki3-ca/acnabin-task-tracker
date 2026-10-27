@@ -33,8 +33,10 @@ import {
 } from '../../services/examLeaveService';
 import { StaffExamLeaveRecord } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
 import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove } from '../../lib/permissions';
 import { ApplyExamLeaveModal } from './ApplyExamLeaveModal';
+import { InstantTooltip } from '../ui/InstantTooltip';
 
 const formatRoutineDate = (dateStr: string, dayName: string) => `${formatShortDate(dateStr)}, ${dayName}`;
 
@@ -48,6 +50,8 @@ const todayInTimeline = (): string => {
 };
 
 export const ExamLeaveTracker: React.FC = () => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const { currentUser, allUsers } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
 
@@ -350,45 +354,16 @@ export const ExamLeaveTracker: React.FC = () => {
           }}
         >
           <div
+            className="segmented-control"
             style={{
-              display: 'flex',
               width: '100%',
-              height: '100%',
-              background: 'rgba(244, 240, 240, 0.75)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              borderRadius: '8px',
-              padding: '3px',
-              gap: '4px',
-              boxSizing: 'border-box',
-              border: '1px solid rgba(128, 0, 0, 0.14)',
-              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.06)'
+              height: '100%'
             }}
           >
             <button
               type="button"
               onClick={() => setViewMode('matrix')}
-              style={{
-                flex: 1,
-                padding: '6px 8px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: viewMode === 'matrix' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
-                cursor: 'pointer',
-                background: viewMode === 'matrix'
-                  ? 'linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)'
-                  : 'transparent',
-                color: viewMode === 'matrix' ? '#ffffff' : 'var(--ink-soft)',
-                boxShadow: viewMode === 'matrix'
-                  ? '0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.25)'
-                  : 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
+              className={`segmented-btn ${viewMode === 'matrix' ? 'active' : ''}`}
               title="Daily 36-day timeline matrix"
             >
               <Calendar size={13} /> Matrix
@@ -397,27 +372,7 @@ export const ExamLeaveTracker: React.FC = () => {
             <button
               type="button"
               onClick={() => setViewMode('roster')}
-              style={{
-                flex: 1,
-                padding: '6px 8px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: viewMode === 'roster' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
-                cursor: 'pointer',
-                background: viewMode === 'roster'
-                  ? 'linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)'
-                  : 'transparent',
-                color: viewMode === 'roster' ? '#ffffff' : 'var(--ink-soft)',
-                boxShadow: viewMode === 'roster'
-                  ? '0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.25)'
-                  : 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
+              className={`segmented-btn ${viewMode === 'roster' ? 'active' : ''}`}
               title="Candidate roster and details"
             >
               <Users size={13} /> Roster
@@ -426,27 +381,7 @@ export const ExamLeaveTracker: React.FC = () => {
             <button
               type="button"
               onClick={() => setViewMode('routine')}
-              style={{
-                flex: 1,
-                padding: '6px 8px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: viewMode === 'routine' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
-                cursor: 'pointer',
-                background: viewMode === 'routine'
-                  ? 'linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)'
-                  : 'transparent',
-                color: viewMode === 'routine' ? '#ffffff' : 'var(--ink-soft)',
-                boxShadow: viewMode === 'routine'
-                  ? '0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.25)'
-                  : 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
+              className={`segmented-btn ${viewMode === 'routine' ? 'active' : ''}`}
               title="Official ICAB routine schedule"
             >
               <BookOpen size={13} /> Routine
@@ -552,15 +487,15 @@ export const ExamLeaveTracker: React.FC = () => {
           {/* the legend sits in the gap above the title bar, so the space between filter bar and table stays the same as Manpower */}
           <div style={{ position: 'absolute', right: '2px', bottom: '100%', marginBottom: '7px', display: 'flex', justifyContent: 'flex-end' }}>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#FBEBC4', border: '1px solid #D9A441', color: '#7A4B00', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              <span className="legend-pill study-leave">
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#D99A1F', display: 'inline-block' }} />
                 Study Leave
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#F6E3E3', border: '1px solid #C98F8F', color: '#7A1F1F', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              <span className="legend-pill holiday">
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A94442', display: 'inline-block' }} />
                 Holiday
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: '#F3EFE9', border: '1px solid #D8D0C4', color: '#6B6256', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              <span className="legend-pill working-day">
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A79F92', display: 'inline-block' }} />
                 Working day
               </span>
@@ -675,7 +610,7 @@ export const ExamLeaveTracker: React.FC = () => {
               }}
             >
             <table
-              className="task-table"
+              className="data-table exam-matrix-table"
               style={{
                 width: '100%',
                 borderCollapse: 'separate',
@@ -686,20 +621,20 @@ export const ExamLeaveTracker: React.FC = () => {
             >
               <thead>
                 {/* Main Column Header Row (CLIENT replaces Team / Category) */}
-                <tr style={{ background: '#FAF7F2', position: 'sticky', top: 0, zIndex: 12 }}>
-                  <th style={{ position: 'sticky', left: 0, zIndex: 13, background: '#FAF7F2', width: '38px', textAlign: 'center', padding: '10px 4px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
+                <tr className="exam-header-row" style={{ position: 'sticky', top: 0, zIndex: 12 }}>
+                  <th className="exam-th-sticky" style={{ position: 'sticky', left: 0, zIndex: 13, width: '38px', minWidth: '38px', maxWidth: '38px', boxSizing: 'border-box', textAlign: 'center', padding: '10px 4px' }}>
                     SL.
                   </th>
-                  <th style={{ position: 'sticky', left: '38px', zIndex: 13, background: '#FAF7F2', minWidth: '190px', padding: '10px 12px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
+                  <th className="exam-th-sticky" style={{ position: 'sticky', left: '38px', zIndex: 13, boxSizing: 'border-box', width: '190px', minWidth: '190px', maxWidth: '190px', padding: '10px 12px' }}>
                     NAME
                   </th>
-                  <th style={{ position: 'sticky', left: '228px', zIndex: 13, background: '#FAF7F2', minWidth: '140px', padding: '10px 10px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
+                  <th className="exam-th-sticky" style={{ position: 'sticky', left: '228px', zIndex: 13, boxSizing: 'border-box', width: '230px', minWidth: '230px', maxWidth: '230px', padding: '10px 10px' }}>
                     CLIENT
                   </th>
-                  <th style={{ minWidth: '70px', textAlign: 'center', padding: '10px 6px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
+                  <th className="exam-th" style={{ minWidth: '70px', textAlign: 'center', padding: '10px 6px' }}>
                     LEVEL
                   </th>
-                  <th style={{ minWidth: '85px', textAlign: 'center', padding: '10px 6px', borderRight: '2px solid #CBD5E1', color: 'var(--maroon)' }}>
+                  <th className="exam-th" style={{ minWidth: '85px', textAlign: 'center', padding: '10px 6px' }}>
                     TOTAL LEAVE
                   </th>
 
@@ -716,18 +651,12 @@ export const ExamLeaveTracker: React.FC = () => {
                         id={`matrix-col-${dateStr}`}
                         key={`col-${dateStr}`}
                         onClick={() => setInspectedDate(dateStr)}
+                        className={`exam-th-date ${isSelected ? 'selected' : ''} ${isFri ? 'friday' : ''}`}
                         style={{
                           minWidth: '38px',
                           textAlign: 'center',
                           padding: '6px 2px',
-                          borderRight: '1px solid var(--line)',
                           cursor: 'pointer',
-                          background: isSelected
-                            ? '#1B2A6B'
-                            : isFri
-                            ? '#E6CBCB'
-                            : '#FAF7F2',
-                          color: isSelected ? '#ffffff' : isFri ? '#7A1F1F' : 'var(--ink)',
                           transition: 'background 0.2s'
                         }}
                         title={`Click to inspect ${formatShortDate(dateStr)}`}
@@ -745,7 +674,7 @@ export const ExamLeaveTracker: React.FC = () => {
                     );
                   })}
 
-                  <th style={{ minWidth: '140px', textAlign: 'center', padding: '10px 6px', background: '#FAF7F2', color: 'var(--maroon)' }}>
+                  <th className="exam-th" style={{ minWidth: '140px', textAlign: 'center', padding: '10px 6px' }}>
                     ACTIONS
                   </th>
                 </tr>
@@ -797,28 +726,28 @@ export const ExamLeaveTracker: React.FC = () => {
                 ) : (
                   filteredRecords.map((record, idx) => {
                     const isEven = idx % 2 === 0;
-                    const rowBg = isEven ? '#ffffff' : '#FAF9F6';
                     return (
                       <tr
                         key={record.id}
+                        className={`exam-row ${isEven ? 'table-row-even' : 'table-row-odd'}`}
                         style={{
-                          background: rowBg,
                           transition: 'background 0.15s'
                         }}
                       >
                       {/* SL */}
                       <td
+                        className="exam-td-sticky"
                         style={{
                           position: 'sticky',
                           left: 0,
                           zIndex: 10,
-                          background: rowBg,
+                          width: '38px',
+                          minWidth: '38px',
+                          maxWidth: '38px',
+                          boxSizing: 'border-box',
                           textAlign: 'center',
                           padding: '9px 4px',
-                          borderBottom: '1px solid #E2E8F0',
-                          borderRight: '1px solid #E2E8F0',
-                          fontWeight: 600,
-                          color: 'var(--ink-muted)'
+                          fontWeight: 600
                         }}
                       >
                         {idx + 1}
@@ -826,97 +755,77 @@ export const ExamLeaveTracker: React.FC = () => {
 
                       {/* Candidate Name */}
                       <td
+                        className="exam-td-sticky"
                         style={{
                           position: 'sticky',
                           left: '38px',
                           zIndex: 10,
-                          background: rowBg,
+                          boxSizing: 'border-box',
                           padding: '9px 12px',
-                          borderBottom: '1px solid #E2E8F0',
-                          borderRight: '1px solid #E2E8F0',
                           fontWeight: 600,
-                          color: 'var(--navy)'
+                          width: '190px',
+                          minWidth: '190px',
+                          maxWidth: '190px'
                         }}
                       >
                         <div
                           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                           onClick={() => setSelectedStudentForDrawer(record)}
                         >
-                          <span style={{ textDecoration: 'underline', textDecorationColor: '#CBD5E1' }}>
+                          <span className="exam-candidate-name">
                             {record.name}
                           </span>
-                          <Info size={13} color="var(--ink-muted)" />
+                          <Info size={13} style={{ color: 'var(--ink-muted)' }} />
                         </div>
                       </td>
 
                       {/* Client (Replaced Team / Category) */}
                       <td
+                        className="exam-td-sticky"
                         style={{
                           position: 'sticky',
                           left: '228px',
                           zIndex: 10,
-                          background: rowBg,
                           padding: '9px 10px',
-                          borderBottom: '1px solid #E2E8F0',
-                          borderRight: '1px solid #E2E8F0',
-                          color: 'var(--ink-soft)',
                           fontSize: '11.5px',
-                          whiteSpace: 'nowrap'
+                          width: '230px',
+                          minWidth: '230px',
+                          maxWidth: '230px'
                         }}
                       >
-                        {record.category}
+                        {/* a long client list wraps to two lines; hover shows every client, one per line */}
+                        <InstantTooltip content={String(record.category || '').split(',').map(c => c.trim()).filter(Boolean).join(String.fromCharCode(10))} style={{ width: '210px' }}>
+                          <div className="exam-client-name" style={{ lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
+                            {record.category}
+                          </div>
+                        </InstantTooltip>
                       </td>
 
                       {/* Level */}
                       <td
+                        className="exam-td"
                         style={{
                           textAlign: 'center',
-                          padding: '9px 4px',
-                          borderBottom: '1px solid #E2E8F0',
-                          borderRight: '1px solid #E2E8F0'
+                          padding: '9px 4px'
                         }}
                       >
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            background:
-                              record.level === 'PL'
-                                ? '#EBEFFE'
-                                : record.level === 'CL'
-                                ? '#E6F5F5'
-                                : record.level === 'AL'
-                                ? '#F9E8EA'
-                                : '#FEF3C7',
-                            color:
-                              record.level === 'PL'
-                                ? '#1B2A6B'
-                                : record.level === 'CL'
-                                ? '#1D8C8C'
-                                : record.level === 'AL'
-                                ? '#8B1420'
-                                : '#92400E'
-                          }}
-                        >
+                        <span className={`level-badge level-${record.level.toLowerCase()}`}>
                           {record.level}
                         </span>
                       </td>
 
                       {/* Total Leave */}
                       <td
+                        className="exam-td"
                         style={{
                           textAlign: 'center',
                           padding: '9px 4px',
-                          borderBottom: '1px solid #E2E8F0',
-                          borderRight: '2px solid #CBD5E1',
-                          fontWeight: 700,
-                          color: record.leaveDates.length > 0 ? '#B45309' : 'var(--ink-muted)'
+                          fontWeight: 700
                         }}
                       >
-                        {record.totalLeaveDays}
+                        <span className={record.leaveDates.length > 0 ? 'total-leave-has-leave' : 'total-leave-zero'}>
+                          {record.totalLeaveDays}
+                        </span>
                       </td>
 
                       {/* 36 Date Cells */}
@@ -929,22 +838,11 @@ export const ExamLeaveTracker: React.FC = () => {
                           <td
                             key={`cell-${record.id}-${dateStr}`}
                             onClick={() => setInspectedDate(dateStr)}
+                            className={`matrix-day-cell ${isOnLeave ? 'on-leave' : ''} ${isOffDay ? 'off-day' : ''} ${isSelectedCol ? 'selected-col' : ''}`}
                             style={{
                               textAlign: 'center',
                               padding: '8px 2px',
-                              borderBottom: '1px solid #E2E8F0',
-                              borderRight: '1px solid #E2E8F0',
-                              cursor: 'pointer',
-                              background: isOnLeave
-                                ? '#F7DC93'
-                                : isOffDay
-                                ? '#F6E3E3'
-                                : isSelectedCol
-                                ? '#EEF0F8'
-                                : 'transparent',
-                              color: isOnLeave ? '#7A4B00' : isOffDay ? '#A94442' : 'var(--ink-muted)',
-                              fontWeight: isOnLeave ? 800 : 400,
-                              fontSize: isOnLeave ? '12px' : '10px'
+                              cursor: 'pointer'
                             }}
                             title={`${record.name} on ${formatShortDate(dateStr)}: ${isOnLeave ? (examCodesOn(record, dateStr).length > 0 ? `Exam - ${examPapersOn(record, dateStr).map(p => `${p.code} (${p.level})`).join(' / ')}` : 'Study Leave') : isOffDay ? 'Holiday' : 'Working day'}`}
                           >
@@ -952,7 +850,7 @@ export const ExamLeaveTracker: React.FC = () => {
                               (() => {
                                 const codes = examCodesOn(record, dateStr);
                                 return codes.length > 0 ? (
-                                  <span style={{ display: 'inline-block', width: '100%', minHeight: '16px', fontSize: '9px', fontWeight: 800, lineHeight: '16px', color: '#5C3600', letterSpacing: '-0.2px' }}>
+                                  <span className="exam-code-chip" style={{ display: 'inline-block', width: '100%', minHeight: '16px', fontSize: '9px', fontWeight: 800, lineHeight: '16px', letterSpacing: '-0.2px' }}>
                                     {codes.join('/')}
                                   </span>
                                 ) : (
@@ -1027,9 +925,10 @@ export const ExamLeaveTracker: React.FC = () => {
               {/* Matrix Table Footer Summary Rows */}
               <tfoot>
                 {/* Row 1: TOTAL ON LEAVE PER DAY: */}
-                <tr style={{ background: '#1B2A6B', color: '#ffffff', fontWeight: 700 }}>
+                <tr className="exam-footer-row total" style={{ background: '#1B2A6B', color: '#ffffff', fontWeight: 700 }}>
                   <td
                     colSpan={5}
+                    className="exam-footer-sticky"
                     style={{
                       padding: '9px 12px',
                       borderTop: '2px solid #141F52',
@@ -1068,9 +967,10 @@ export const ExamLeaveTracker: React.FC = () => {
                 </tr>
 
                 {/* Row 2: AVAILABLE IN-OFFICE MANPOWER: */}
-                <tr style={{ background: '#141F52', color: '#ffffff', fontWeight: 700 }}>
+                <tr className="exam-footer-row avail" style={{ background: '#141F52', color: '#ffffff', fontWeight: 700 }}>
                   <td
                     colSpan={5}
+                    className="exam-footer-sticky"
                     style={{
                       padding: '9px 12px',
                       borderTop: '1px solid #33438A',
@@ -1236,12 +1136,8 @@ export const ExamLeaveTracker: React.FC = () => {
                 {filteredRecords.map(record => (
                 <div
                   key={record.id}
+                  className="roster-card"
                   style={{
-                    background: '#ffffff',
-                    borderRadius: '10px',
-                    border: '1px solid var(--line)',
-                    padding: '16px 18px',
-                    boxShadow: 'var(--shadow-sm)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between'
@@ -1429,26 +1325,25 @@ export const ExamLeaveTracker: React.FC = () => {
                     <th style={{ width: '170px', minWidth: '160px', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}>Date & Day</th>
                     <th style={{ width: '65px', textAlign: 'center', padding: '10px 6px' }}>Level</th>
                     <th style={{ textAlign: 'left', padding: '10px 14px' }}>Subject</th>
-                    <th style={{ width: '120px', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
+                    <th style={{ width: 'calc(120px + 1.5cm)', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'PL' || s.level === 'AL').map(item => {
+                  {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'PL' || s.level === 'AL').map((item, idx) => {
                     const isAL = item.level === 'AL';
                     const isOff = item.isOffDay;
                     return (
                       <tr
                         key={item.id}
                         style={{
-                          background: isOff
-                            ? '#FAF8F5'
-                            : isAL
-                            ? 'rgba(139, 20, 32, 0.05)'
-                            : '#ffffff',
-                          borderLeft: isAL ? '4px solid #8B1420' : 'none'
+                          background: isGlass
+                            ? (isOff ? 'rgba(255, 255, 255, 0.02)' : isAL ? 'rgba(246, 139, 139, 0.14)' : (idx % 2 === 0 ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.03)'))
+                            : (isOff ? '#FAF8F5' : isAL ? 'rgba(139, 20, 32, 0.05)' : '#ffffff'),
+                          borderLeft: isAL ? (isGlass ? '4px solid #f68b8b' : '4px solid #8B1420') : 'none',
+                          borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.08)' : undefined
                         }}
                       >
-                        <td style={{ padding: '10px 14px', fontWeight: 600, color: isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink)', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: isGlass ? (isOff ? 'rgba(255, 255, 255, 0.60)' : '#FFFFFF') : (isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink)'), whiteSpace: 'nowrap' }}>
                           {formatRoutineDate(item.date, item.dayName)}
                         </td>
                         <td style={{ padding: '10px 6px', textAlign: 'center' }}>
@@ -1460,22 +1355,22 @@ export const ExamLeaveTracker: React.FC = () => {
                                 borderRadius: '4px',
                                 fontSize: '11px',
                                 fontWeight: 800,
-                                background: isAL ? '#F9E8EA' : '#EBF0F7',
-                                color: isAL ? '#8B1420' : '#1E344F',
-                                border: isAL ? '1px solid #8B1420' : '1px solid #CBD5E1'
+                                background: isGlass ? (isAL ? 'rgba(246, 139, 139, 0.22)' : 'rgba(201, 164, 235, 0.20)') : (isAL ? '#F9E8EA' : '#EBF0F7'),
+                                color: isGlass ? (isAL ? '#f68b8b' : '#c9a4eb') : (isAL ? '#8B1420' : '#1E344F'),
+                                border: isGlass ? (isAL ? '1px solid rgba(246, 139, 139, 0.45)' : '1px solid rgba(201, 164, 235, 0.40)') : (isAL ? '1px solid #8B1420' : '1px solid #CBD5E1')
                               }}
                             >
                               {item.level}
                             </span>
                           ) : (
-                            <span style={{ color: '#CBD5E1', fontSize: '11px' }}>—</span>
+                            <span style={{ color: isGlass ? 'rgba(255, 255, 255, 0.35)' : '#CBD5E1', fontSize: '11px' }}>—</span>
                           )}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <span
                             style={{
                               fontWeight: isAL ? 700 : isOff ? 500 : 600,
-                              color: isAL ? '#8B1420' : isOff ? '#64748B' : 'var(--ink)',
+                              color: isGlass ? (isOff ? 'rgba(255, 255, 255, 0.65)' : '#FFFFFF') : (isAL ? '#8B1420' : isOff ? '#64748B' : 'var(--ink)'),
                               fontStyle: isOff ? 'italic' : 'normal'
                             }}
                           >
@@ -1487,7 +1382,7 @@ export const ExamLeaveTracker: React.FC = () => {
                             style={{
                               fontSize: '11.5px',
                               fontWeight: isAL ? 600 : 400,
-                              color: isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink-soft)',
+                              color: isGlass ? (isOff ? 'rgba(255, 255, 255, 0.60)' : 'rgba(255, 255, 255, 0.85)') : (isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink-soft)'),
                               fontStyle: isOff ? 'italic' : 'normal'
                             }}
                           >
@@ -1517,19 +1412,27 @@ export const ExamLeaveTracker: React.FC = () => {
                   <tr>
                     <th style={{ width: '170px', minWidth: '160px', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}>Date & Day</th>
                     <th style={{ width: '80px', textAlign: 'center', padding: '10px 6px' }}>Paper</th>
-                    <th style={{ width: '200px', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
+                    <th style={{ width: 'calc(200px - 2cm)', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
                     <th style={{ textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'CL').map(item => (
-                    <tr key={item.id} style={{ background: item.isOffDay ? '#FAF8F5' : '#ffffff' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 600, color: item.isOffDay ? '#94A3B8' : 'var(--ink)', whiteSpace: 'nowrap' }}>
+                  {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'CL').map((item, idx) => (
+                    <tr
+                      key={item.id}
+                      style={{
+                        background: isGlass
+                          ? (item.isOffDay ? 'rgba(255, 255, 255, 0.02)' : (idx % 2 === 0 ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.03)'))
+                          : (item.isOffDay ? '#FAF8F5' : '#ffffff'),
+                        borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.08)' : undefined
+                      }}
+                    >
+                      <td style={{ padding: '10px 14px', fontWeight: 600, color: isGlass ? (item.isOffDay ? 'rgba(255, 255, 255, 0.45)' : '#FFFFFF') : (item.isOffDay ? '#94A3B8' : 'var(--ink)'), whiteSpace: 'nowrap' }}>
                         {formatRoutineDate(item.date, item.dayName)}
                       </td>
                       <td style={{ padding: '10px 6px', textAlign: 'center' }}>
                         {item.isOffDay ? (
-                          <span style={{ color: '#CBD5E1', fontSize: '11px' }}>—</span>
+                          <span style={{ color: isGlass ? 'rgba(255, 255, 255, 0.35)' : '#CBD5E1', fontSize: '11px' }}>—</span>
                         ) : (
                         <span
                           style={{
@@ -1538,19 +1441,19 @@ export const ExamLeaveTracker: React.FC = () => {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 800,
-                            background: '#E6F5F2',
-                            color: '#146860',
-                            border: '1px solid #146860'
+                            background: isGlass ? 'rgba(119, 223, 192, 0.20)' : '#E6F5F2',
+                            color: isGlass ? '#77dfc0' : '#146860',
+                            border: isGlass ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid #146860'
                           }}
                         >
                           {item.paperCode}
                         </span>
                         )}
                       </td>
-                      <td style={{ padding: '10px 14px', fontWeight: item.isOffDay ? 500 : 600, color: item.isOffDay ? '#64748B' : 'var(--ink)', fontStyle: item.isOffDay ? 'italic' : 'normal' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: item.isOffDay ? 500 : 600, color: isGlass ? (item.isOffDay ? 'rgba(255, 255, 255, 0.50)' : '#FFFFFF') : (item.isOffDay ? '#64748B' : 'var(--ink)'), fontStyle: item.isOffDay ? 'italic' : 'normal' }}>
                         {routineSubject(item)}
                       </td>
-                      <td style={{ padding: '10px 14px', textAlign: 'right', color: item.isOffDay ? '#94A3B8' : 'var(--ink-soft)', fontStyle: item.isOffDay ? 'italic' : 'normal', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', color: isGlass ? (item.isOffDay ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.75)') : (item.isOffDay ? '#94A3B8' : 'var(--ink-soft)'), fontStyle: item.isOffDay ? 'italic' : 'normal', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
                         {item.timeSlot || (item.isOffDay ? 'Off Day' : '—')}
                       </td>
                     </tr>
@@ -1565,6 +1468,7 @@ export const ExamLeaveTracker: React.FC = () => {
       {/* 6. QUICK DRAWER FOR CANDIDATE */}
       {selectedStudentForDrawer && (
         <div
+          className="modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
@@ -1576,14 +1480,18 @@ export const ExamLeaveTracker: React.FC = () => {
           onClick={() => setSelectedStudentForDrawer(null)}
         >
           <div
+            className="modal-dialog drawer-panel"
             style={{
               width: '420px',
               maxWidth: '90vw',
-              background: '#ffffff',
+              background: isGlass ? 'var(--ui-modal-bg)' : '#ffffff',
               height: '100%',
               padding: '24px',
               overflowY: 'auto',
-              boxShadow: '-8px 0 25px rgba(0,0,0,0.15)',
+              boxShadow: isGlass ? 'var(--ui-shadow)' : '-8px 0 25px rgba(0,0,0,0.15)',
+              borderLeft: isGlass ? '1px solid var(--ui-border)' : undefined,
+              backdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+              WebkitBackdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between'
@@ -1709,6 +1617,7 @@ export const ExamLeaveTracker: React.FC = () => {
       {/* 8. OFFICIAL ICAB TIMETABLE POPUP MODAL */}
       {isRoutineModalOpen && (
         <div
+          className="modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
@@ -1722,14 +1631,18 @@ export const ExamLeaveTracker: React.FC = () => {
           onClick={() => setIsRoutineModalOpen(false)}
         >
           <div
+            className="modal-dialog"
             style={{
-              background: '#ffffff',
+              background: isGlass ? 'var(--ui-modal-bg)' : '#ffffff',
               borderRadius: '12px',
               maxWidth: '860px',
               width: '100%',
               maxHeight: '90vh',
               overflowY: 'auto',
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              boxShadow: isGlass ? 'var(--ui-shadow)' : '0 25px 50px -12px rgba(0,0,0,0.25)',
+              border: isGlass ? '1px solid var(--ui-border)' : '1px solid var(--line)',
+              backdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+              WebkitBackdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
               display: 'flex',
               flexDirection: 'column'
             }}
@@ -1757,11 +1670,11 @@ export const ExamLeaveTracker: React.FC = () => {
                 style={{
                   display: 'flex',
                   gap: '8px',
-                  background: 'rgba(244, 240, 240, 0.75)',
+                  background: isGlass ? 'rgba(255, 255, 255, 0.06)' : 'rgba(244, 240, 240, 0.75)',
                   padding: '4px',
                   borderRadius: '8px',
                   marginBottom: '16px',
-                  border: '1px solid var(--line)'
+                  border: isGlass ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid var(--line)'
                 }}
               >
                 <button
@@ -1775,9 +1688,9 @@ export const ExamLeaveTracker: React.FC = () => {
                     borderRadius: '6px',
                     cursor: 'pointer',
                     border: routineModalTab === 'PL_AL' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
-                    background: routineModalTab === 'PL_AL' ? 'linear-gradient(180deg, #8C1414 0%, #800000 100%)' : 'transparent',
-                    color: routineModalTab === 'PL_AL' ? '#ffffff' : 'var(--ink-soft)',
-                    boxShadow: routineModalTab === 'PL_AL' ? '0 2px 6px rgba(128, 0, 0, 0.3)' : 'none'
+                    background: routineModalTab === 'PL_AL' ? (isGlass ? 'rgba(255, 255, 255, 0.22)' : 'linear-gradient(180deg, #8C1414 0%, #800000 100%)') : 'transparent',
+                    color: routineModalTab === 'PL_AL' ? '#ffffff' : (isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)'),
+                    boxShadow: routineModalTab === 'PL_AL' && !isGlass ? '0 2px 6px rgba(128, 0, 0, 0.3)' : 'none'
                   }}
                 >
                   Professional & Advanced Level (Nov 8 – 21)
@@ -1793,9 +1706,9 @@ export const ExamLeaveTracker: React.FC = () => {
                     borderRadius: '6px',
                     cursor: 'pointer',
                     border: routineModalTab === 'CL' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
-                    background: routineModalTab === 'CL' ? 'linear-gradient(180deg, #146860 0%, #0d4b45 100%)' : 'transparent',
-                    color: routineModalTab === 'CL' ? '#ffffff' : 'var(--ink-soft)',
-                    boxShadow: routineModalTab === 'CL' ? '0 2px 6px rgba(20, 104, 96, 0.3)' : 'none'
+                    background: routineModalTab === 'CL' ? (isGlass ? 'rgba(255, 255, 255, 0.22)' : 'linear-gradient(180deg, #146860 0%, #0d4b45 100%)') : 'transparent',
+                    color: routineModalTab === 'CL' ? '#ffffff' : (isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)'),
+                    boxShadow: routineModalTab === 'CL' && !isGlass ? '0 2px 6px rgba(20, 104, 96, 0.3)' : 'none'
                   }}
                 >
                   Certificate Level (Nov 23 – 30)
@@ -1804,28 +1717,31 @@ export const ExamLeaveTracker: React.FC = () => {
 
               {routineModalTab === 'PL_AL' ? (
                 <div className="table-responsive">
-                  <table className="data-table maroon-table" style={{ width: '100%' }}>
+                  <table className="data-table maroon-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                     <thead>
                       <tr>
                         <th style={{ width: '170px', minWidth: '160px', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}>Date & Day</th>
                         <th style={{ width: '65px', textAlign: 'center', padding: '10px 6px' }}>Level</th>
-                        <th style={{ minWidth: '180px', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
-                        <th style={{ width: '160px', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
+                        <th style={{ textAlign: 'left', padding: '10px 14px' }}>Subject</th>
+                        <th style={{ width: 'calc(120px + 1.5cm)', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'PL' || s.level === 'AL').map(item => {
+                      {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'PL' || s.level === 'AL').map((item, idx) => {
                         const isAL = item.level === 'AL';
                         const isOff = item.isOffDay;
                         return (
                           <tr
                             key={item.id}
                             style={{
-                              background: isOff ? '#FAF8F5' : isAL ? 'rgba(20, 104, 96, 0.05)' : '#ffffff',
-                              borderLeft: isAL ? '4px solid #146860' : 'none'
+                              background: isGlass
+                                ? (isOff ? 'rgba(255, 255, 255, 0.02)' : isAL ? 'rgba(246, 139, 139, 0.14)' : (idx % 2 === 0 ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.03)'))
+                                : (isOff ? '#FAF8F5' : isAL ? 'rgba(139, 20, 32, 0.05)' : '#ffffff'),
+                              borderLeft: isAL ? (isGlass ? '4px solid #f68b8b' : '4px solid #8B1420') : 'none',
+                              borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.08)' : undefined
                             }}
                           >
-                            <td style={{ padding: '10px 14px', fontWeight: 600, color: isAL ? '#146860' : isOff ? '#94A3B8' : 'var(--ink)', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: isGlass ? (isOff ? 'rgba(255, 255, 255, 0.60)' : '#FFFFFF') : (isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink)'), whiteSpace: 'nowrap' }}>
                               {formatRoutineDate(item.date, item.dayName)}
                             </td>
                             <td style={{ padding: '10px 6px', textAlign: 'center' }}>
@@ -1837,34 +1753,34 @@ export const ExamLeaveTracker: React.FC = () => {
                                     borderRadius: '4px',
                                     fontSize: '11px',
                                     fontWeight: 800,
-                                    background: isAL ? '#E6F5F2' : '#EBF0F7',
-                                    color: isAL ? '#146860' : '#1E344F',
-                                    border: isAL ? '1px solid #146860' : '1px solid #CBD5E1'
+                                    background: isGlass ? (isAL ? 'rgba(246, 139, 139, 0.22)' : 'rgba(201, 164, 235, 0.20)') : (isAL ? '#F9E8EA' : '#EBF0F7'),
+                                    color: isGlass ? (isAL ? '#f68b8b' : '#c9a4eb') : (isAL ? '#8B1420' : '#1E344F'),
+                                    border: isGlass ? (isAL ? '1px solid rgba(246, 139, 139, 0.45)' : '1px solid rgba(201, 164, 235, 0.40)') : (isAL ? '1px solid #8B1420' : '1px solid #CBD5E1')
                                   }}
                                 >
                                   {item.level}
                                 </span>
                               ) : (
-                                <span style={{ color: '#CBD5E1', fontSize: '11px' }}>—</span>
+                                <span style={{ color: isGlass ? 'rgba(255, 255, 255, 0.35)' : '#CBD5E1', fontSize: '11px' }}>—</span>
                               )}
                             </td>
                             <td style={{ padding: '10px 14px' }}>
                               <span
                                 style={{
                                   fontWeight: isAL ? 700 : isOff ? 500 : 600,
-                                  color: isAL ? '#146860' : isOff ? '#64748B' : 'var(--ink)',
+                                  color: isGlass ? (isOff ? 'rgba(255, 255, 255, 0.65)' : '#FFFFFF') : (isAL ? '#8B1420' : isOff ? '#64748B' : 'var(--ink)'),
                                   fontStyle: isOff ? 'italic' : 'normal'
                                 }}
                               >
                                 {routineSubject(item)}
                               </span>
                             </td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                               <span
                                 style={{
                                   fontSize: '11.5px',
                                   fontWeight: isAL ? 600 : 400,
-                                  color: isAL ? '#146860' : isOff ? '#94A3B8' : 'var(--ink-soft)',
+                                  color: isGlass ? (isOff ? 'rgba(255, 255, 255, 0.60)' : 'rgba(255, 255, 255, 0.85)') : (isAL ? '#8B1420' : isOff ? '#94A3B8' : 'var(--ink-soft)'),
                                   fontStyle: isOff ? 'italic' : 'normal'
                                 }}
                               >
@@ -1879,42 +1795,54 @@ export const ExamLeaveTracker: React.FC = () => {
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <table className="data-table teal-table" style={{ width: '100%' }}>
+                  <table className="data-table teal-table" style={{ width: '100%', tableLayout: 'fixed' }}>
                     <thead>
                       <tr>
                         <th style={{ width: '170px', minWidth: '160px', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}>Date & Day</th>
-                        <th style={{ width: '90px', textAlign: 'center', padding: '10px 6px' }}>Paper</th>
-                        <th style={{ minWidth: '180px', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
-                        <th style={{ width: '160px', textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
+                        <th style={{ width: '80px', textAlign: 'center', padding: '10px 6px' }}>Paper</th>
+                        <th style={{ width: 'calc(200px - 2cm)', textAlign: 'left', padding: '10px 14px' }}>Subject</th>
+                        <th style={{ textAlign: 'right', padding: '10px 14px', whiteSpace: 'nowrap' }}>Time</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'CL').map(item => (
-                        <tr key={item.id} style={{ background: '#ffffff' }}>
-                          <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
+                      {OFFICIAL_ICAB_SCHEDULE.filter(s => s.level === 'CL').map((item, idx) => (
+                        <tr
+                          key={item.id}
+                          style={{
+                            background: isGlass
+                              ? (item.isOffDay ? 'rgba(255, 255, 255, 0.02)' : (idx % 2 === 0 ? 'rgba(255, 255, 255, 0.06)' : 'rgba(255, 255, 255, 0.03)'))
+                              : (item.isOffDay ? '#FAF8F5' : '#ffffff'),
+                            borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.08)' : undefined
+                          }}
+                        >
+                          <td style={{ padding: '10px 14px', fontWeight: 600, color: isGlass ? (item.isOffDay ? 'rgba(255, 255, 255, 0.45)' : '#FFFFFF') : (item.isOffDay ? '#94A3B8' : 'var(--ink)'), whiteSpace: 'nowrap' }}>
                             {formatRoutineDate(item.date, item.dayName)}
                           </td>
                           <td style={{ padding: '10px 6px', textAlign: 'center' }}>
-                            <span
-                              style={{
-                                display: 'inline-block',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                fontSize: '11px',
-                                fontWeight: 800,
-                                background: '#E6F5F2',
-                                color: '#146860',
-                                border: '1px solid #146860'
-                              }}
-                            >
-                              {item.paperCode}
-                            </span>
+                            {item.isOffDay ? (
+                              <span style={{ color: isGlass ? 'rgba(255, 255, 255, 0.35)' : '#CBD5E1', fontSize: '11px' }}>—</span>
+                            ) : (
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 800,
+                                  background: isGlass ? 'rgba(119, 223, 192, 0.20)' : '#E6F5F2',
+                                  color: isGlass ? '#77dfc0' : '#146860',
+                                  border: isGlass ? '1px solid rgba(119, 223, 192, 0.40)' : '1px solid #146860'
+                                }}
+                              >
+                                {item.paperCode}
+                              </span>
+                            )}
                           </td>
-                          <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>
+                          <td style={{ padding: '10px 14px', fontWeight: item.isOffDay ? 500 : 600, color: isGlass ? (item.isOffDay ? 'rgba(255, 255, 255, 0.50)' : '#FFFFFF') : (item.isOffDay ? '#64748B' : 'var(--ink)'), fontStyle: item.isOffDay ? 'italic' : 'normal' }}>
                             {routineSubject(item)}
                           </td>
-                          <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--ink-soft)', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
-                            {item.timeSlot || '—'}
+                          <td style={{ padding: '10px 14px', textAlign: 'right', color: isGlass ? (item.isOffDay ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.75)') : (item.isOffDay ? '#94A3B8' : 'var(--ink-soft)'), fontStyle: item.isOffDay ? 'italic' : 'normal', fontSize: '11.5px', whiteSpace: 'nowrap' }}>
+                            {item.timeSlot || (item.isOffDay ? 'Off Day' : '—')}
                           </td>
                         </tr>
                       ))}
@@ -1924,12 +1852,24 @@ export const ExamLeaveTracker: React.FC = () => {
               )}
             </div>
 
-            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--line)', textAlign: 'right', background: '#FAF7F2' }}>
+            <div style={{
+              padding: '14px 20px',
+              borderTop: isGlass ? '1px solid rgba(255, 255, 255, 0.10)' : '1px solid var(--line)',
+              textAlign: 'right',
+              background: isGlass ? 'rgba(255, 255, 255, 0.03)' : '#FAF7F2'
+            }}>
               <button
                 type="button"
                 onClick={() => setIsRoutineModalOpen(false)}
                 className="btn btn-secondary"
-                style={{ height: '34px', padding: '0 16px', fontSize: '12.5px' }}
+                style={{
+                  height: '34px',
+                  padding: '0 16px',
+                  fontSize: '12.5px',
+                  background: isGlass ? 'rgba(255, 255, 255, 0.10)' : undefined,
+                  color: isGlass ? '#ffffff' : undefined,
+                  border: isGlass ? '1px solid rgba(255, 255, 255, 0.20)' : undefined
+                }}
               >
                 Close Routine
               </button>

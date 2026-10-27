@@ -1,21 +1,28 @@
 import React, { useMemo, useState } from 'react';
 import { Send, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
 import { notificationService } from '../../services/notificationService';
 
 type Audience = 'ALL' | 'STD' | 'EMP' | 'ONE';
 type Kind = 'MESSAGE' | 'INFO' | 'SALARY';
 
-const segStyle = (active: boolean): React.CSSProperties => ({
+const segStyle = (active: boolean, isGlass?: boolean): React.CSSProperties => ({
   flex: 1,
   padding: '8px 10px',
   fontSize: '12.5px',
   fontWeight: 700,
   borderRadius: '6px',
   cursor: 'pointer',
-  border: '1px solid ' + (active ? 'var(--maroon, #800000)' : 'var(--line)'),
-  background: active ? 'var(--maroon, #800000)' : '#ffffff',
-  color: active ? '#ffffff' : 'var(--ink)'
+  border: isGlass
+    ? (active ? '1px solid rgba(246, 139, 139, 0.45)' : '1px solid rgba(255, 255, 255, 0.15)')
+    : ('1px solid ' + (active ? 'var(--maroon, #800000)' : 'var(--line)')),
+  background: isGlass
+    ? (active ? 'rgba(246, 139, 139, 0.22)' : 'rgba(255, 255, 255, 0.06)')
+    : (active ? 'var(--maroon, #800000)' : '#ffffff'),
+  color: isGlass
+    ? (active ? '#fca5a5' : '#ffffff')
+    : (active ? '#ffffff' : 'var(--ink)')
 });
 
 interface Props {
@@ -25,6 +32,8 @@ interface Props {
 
 export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
   const { currentUser, allUsers } = useAuth();
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const [audience, setAudience] = useState<Audience>('ALL');
   const [kind, setKind] = useState<Kind>('MESSAGE');
   const [userId, setUserId] = useState('');
@@ -79,7 +88,20 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
       onClick={() => !sending && onClose()}
     >
       <div
-        style={{ background: '#fff', borderRadius: '10px', width: '100%', maxWidth: '520px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }}
+        className="modal-dialog"
+        style={{
+          background: isGlass ? 'var(--ui-modal-bg)' : '#fff',
+          borderRadius: '10px',
+          width: '100%',
+          maxWidth: '520px',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: isGlass ? 'var(--ui-shadow)' : '0 20px 40px rgba(0,0,0,0.25)',
+          border: isGlass ? '1px solid var(--ui-border)' : undefined,
+          backdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+          WebkitBackdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+          color: isGlass ? '#ffffff' : undefined
+        }}
         onClick={e => e.stopPropagation()}
       >
         <div className="banner-strip banner-maroon" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
@@ -91,12 +113,12 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
 
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>Send to</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: isGlass ? '#ffffff' : undefined }}>Send to</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" style={segStyle(audience === 'ALL')} onClick={() => setAudience('ALL')}>All users</button>
-              <button type="button" style={segStyle(audience === 'STD')} onClick={() => setAudience('STD')}>Students (STD)</button>
-              <button type="button" style={segStyle(audience === 'EMP')} onClick={() => setAudience('EMP')}>Employees (EMP)</button>
-              <button type="button" style={segStyle(audience === 'ONE')} onClick={() => setAudience('ONE')}>Individual</button>
+              <button type="button" style={segStyle(audience === 'ALL', isGlass)} onClick={() => setAudience('ALL')}>All users</button>
+              <button type="button" style={segStyle(audience === 'STD', isGlass)} onClick={() => setAudience('STD')}>Students (STD)</button>
+              <button type="button" style={segStyle(audience === 'EMP', isGlass)} onClick={() => setAudience('EMP')}>Employees (EMP)</button>
+              <button type="button" style={segStyle(audience === 'ONE', isGlass)} onClick={() => setAudience('ONE')}>Individual</button>
             </div>
           </div>
 
@@ -110,13 +132,13 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
           )}
 
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>Type</div>
+            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: isGlass ? '#ffffff' : undefined }}>Type</div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button type="button" style={segStyle(kind === 'MESSAGE')} onClick={() => setKind('MESSAGE')}>Custom message</button>
-              <button type="button" style={segStyle(kind === 'INFO')} onClick={() => setKind('INFO')}>Update info request</button>
-              <button type="button" style={segStyle(kind === 'SALARY')} onClick={() => setKind('SALARY')}>Salary &amp; conveyance only</button>
+              <button type="button" style={segStyle(kind === 'MESSAGE', isGlass)} onClick={() => setKind('MESSAGE')}>Custom message</button>
+              <button type="button" style={segStyle(kind === 'INFO', isGlass)} onClick={() => setKind('INFO')}>Update info request</button>
+              <button type="button" style={segStyle(kind === 'SALARY', isGlass)} onClick={() => setKind('SALARY')}>Salary &amp; conveyance only</button>
             </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)', marginTop: '6px' }}>
+            <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginTop: '6px' }}>
               {kind === 'MESSAGE'
                 ? 'A plain notification, e.g. "Attend team meeting". Users just read it.'
                 : kind === 'SALARY'
@@ -139,15 +161,34 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
           {note && (
             <div
               className={note.ok ? undefined : 'auth-alert-error'}
-              style={{ margin: 0, fontSize: '12.5px', color: note.ok ? '#166534' : undefined, fontWeight: note.ok ? 600 : undefined }}
+              style={{ margin: 0, fontSize: '12.5px', color: note.ok ? (isGlass ? '#77dfc0' : '#166534') : undefined, fontWeight: note.ok ? 600 : undefined }}
             >
               {note.text}
             </div>
           )}
         </div>
 
-        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F8FAFC' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={sending}>Close</button>
+        <div style={{
+          padding: '12px 16px',
+          borderTop: isGlass ? '1px solid rgba(255, 255, 255, 0.10)' : '1px solid var(--line)',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: '10px',
+          background: isGlass ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC'
+        }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={sending}
+            style={{
+              background: isGlass ? 'rgba(255, 255, 255, 0.10)' : undefined,
+              color: isGlass ? '#ffffff' : undefined,
+              border: isGlass ? '1px solid rgba(255, 255, 255, 0.20)' : undefined
+            }}
+          >
+            Close
+          </button>
           <button type="button" className="btn btn-primary" onClick={handleSend} disabled={sending} style={{ minWidth: '110px' }}>
             <Send size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
             {sending ? 'Sending…' : 'Send'}

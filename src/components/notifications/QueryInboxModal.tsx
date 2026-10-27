@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCheck, X } from 'lucide-react';
 import { notificationService } from '../../services/notificationService';
+import { useAppTheme } from '../../context/ThemeContext';
 import { UserQuery } from '../../types';
 
 const formatTime = (iso: string) => {
@@ -19,6 +20,8 @@ interface Props {
 }
 
 export const QueryInboxModal: React.FC<Props> = ({ queries, error: loadError, onChanged, onClose }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const [openId, setOpenId] = useState<number | null>(null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -45,7 +48,21 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, error: loadError, on
       onClick={() => !busy && onClose()}
     >
       <div
-        style={{ background: '#fff', borderRadius: '10px', width: '100%', maxWidth: '620px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }}
+        className="modal-dialog"
+        style={{
+          background: isGlass ? 'var(--ui-modal-bg)' : '#fff',
+          borderRadius: '10px',
+          width: '100%',
+          maxWidth: '620px',
+          maxHeight: '88vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: isGlass ? 'var(--ui-shadow)' : '0 20px 40px rgba(0,0,0,0.25)',
+          border: isGlass ? '1px solid var(--ui-border)' : undefined,
+          backdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+          WebkitBackdropFilter: isGlass ? 'var(--ui-blur)' : undefined,
+          color: isGlass ? '#ffffff' : undefined
+        }}
         onClick={e => e.stopPropagation()}
       >
         <div className="banner-strip banner-maroon" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
@@ -66,7 +83,7 @@ export const QueryInboxModal: React.FC<Props> = ({ queries, error: loadError, on
           )}
 
           {queries.map(q => (
-            <div key={q.id} style={{ border: '1px solid var(--line)', borderRadius: '8px', padding: '10px 12px', background: '#FFFDF9' }}>
+            <div key={q.id} style={{ border: '1px solid var(--line)', borderRadius: '8px', padding: '10px 12px', background: isGlass ? 'rgba(255, 255, 255, 0.05)' : '#FFFDF9' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
                 <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--navy)' }}>
                   {q.userName} <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>({q.empId})</span>

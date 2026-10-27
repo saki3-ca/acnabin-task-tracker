@@ -14,6 +14,7 @@ import {
 import { Priority, Task, TaskStatus, User } from '../../types';
 import { Modal } from '../ui/Modal';
 import { examLeaveService } from '../../services/examLeaveService';
+import { useAppTheme } from '../../context/ThemeContext';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   taskToEdit,
   mode = 'own'
 }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const { currentUser, allClients, allUsers } = useAuth();
   const { createTask, createTasksBulk, updateTask } = useTasks();
 
@@ -385,13 +388,23 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 {isADPlus && !isEditing && bulkRecipients.length > 0 && (
                   <option
                     value="ALL_MEMBERS"
-                    style={{ fontWeight: 700, color: '#1E40AF', background: '#EFF6FF' }}
+                    style={{
+                      fontWeight: 700,
+                      color: isGlass ? '#93c5fd' : '#1E40AF',
+                      background: isGlass ? '#1e293b' : '#EFF6FF'
+                    }}
                   >
                     👥 Assign to ALL below Assistant Director ({bulkRecipients.length} members)
                   </option>
                 )}
                 {assignableUsers.length > 0 && !firmWideBulk && (
-                  <optgroup label="Individual Team Members">
+                  <optgroup
+                    label="Individual Team Members"
+                    style={{
+                      background: isGlass ? '#1a1e3e' : undefined,
+                      color: isGlass ? '#77dfc0' : undefined
+                    }}
+                  >
                     {assignableUsers.map(u => (
                       <option key={u.id} value={u.id}>
                         {u.name} ({u.designation})
@@ -404,12 +417,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 <div
                   style={{
                     fontSize: '11.5px',
-                    color: '#1E40AF',
+                    color: isGlass ? '#93c5fd' : '#1E40AF',
                     marginTop: '5px',
                     padding: '6px 10px',
-                    background: '#EFF6FF',
+                    background: isGlass ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF',
                     borderRadius: '4px',
-                    border: '1px solid #BFDBFE',
+                    border: isGlass ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid #BFDBFE',
                     lineHeight: '1.4'
                   }}
                 >

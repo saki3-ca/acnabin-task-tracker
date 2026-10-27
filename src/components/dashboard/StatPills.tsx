@@ -90,7 +90,7 @@ export const StatPills: React.FC<StatPillsProps> = ({ stats, items, variant = 'm
         title={onPillClick ? 'Click to view completed tasks archive' : undefined}
       >
         <span className="stat-pill-label">COMPLETED</span>
-        <span className="stat-pill-value" style={{ color: '#166534' }}>{pad(s.completed)}</span>
+        <span className="stat-pill-value completed" style={{ color: '#166534' }}>{pad(s.completed)}</span>
       </div>
 
       <div

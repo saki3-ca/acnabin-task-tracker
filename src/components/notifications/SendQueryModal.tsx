@@ -29,10 +29,11 @@ export const SendQueryModal: React.FC<Props> = ({ onClose }) => {
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+      className="modal-backdrop"
+      style={{ zIndex: 9999, padding: '20px' }}
       onClick={() => !sending && onClose()}
     >
-      <div style={{ background: '#fff', borderRadius: '10px', width: '100%', maxWidth: '480px', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+      <div className="modal-dialog" style={{ maxWidth: '480px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         <div className="banner-strip banner-maroon" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
           <span style={{ fontSize: '14px', fontWeight: 700 }}>SEND A QUERY TO ADMIN</span>
           <button type="button" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex' }}>
@@ -42,7 +43,7 @@ export const SendQueryModal: React.FC<Props> = ({ onClose }) => {
 
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {sent ? (
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#166534' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ui-success)' }}>
               Your query was sent. You will get a notification when Admin solves it.
             </div>
           ) : (
@@ -59,7 +60,7 @@ export const SendQueryModal: React.FC<Props> = ({ onClose }) => {
           {error && <div className="auth-alert-error" style={{ margin: 0 }}>{error}</div>}
         </div>
 
-        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F8FAFC' }}>
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--ui-border)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: 'var(--ui-modal-footer-bg)' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={sending}>{sent ? 'Close' : 'Cancel'}</button>
           {sent ? (
             <button type="button" className="btn btn-primary" onClick={() => setSent(false)}>Send another</button>

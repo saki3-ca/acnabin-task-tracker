@@ -21,7 +21,10 @@ html[data-ui-theme="classic"] {
   --ink-muted: #877E75;
   --line: #D8CFC3;
   --line-strong: #BFB4A5;
+  --line-soft: #EAE3D9;
+  --bg-soft: #F5F3EF;
   --white: #FFFFFF;
+  --table-sticky-bg: #FFFFFF;
 
   /* Status Colors */
   --status-pending-bg: #FEF3C7;
@@ -116,8 +119,8 @@ html[data-ui-theme="glass"] {
   --ui-text-muted: rgba(255, 255, 255, 0.70);
   --ui-accent: #77dfc0;
   --ui-accent-hover: #9cf5da;
-  --ui-accent-2: #85c7eb;
-  --ui-accent-2-hover: #aee0fa;
+  --ui-accent-2: #c9a4eb;
+  --ui-accent-2-hover: #dcbcfc;
   --ui-accent-purple: #c9a4eb;
   --ui-accent-red: #f68b8b;
   --ui-nav: rgba(255, 255, 255, 0.10);
@@ -130,10 +133,10 @@ html[data-ui-theme="glass"] {
   --ui-table-head-bg: rgba(255, 255, 255, 0.12);
   --ui-table-head-text: #FFFFFF;
   --ui-table-row-hover: rgba(255, 255, 255, 0.08);
-  --ui-radius: 24px;
-  --ui-radius-card: 24px;
-  --ui-radius-control: 16px;
-  --ui-radius-pill: 50px;
+  --ui-radius: 12px;
+  --ui-radius-card: 10px;
+  --ui-radius-control: 6px;
+  --ui-radius-pill: 10px;
   --ui-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.10);
   --ui-shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.10);
   --ui-blur: blur(16px);
@@ -144,11 +147,11 @@ html[data-ui-theme="glass"] {
   --ui-input-bg: rgba(255, 255, 255, 0.12);
   --ui-input-border: rgba(255, 255, 255, 0.25);
   --ui-input-text: #FFFFFF;
-  --ui-modal-overlay: rgba(18, 22, 45, 0.65);
-  --ui-modal-bg: rgba(35, 40, 75, 0.85);
+  --ui-modal-overlay: rgba(18, 22, 45, 0.35);
+  --ui-modal-bg: rgba(52, 58, 104, 0.52);
   --ui-modal-footer-bg: rgba(255, 255, 255, 0.06);
   --ui-masthead-title: #FFFFFF;
-  --ui-link-color: #85c7eb;
+  --ui-link-color: #c9a4eb;
   --ui-btn-primary-bg: #77dfc0;
   --ui-btn-primary-text: #142825;
   --ui-btn-primary-hover: #9cf5da;
@@ -175,7 +178,11 @@ html[data-ui-theme="glass"] {
   --cream-input: rgba(255, 255, 255, 0.12);
   --line: rgba(255, 255, 255, 0.20);
   --line-strong: rgba(255, 255, 255, 0.30);
+  --line-soft: rgba(255, 255, 255, 0.15);
+  --bg-soft: rgba(255, 255, 255, 0.10);
   --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.10);
+  /* pinned columns: the page gradient (fixed) under a light tint, so they match the rows yet stay opaque */
+  --table-sticky-bg: linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)), linear-gradient(135deg, #4a5b8a 0%, #8b7eaa 50%, #c79db9 100%) fixed;
 
   /* Status Pill overrides for Glass theme */
   --status-pending-bg: rgba(253, 224, 71, 0.20);
@@ -798,12 +805,9 @@ html[data-ui-theme="glass"] .stat-pill:hover {
   border-color: rgba(255, 255, 255, 0.35) !important;
 }
 
-html[data-ui-theme="glass"] .stat-pill.teal-border {
-  border-color: var(--ui-accent) !important;
-}
-
+html[data-ui-theme="glass"] .stat-pill.teal-border,
 html[data-ui-theme="glass"] .stat-pill.navy-border {
-  border-color: var(--ui-accent-purple) !important;
+  border-color: var(--ui-border) !important;
 }
 
 html[data-ui-theme="glass"] .stat-pill-label {
@@ -816,6 +820,10 @@ html[data-ui-theme="glass"] .stat-pill-value {
 
 html[data-ui-theme="glass"] .stat-pill-value.overdue {
   color: var(--ui-accent-red) !important;
+}
+
+html[data-ui-theme="glass"] .stat-pill-value.completed {
+  color: var(--ui-accent) !important;
 }
 
 /* Section Banners - Unified Integrated Card Header */
@@ -884,6 +892,20 @@ html[data-ui-theme="glass"] .banner-teal {
 html[data-ui-theme="glass"] .banner-navy {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.40) 0%, rgba(79, 70, 229, 0.50) 100%);
   border-bottom: 1px solid var(--ui-border);
+}
+
+html[data-ui-theme="glass"] .banner-strip button,
+html[data-ui-theme="glass"] .banner-strip .btn {
+  background: rgba(255, 255, 255, 0.20) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+html[data-ui-theme="glass"] .banner-strip button:hover,
+html[data-ui-theme="glass"] .banner-strip .btn:hover {
+  background: rgba(255, 255, 255, 0.30) !important;
+  border-color: rgba(255, 255, 255, 0.50) !important;
 }
 
 /* Modern Data Table Card */
@@ -1170,6 +1192,14 @@ html[data-ui-theme="glass"] .filter-label {
   box-shadow: 0 0 0 3px rgba(139, 20, 32, 0.12);
 }
 
+html[data-ui-theme="glass"] .form-input,
+html[data-ui-theme="glass"] .form-select,
+html[data-ui-theme="glass"] .form-textarea {
+  background: var(--ui-input-bg) !important;
+  border-color: var(--ui-input-border) !important;
+  color: var(--ui-input-text) !important;
+}
+
 html[data-ui-theme="glass"] .form-input:focus,
 html[data-ui-theme="glass"] .form-select:focus,
 html[data-ui-theme="glass"] .form-textarea:focus {
@@ -1180,6 +1210,13 @@ html[data-ui-theme="glass"] .form-textarea:focus {
 html[data-ui-theme="glass"] option {
   background-color: #242b50;
   color: #ffffff;
+}
+
+html[data-ui-theme="glass"] optgroup {
+  background-color: #1a1e3e !important;
+  color: var(--ui-accent, #77dfc0) !important;
+  font-weight: 700 !important;
+  font-style: normal;
 }
 
 .form-textarea {
@@ -1213,14 +1250,32 @@ html[data-ui-theme="glass"] option {
   animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+html[data-ui-theme="glass"] .modal-backdrop {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 html[data-ui-theme="glass"] .modal-dialog,
 html[data-ui-theme="glass"] .modal-backdrop > div {
   background: var(--ui-modal-bg) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
+  backdrop-filter: blur(24px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
   border: 1px solid var(--ui-border) !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45) !important;
   color: #ffffff !important;
+}
+
+/* Modal footers with light background tints stay dark on glass theme */
+html[data-ui-theme="glass"] .modal-dialog div[style*="background: #F8FAFC"],
+html[data-ui-theme="glass"] .modal-dialog div[style*="background: rgb(248, 250, 252)"],
+html[data-ui-theme="glass"] .modal-dialog div[style*="background: #FAF7F2"],
+html[data-ui-theme="glass"] .modal-dialog div[style*="background: rgb(250, 247, 242)"],
+html[data-ui-theme="glass"] div[style*="position: fixed"] > div > div[style*="background: #F8FAFC"],
+html[data-ui-theme="glass"] div[style*="position: fixed"] > div > div[style*="background: rgb(248, 250, 252)"],
+html[data-ui-theme="glass"] div[style*="position: fixed"] > div > div[style*="background: #FAF7F2"],
+html[data-ui-theme="glass"] div[style*="position: fixed"] > div > div[style*="background: rgb(250, 247, 242)"] {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
 html[data-ui-theme="glass"] .modal-header h2,
@@ -1311,9 +1366,9 @@ html[data-ui-theme="glass"] .form-field label {
 }
 
 html[data-ui-theme="glass"] .comment-box {
-  background: rgba(255, 255, 255, 0.08);
-  border-left: 3px solid var(--ui-accent-2);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-left: 3px solid var(--ui-accent-2) !important;
+  color: #ffffff !important;
 }
 
 /* Client Card Grid */
@@ -1531,8 +1586,8 @@ html[data-ui-theme="glass"] .status-pill.pending {
 }
 html[data-ui-theme="glass"] .status-pill.in-progress {
   background: rgba(0, 0, 0, 0.22);
-  color: #85c7eb;
-  border: 1px solid rgba(133, 199, 235, 0.35);
+  color: #c9a4eb;
+  border: 1px solid rgba(201, 164, 235, 0.40);
 }
 html[data-ui-theme="glass"] .status-pill.completed {
   background: rgba(0, 0, 0, 0.22);
@@ -1557,3 +1612,987 @@ html[data-ui-theme="glass"] .status-pill.overdue {
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ==========================================================================
+   Phase 2: Task Views, Notifications, Requests & Profile Tokenization
+   ========================================================================== */
+
+/* Deadline text in tables */
+.deadline-overdue-text {
+  color: #C53030;
+}
+.deadline-overdue-subtext {
+  color: #991B1B;
+}
+.deadline-near-subtext {
+  color: #B45309;
+}
+html[data-ui-theme="glass"] .deadline-overdue-text {
+  color: var(--ui-accent-red) !important;
+}
+html[data-ui-theme="glass"] .deadline-overdue-subtext {
+  color: #fca5a5 !important;
+}
+html[data-ui-theme="glass"] .deadline-near-subtext {
+  color: #fef08a !important;
+}
+
+/* Task Requests View */
+.request-row-pending {
+  background-color: #FFFDF9;
+}
+html[data-ui-theme="glass"] .request-row-pending {
+  background-color: rgba(253, 224, 71, 0.08) !important;
+}
+
+.badge-status-accepted {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #E0EFEA;
+  color: #11534D;
+}
+.badge-status-declined {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #FEE2E2;
+  color: #991B1B;
+}
+.badge-status-pending {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #FEF3C7;
+  color: #92400E;
+}
+html[data-ui-theme="glass"] .badge-status-accepted {
+  background: rgba(119, 223, 192, 0.22);
+  color: #77dfc0;
+  border: 1px solid rgba(119, 223, 192, 0.40);
+}
+html[data-ui-theme="glass"] .badge-status-declined {
+  background: rgba(246, 139, 139, 0.22);
+  color: #fca5a5;
+  border: 1px solid rgba(246, 139, 139, 0.40);
+}
+html[data-ui-theme="glass"] .badge-status-pending {
+  background: rgba(253, 224, 71, 0.20);
+  color: #fef08a;
+  border: 1px solid rgba(253, 224, 71, 0.40);
+}
+
+/* Notifications View */
+.notif-row-unread {
+  background-color: #FFFDF9;
+}
+html[data-ui-theme="glass"] .notif-row-unread {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.notif-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.notif-type-badge.badge-task {
+  background: #EBF4FF;
+  color: #1E40AF;
+  border: 1px solid #BFDBFE;
+}
+.notif-type-badge.badge-deadline {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+.notif-type-badge.badge-comment {
+  background: #F0FDF4;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+}
+.notif-type-badge.badge-info {
+  background: #FFFBEB;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+.notif-type-badge.badge-query {
+  background: #F5F3FF;
+  color: #5B21B6;
+  border: 1px solid #DDD6FE;
+}
+.notif-type-badge.badge-solved {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+.notif-type-badge.badge-request {
+  background: #FFF1F2;
+  color: #9F1239;
+  border: 1px solid #FECDD3;
+}
+.notif-type-badge.badge-general {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid transparent;
+}
+
+html[data-ui-theme="glass"] .notif-type-badge.badge-task {
+  background: rgba(201, 164, 235, 0.20);
+  color: #c9a4eb;
+  border: 1px solid rgba(201, 164, 235, 0.35);
+}
+html[data-ui-theme="glass"] .notif-type-badge.badge-deadline {
+  background: rgba(246, 139, 139, 0.20);
+  color: #fca5a5;
+  border: 1px solid rgba(246, 139, 139, 0.35);
+}
+html[data-ui-theme="glass"] .notif-type-badge.badge-comment {
+  background: rgba(119, 223, 192, 0.20);
+  color: #77dfc0;
+  border: 1px solid rgba(119, 223, 192, 0.35);
+}
+html[data-ui-theme="glass"] .notif-type-badge.badge-info {
+  background: rgba(253, 224, 71, 0.20);
+  color: #fef08a;
+  border: 1px solid rgba(253, 224, 71, 0.35);
+}
+html[data-ui-theme="glass"] .notif-type-badge.badge-query {
+  background: rgba(201, 164, 235, 0.20);
+  color: #c9a4eb;
+  border: 1px solid rgba(201, 164, 235, 0.35);
+}
+html[data-ui-theme="glass"] .notif-type-badge.badge-solved {
+  background: rgba(119, 223, 192, 0.20);
+  color: #77dfc0;
+  border: 1px solid rgba(119, 223, 192, 0.35);
+}
+html[data-ui-theme="glass"] .notif-type-badge.badge-request {
+  background: rgba(246, 139, 139, 0.20);
+  color: #fca5a5;
+  border: 1px solid rgba(246, 139, 139, 0.35);
+}
+html[data-ui-theme="glass"] .notif-type-badge.badge-general {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+}
+
+.notif-trash-btn {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 7px;
+  border-radius: 6px;
+  border: 1px solid #FCA5A5;
+  background: #FEF2F2;
+  color: #B91C1C;
+  cursor: pointer;
+  vertical-align: middle;
+}
+html[data-ui-theme="glass"] .notif-trash-btn {
+  background: rgba(246, 139, 139, 0.20);
+  border-color: rgba(246, 139, 139, 0.40);
+  color: #fca5a5;
+}
+
+html[data-ui-theme="glass"] .notif-read-status {
+  color: #77dfc0 !important;
+}
+html[data-ui-theme="glass"] .notif-read-status svg {
+  color: #77dfc0 !important;
+  stroke: #77dfc0 !important;
+}
+
+/* Profile Overview Card & Quick Stats */
+.profile-card-body {
+  padding: 20px;
+  background: #FFFFFF;
+}
+html[data-ui-theme="glass"] .profile-card-body {
+  background: transparent !important;
+  color: #ffffff;
+}
+
+.profile-stat-box {
+  padding: 8px 12px;
+  height: 74px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.profile-stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.profile-stat-box.stat-blue {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+}
+.profile-stat-box.stat-blue .stat-label,
+.profile-stat-box.stat-blue .stat-val {
+  color: #1E40AF;
+}
+
+.profile-stat-box.stat-purple {
+  background: #FAF5FF;
+  border: 1px solid #E9D5FF;
+}
+.profile-stat-box.stat-purple .stat-label,
+.profile-stat-box.stat-purple .stat-val {
+  color: #6B21A8;
+}
+
+.profile-stat-box.stat-green {
+  background: #F0FDF4;
+  border: 1px solid #86EFAC;
+}
+.profile-stat-box.stat-green .stat-label,
+.profile-stat-box.stat-green .stat-val {
+  color: #166534;
+}
+
+.profile-stat-box.stat-yellow {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+}
+.profile-stat-box.stat-yellow .stat-label,
+.profile-stat-box.stat-yellow .stat-val {
+  color: #92400E;
+}
+
+.profile-stat-box.stat-red {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+}
+.profile-stat-box.stat-red .stat-label,
+.profile-stat-box.stat-red .stat-val {
+  color: #991B1B;
+}
+
+html[data-ui-theme="glass"] .profile-stat-box {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+  backdrop-filter: var(--ui-blur);
+  -webkit-backdrop-filter: var(--ui-blur);
+}
+html[data-ui-theme="glass"] .profile-stat-box:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+html[data-ui-theme="glass"] .profile-stat-box .stat-label {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+html[data-ui-theme="glass"] .profile-stat-box.stat-blue .stat-val {
+  color: #FFFFFF !important;
+}
+html[data-ui-theme="glass"] .profile-stat-box.stat-purple .stat-val {
+  color: #c9a4eb !important;
+}
+html[data-ui-theme="glass"] .profile-stat-box.stat-green .stat-val {
+  color: #77dfc0 !important;
+}
+html[data-ui-theme="glass"] .profile-stat-box.stat-yellow .stat-val {
+  color: #fef08a !important;
+}
+html[data-ui-theme="glass"] .profile-stat-box.stat-red .stat-val {
+  color: #f68b8b !important;
+}
+
+/* Staff Details Card */
+.staff-details-body {
+  padding: 18px 20px 14px;
+  background: #FFFFFF;
+}
+html[data-ui-theme="glass"] .staff-details-body {
+  background: transparent !important;
+}
+
+.staff-panel {
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+html[data-ui-theme="glass"] .staff-panel {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--ui-border) !important;
+  backdrop-filter: var(--ui-blur);
+  -webkit-backdrop-filter: var(--ui-blur);
+}
+html[data-ui-theme="glass"] .staff-panel header {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-bottom: 1px solid var(--ui-border) !important;
+}
+html[data-ui-theme="glass"] .staff-panel header span:last-child {
+  color: #FFFFFF !important;
+}
+
+.staff-stat-box {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--maroon);
+  background: #FFFFFF;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-left-color: var(--maroon);
+}
+html[data-ui-theme="glass"] .staff-stat-box {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--ui-border) !important;
+  border-left: 3px solid var(--ui-accent-2) !important;
+}
+html[data-ui-theme="glass"] .staff-stat-box div:last-child {
+  color: #FFFFFF !important;
+}
+
+/* Completed & Archive Modal */
+.completed-modal-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+html[data-ui-theme="glass"] .completed-modal-header {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--ui-border) !important;
+}
+html[data-ui-theme="glass"] .completed-modal-header.variant-completed .header-title {
+  color: #77dfc0 !important;
+}
+html[data-ui-theme="glass"] .completed-modal-header.variant-overdue .header-title {
+  color: #fca5a5 !important;
+}
+html[data-ui-theme="glass"] .completed-modal-header.variant-pending .header-title {
+  color: #fef08a !important;
+}
+html[data-ui-theme="glass"] .completed-modal-header.variant-inprogress .header-title {
+  color: #c9a4eb !important;
+}
+html[data-ui-theme="glass"] .completed-modal-header.variant-active .header-title {
+  color: #ffffff !important;
+}
+html[data-ui-theme="glass"] .completed-modal-header .header-sub {
+  color: rgba(255, 255, 255, 0.70) !important;
+}
+html[data-ui-theme="glass"] .completed-modal-header .header-circle {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+.table-row-even {
+  background: #FFFFFF;
+}
+.table-row-odd {
+  background: #F9FBFA;
+}
+html[data-ui-theme="glass"] .table-row-even,
+html[data-ui-theme="glass"] .table-row-odd {
+  background: transparent !important;
+}
+html[data-ui-theme="glass"] .table-row-odd {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Client status badges */
+.client-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.client-status-badge.active {
+  background: #DCFCE7;
+  color: #166534;
+}
+.client-status-badge.inactive {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+html[data-ui-theme="glass"] .client-status-badge.active {
+  background: rgba(119, 223, 192, 0.22);
+  color: #77dfc0;
+  border: 1px solid rgba(119, 223, 192, 0.40);
+}
+html[data-ui-theme="glass"] .client-status-badge.inactive {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.70);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+}
+
+/* Glass Floating Drawers, Popovers & Suggestions */
+html[data-ui-theme="glass"] ul[style*="position: absolute"],
+html[data-ui-theme="glass"] div[style*="position: absolute"][style*="z-index"],
+html[data-ui-theme="glass"] div[style*="position: absolute"][style*="zIndex"] {
+  background: rgba(26, 30, 62, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--ui-border) !important;
+  color: #ffffff !important;
+}
+html[data-ui-theme="glass"] ul[style*="position: absolute"] li {
+  color: #ffffff !important;
+}
+html[data-ui-theme="glass"] ul[style*="position: absolute"] li:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+html[data-ui-theme="glass"] div[style*="position: fixed"][style*="justify-content: flex-end"] > div,
+html[data-ui-theme="glass"] div[style*="position: fixed"][style*="justifyContent: 'flex-end'"] > div {
+  background: var(--ui-modal-bg) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-left: 1px solid var(--ui-border) !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Phase 3: Manpower Directory & Exam Leave Management Tokenization
+   ========================================================================== */
+
+/* Segmented View Switchers */
+.segmented-control {
+  display: flex;
+  background: rgba(244, 240, 240, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+  box-sizing: border-box;
+  border: 1px solid rgba(128, 0, 0, 0.14);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.segmented-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.segmented-btn.active {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+}
+
+html[data-ui-theme="glass"] .segmented-control {
+  background: var(--ui-control-track) !important;
+  border: 1px solid var(--ui-border) !important;
+}
+
+html[data-ui-theme="glass"] .segmented-btn {
+  color: var(--ui-text-muted) !important;
+}
+
+html[data-ui-theme="glass"] .segmented-btn.active {
+  background: var(--ui-control-active) !important;
+  color: var(--ui-control-active-text) !important;
+  border-color: rgba(255, 255, 255, 0.40) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Primary / Secondary Client Tags */
+.primary-client-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+  padding: 1px 6px;
+  border-radius: 10px;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.secondary-client-tag {
+  font-size: 9px;
+  font-weight: 600;
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+  padding: 1px 5px;
+  border-radius: 8px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+html[data-ui-theme="glass"] .primary-client-tag {
+  background: rgba(119, 223, 192, 0.22);
+  color: #77dfc0;
+  border-color: rgba(119, 223, 192, 0.40);
+}
+html[data-ui-theme="glass"] .secondary-client-tag {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.70);
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+/* Manpower Directory table rows & designation tags */
+.role-badge.badge-desig-management,
+.role-badge.user.badge-emp {
+  background: #EFF6FF;
+  color: #1E40AF;
+  border: 1px solid #BFDBFE;
+}
+.role-badge.badge-desig-incharge {
+  background: #E6F5F5;
+  color: #156E6E;
+  border: 1px solid #A7F3D0;
+}
+.role-badge.badge-desig-student,
+.role-badge.user.badge-std {
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+}
+.role-badge.badge-desig-default {
+  background: #F8FAFC;
+  color: #334155;
+  border: 1px solid #E2E8F0;
+}
+
+html[data-ui-theme="glass"] .role-badge.badge-desig-management,
+html[data-ui-theme="glass"] .role-badge.user.badge-emp {
+  background: rgba(201, 164, 235, 0.22) !important;
+  color: #c9a4eb !important;
+  border: 1px solid rgba(201, 164, 235, 0.40) !important;
+}
+html[data-ui-theme="glass"] .role-badge.badge-desig-incharge {
+  background: rgba(119, 223, 192, 0.22) !important;
+  color: #77dfc0 !important;
+  border: 1px solid rgba(119, 223, 192, 0.40) !important;
+}
+html[data-ui-theme="glass"] .role-badge.badge-desig-student,
+html[data-ui-theme="glass"] .role-badge.user.badge-std {
+  background: rgba(201, 164, 235, 0.20) !important;
+  color: #c9a4eb !important;
+  border: 1px solid rgba(201, 164, 235, 0.35) !important;
+}
+html[data-ui-theme="glass"] .role-badge.badge-desig-default {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+html[data-ui-theme="glass"] .role-badge.admin {
+  background: rgba(119, 223, 192, 0.25) !important;
+  color: #77dfc0 !important;
+  border: 1px solid rgba(119, 223, 192, 0.45) !important;
+}
+html[data-ui-theme="glass"] .role-badge.manager {
+  background: rgba(201, 164, 235, 0.25) !important;
+  color: #c9a4eb !important;
+  border: 1px solid rgba(201, 164, 235, 0.45) !important;
+}
+html[data-ui-theme="glass"] .role-badge.user,
+html[data-ui-theme="glass"] .role-badge.student {
+  background: rgba(201, 164, 235, 0.25) !important;
+  color: #c9a4eb !important;
+  border: 1px solid rgba(201, 164, 235, 0.45) !important;
+}
+
+/* Fallback: ensure no white-on-white badge exists in glass tables */
+html[data-ui-theme="glass"] .data-table td span[style*="background: #F1F5F9"],
+html[data-ui-theme="glass"] .data-table td span[style*="background: rgb(241, 245, 249)"] {
+  background: rgba(201, 164, 235, 0.20) !important;
+  color: #c9a4eb !important;
+  border: 1px solid rgba(201, 164, 235, 0.35) !important;
+}
+html[data-ui-theme="glass"] .data-table td span[style*="background: #EFF6FF"],
+html[data-ui-theme="glass"] .data-table td span[style*="background: rgb(239, 246, 255)"] {
+  background: rgba(201, 164, 235, 0.22) !important;
+  color: #c9a4eb !important;
+  border: 1px solid rgba(201, 164, 235, 0.40) !important;
+}
+
+.manpower-row-unassigned {
+  background: #FFFBF0;
+}
+html[data-ui-theme="glass"] .manpower-row-unassigned {
+  background: rgba(253, 224, 71, 0.08) !important;
+}
+
+.manpower-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #EFF6FF;
+  color: #1E40AF;
+}
+html[data-ui-theme="glass"] .manpower-count-badge {
+  background: rgba(201, 164, 235, 0.22);
+  color: #c9a4eb;
+  border: 1px solid rgba(201, 164, 235, 0.35);
+}
+
+/* Button Make Primary */
+.btn-make-primary {
+  background: #ffffff;
+  border: 1px solid #10B981;
+  color: #059669;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+html[data-ui-theme="glass"] .btn-make-primary {
+  background: rgba(16, 185, 129, 0.20) !important;
+  color: #77dfc0 !important;
+  border-color: rgba(16, 185, 129, 0.40) !important;
+}
+
+/* Exam Leave Timeline Matrix Cells */
+html[data-ui-theme="glass"] .timeline-cell.on-leave {
+  background: rgba(245, 158, 11, 0.35) !important;
+  color: #fef08a !important;
+}
+html[data-ui-theme="glass"] .timeline-cell.on-leave span {
+  color: #fef08a !important;
+}
+html[data-ui-theme="glass"] .timeline-cell.off-day {
+  background: rgba(246, 139, 139, 0.20) !important;
+  color: #fca5a5 !important;
+}
+html[data-ui-theme="glass"] .timeline-cell.selected-col {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Exam Level Badges */
+.level-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.level-badge.level-pl {
+  background: #EBEFFE;
+  color: #1B2A6B;
+}
+.level-badge.level-cl {
+  background: #E6F5F5;
+  color: #1D8C8C;
+}
+.level-badge.level-al {
+  background: #F9E8EA;
+  color: #8B1420;
+}
+html[data-ui-theme="glass"] .level-badge.level-pl {
+  background: rgba(201, 164, 235, 0.25) !important;
+  color: #c9a4eb !important;
+  border: 1px solid rgba(201, 164, 235, 0.40) !important;
+}
+html[data-ui-theme="glass"] .level-badge.level-cl {
+  background: rgba(119, 223, 192, 0.25) !important;
+  color: #77dfc0 !important;
+  border: 1px solid rgba(119, 223, 192, 0.40) !important;
+}
+html[data-ui-theme="glass"] .level-badge.level-al {
+  background: rgba(246, 139, 139, 0.25) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(246, 139, 139, 0.40) !important;
+}
+
+/* ==========================================================================
+   Central Exam Leave Management — Matrix Table & Timeline Glass Styles
+   ========================================================================== */
+
+/* Legend Pills */
+.legend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 9px;
+  border-radius: 10px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.legend-pill.study-leave {
+  background: #FBEBC4;
+  border: 1px solid #D9A441;
+  color: #7A4B00;
+}
+.legend-pill.holiday {
+  background: #F6E3E3;
+  border: 1px solid #C98F8F;
+  color: #7A1F1F;
+}
+.legend-pill.working-day {
+  background: #F3EFE9;
+  border: 1px solid #D8D0C4;
+  color: #6B6256;
+}
+
+html[data-ui-theme="glass"] .legend-pill.study-leave {
+  background: rgba(245, 158, 11, 0.25) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  color: #fef08a !important;
+}
+html[data-ui-theme="glass"] .legend-pill.holiday {
+  background: rgba(244, 63, 94, 0.25) !important;
+  border-color: rgba(244, 63, 94, 0.45) !important;
+  color: #fda4af !important;
+}
+html[data-ui-theme="glass"] .legend-pill.working-day {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Exam Leave Matrix Table Elements */
+.exam-header-row {
+  background: #FAF7F2;
+}
+.exam-th-sticky,
+.exam-th {
+  background: #FAF7F2;
+  color: var(--maroon);
+  border-right: 1px solid var(--line);
+}
+.exam-th-date {
+  background: #FAF7F2;
+  color: var(--ink);
+  border-right: 1px solid var(--line);
+}
+.exam-th-date.friday {
+  background: #E6CBCB;
+  color: #7A1F1F;
+}
+.exam-th-date.selected {
+  background: #1B2A6B;
+  color: #ffffff;
+}
+
+/* Glass Matrix Table Header */
+html[data-ui-theme="glass"] .exam-header-row {
+  background: var(--table-sticky-bg) !important;
+}
+html[data-ui-theme="glass"] .exam-th-sticky,
+html[data-ui-theme="glass"] .exam-th {
+  background: var(--table-sticky-bg) !important;
+  color: #c9a4eb !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.20) !important;
+}
+html[data-ui-theme="glass"] .exam-th-date {
+  background: var(--table-sticky-bg) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.20) !important;
+}
+html[data-ui-theme="glass"] .exam-th-date.friday {
+  background: rgba(244, 63, 94, 0.22) !important;
+  color: #fda4af !important;
+}
+html[data-ui-theme="glass"] .exam-th-date.selected {
+  background: rgba(201, 164, 235, 0.35) !important;
+  color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px #c9a4eb !important;
+}
+
+/* Exam Matrix Rows & Sticky Cells */
+.exam-row.table-row-even {
+  background: #ffffff;
+}
+.exam-row.table-row-odd {
+  background: #FAF9F6;
+}
+.exam-td-sticky {
+  border-bottom: 1px solid #E2E8F0;
+  border-right: 1px solid #E2E8F0;
+}
+.exam-row.table-row-even .exam-td-sticky {
+  background: #ffffff;
+}
+.exam-row.table-row-odd .exam-td-sticky {
+  background: #FAF9F6;
+}
+.exam-td {
+  border-bottom: 1px solid #E2E8F0;
+  border-right: 1px solid #E2E8F0;
+}
+.exam-candidate-name {
+  color: var(--navy);
+  text-decoration: underline;
+  text-decoration-color: #CBD5E1;
+}
+.exam-client-name {
+  color: var(--ink-soft);
+}
+.total-leave-has-leave {
+  color: #B45309;
+  font-weight: 700;
+}
+.total-leave-zero {
+  color: var(--ink-muted);
+}
+
+/* Glass Exam Matrix Rows & Cells */
+html[data-ui-theme="glass"] .exam-row.table-row-even {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+html[data-ui-theme="glass"] .exam-row.table-row-odd {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+html[data-ui-theme="glass"] .exam-row:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+html[data-ui-theme="glass"] .exam-td-sticky {
+  background: var(--table-sticky-bg) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+html[data-ui-theme="glass"] .exam-td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+html[data-ui-theme="glass"] .exam-candidate-name {
+  color: #ffffff !important;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+}
+html[data-ui-theme="glass"] .exam-client-name {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+html[data-ui-theme="glass"] .total-leave-has-leave {
+  color: #fef08a !important;
+  font-weight: 800;
+}
+html[data-ui-theme="glass"] .total-leave-zero {
+  color: rgba(255, 255, 255, 0.50) !important;
+}
+
+/* Exam Matrix Day Cells */
+.matrix-day-cell {
+  border-bottom: 1px solid #E2E8F0;
+  border-right: 1px solid #E2E8F0;
+  background: transparent;
+  color: var(--ink-muted);
+}
+.matrix-day-cell.on-leave {
+  background: #F7DC93;
+  color: #7A4B00;
+  font-weight: 800;
+}
+.matrix-day-cell.off-day {
+  background: #F6E3E3;
+  color: #A94442;
+}
+.matrix-day-cell.selected-col {
+  background: #EEF0F8;
+}
+.exam-code-chip {
+  color: #5C3600;
+  font-weight: 800;
+}
+
+html[data-ui-theme="glass"] .matrix-day-cell {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+html[data-ui-theme="glass"] .matrix-day-cell.on-leave {
+  background: rgba(245, 158, 11, 0.35) !important;
+  color: #fef08a !important;
+  font-weight: 800;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+}
+html[data-ui-theme="glass"] .matrix-day-cell.off-day {
+  background: rgba(244, 63, 94, 0.20) !important;
+  color: #fda4af !important;
+  border-color: rgba(244, 63, 94, 0.30) !important;
+}
+html[data-ui-theme="glass"] .matrix-day-cell.selected-col {
+  background: rgba(201, 164, 235, 0.20) !important;
+}
+html[data-ui-theme="glass"] .exam-code-chip {
+  color: #ffffff !important;
+  font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Exam Matrix Footer Total Rows */
+html[data-ui-theme="glass"] .exam-footer-row.total td,
+html[data-ui-theme="glass"] .exam-footer-row.avail td {
+  border-top-color: rgba(255, 255, 255, 0.20) !important;
+}
+html[data-ui-theme="glass"] .exam-footer-sticky {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Roster Cards in Exam Leave */
+.roster-card {
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+html[data-ui-theme="glass"] .roster-card {
+  background: var(--ui-surface) !important;
+  backdrop-filter: var(--ui-blur) !important;
+  -webkit-backdrop-filter: var(--ui-blur) !important;
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: var(--ui-shadow) !important;
+  color: #ffffff !important;
+}
+html[data-ui-theme="glass"] .roster-card h3 {
+  color: #c9a4eb !important;
+}
+
+
+

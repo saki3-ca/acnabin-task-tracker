@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { TaskRequest } from '../../types';
+import { useAppTheme } from '../../context/ThemeContext';
 
 interface Props {
   request: TaskRequest;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export const RespondRequestModal: React.FC<Props> = ({ request, status, busy, onClose, onConfirm }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const [remarks, setRemarks] = useState('');
   const accepting = status === 'ACCEPTED';
 
@@ -19,7 +22,21 @@ export const RespondRequestModal: React.FC<Props> = ({ request, status, busy, on
       style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
       onClick={() => !busy && onClose()}
     >
-      <div style={{ background: '#fff', borderRadius: '10px', width: '100%', maxWidth: '460px', boxShadow: '0 20px 40px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+      <div
+        className="modal-dialog"
+        style={{
+          background: isGlass ? 'var(--ui-modal-bg)' : '#fff',
+          borderRadius: '10px',
+          width: '100%',
+          maxWidth: '460px',
+          boxShadow: isGlass ? 'var(--ui-modal-shadow)' : '0 20px 40px rgba(0,0,0,0.25)',
+          backdropFilter: isGlass ? 'blur(16px)' : undefined,
+          WebkitBackdropFilter: isGlass ? 'blur(16px)' : undefined,
+          border: isGlass ? '1px solid var(--ui-card-border)' : undefined,
+          overflow: 'hidden'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="banner-strip banner-maroon" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px' }}>
           <span style={{ fontSize: '14px', fontWeight: 700 }}>{accepting ? 'ACCEPT TASK REQUEST' : 'DECLINE TASK REQUEST'}</span>
           <button type="button" onClick={onClose} disabled={busy} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex' }}>
@@ -49,8 +66,16 @@ export const RespondRequestModal: React.FC<Props> = ({ request, status, busy, on
           </div>
         </div>
 
-        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#F8FAFC' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>Cancel</button>
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: isGlass ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={busy}
+            style={isGlass ? { background: 'rgba(255, 255, 255, 0.08)', color: '#FFFFFF', border: '1px solid rgba(255, 255, 255, 0.15)' } : undefined}
+          >
+            Cancel
+          </button>
           <button
             type="button"
             className={accepting ? 'btn btn-teal' : 'btn btn-danger'}

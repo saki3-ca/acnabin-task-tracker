@@ -16,6 +16,28 @@ export function isInChargeOrAbove(designation?: Designation | string): boolean {
 }
 
 /**
+ * Returns the theme-aware CSS badge class for a designation.
+ * Categorized into Management (Sky/Blue), In-Charge/Supervisor (Teal/Mint),
+ * Student/Trainee (Lavender/Slate), or Default fallback.
+ */
+export function getDesignationBadgeClass(designation?: string, empId?: string): string {
+  const d = (designation || '').toLowerCase().trim();
+  if (d.includes('partner') || d.includes('director') || d.includes('manager')) {
+    return 'badge-desig-management';
+  }
+  if (d.includes('charge') || d.includes('lead') || d.includes('supervisor')) {
+    return 'badge-desig-incharge';
+  }
+  if (d.includes('student') || /year/i.test(d) || d.includes('trainee') || d.includes('course') || d.includes('associate') || d.includes('executive') || d.includes('senior')) {
+    return 'badge-desig-student';
+  }
+  if (empId?.startsWith('EMP')) {
+    return 'badge-desig-management';
+  }
+  return 'badge-desig-student';
+}
+
+/**
  * Team Leader: anyone (a Student too) with students assigned in Manager Student Supervisory
  * Assignments. Their designation stays as it is; they only get Team Tasks for those students,
  * can comment on their tasks and assign tasks to them.

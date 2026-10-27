@@ -16,7 +16,7 @@ import {
 import { downloadManpowerWorkbook } from '../../lib/manpowerExcel';
 import { useAuth } from '../../context/AuthContext';
 import { DESIGNATIONS } from '../../lib/constants';
-import { canViewManpowerScoped, isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib/permissions';
+import { canViewManpowerScoped, getDesignationBadgeClass, isAssistantDirectorOrAbove, isStudentLevelDesignation } from '../../lib/permissions';
 import { adminService } from '../../services/adminService';
 import { ClientLabel, clientText } from '../ui/ClientLabel';
 import { staffService } from '../../services/staffService';
@@ -703,48 +703,18 @@ const FullManpowerView: React.FC = () => {
         >
           {/* Liquid Glass Segmented View Toggle Buttons (Distributed 50/50) */}
           <div
+            className="segmented-control"
             style={{
-              display: 'flex',
               width: '100%',
               flex: isAdmin ? '0 0 38px' : '1',
-              height: isAdmin ? '38px' : '100%',
-              background: 'rgba(244, 240, 240, 0.75)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              borderRadius: '8px',
-              padding: '3px',
-              gap: '4px',
-              boxSizing: 'border-box',
-              border: '1px solid rgba(128, 0, 0, 0.14)',
-              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.06)'
+              height: isAdmin ? '38px' : '100%'
             }}
           >
             <button
               type="button"
               onClick={() => setViewMode('details')}
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: viewMode === 'details' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
-                cursor: 'pointer',
-                background: viewMode === 'details'
-                  ? 'linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)'
-                  : 'transparent',
-                color: viewMode === 'details' ? '#ffffff' : 'var(--ink-soft)',
-                boxShadow: viewMode === 'details'
-                  ? '0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.25)'
-                  : 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                backdropFilter: viewMode === 'details' ? 'blur(6px)' : 'none',
-                WebkitBackdropFilter: viewMode === 'details' ? 'blur(6px)' : 'none'
-              }}
+              className={`segmented-btn ${viewMode === 'details' ? 'active' : ''}`}
+              style={{ padding: '6px 10px', fontSize: '12px', gap: '5px' }}
               title="View all manpower staff details"
             >
               <Users size={13} /> Details
@@ -753,29 +723,8 @@ const FullManpowerView: React.FC = () => {
             <button
               type="button"
               onClick={() => setViewMode('summary')}
-              style={{
-                flex: 1,
-                padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: viewMode === 'summary' ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid transparent',
-                cursor: 'pointer',
-                background: viewMode === 'summary'
-                  ? 'linear-gradient(180deg, #8C1414 0%, #800000 60%, #680000 100%)'
-                  : 'transparent',
-                color: viewMode === 'summary' ? '#ffffff' : 'var(--ink-soft)',
-                boxShadow: viewMode === 'summary'
-                  ? '0 3px 10px rgba(128, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.25)'
-                  : 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                backdropFilter: viewMode === 'summary' ? 'blur(6px)' : 'none',
-                WebkitBackdropFilter: viewMode === 'summary' ? 'blur(6px)' : 'none'
-              }}
+              className={`segmented-btn ${viewMode === 'summary' ? 'active' : ''}`}
+              style={{ padding: '6px 10px', fontSize: '12px', gap: '5px' }}
               title="View client-wise cost summary"
             >
               <Building size={13} /> Summary
@@ -1172,38 +1121,11 @@ const FullManpowerView: React.FC = () => {
                                   <div key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                     <span><ClientLabel id={id} name={cName} /></span>
                                     {isPrimary ? (
-                                      <span
-                                        style={{
-                                          fontSize: '9.5px',
-                                          fontWeight: 700,
-                                          background: '#ECFDF5',
-                                          color: '#065F46',
-                                          border: '1px solid #A7F3D0',
-                                          padding: '1px 6px',
-                                          borderRadius: '10px',
-                                          lineHeight: '1.3',
-                                          letterSpacing: '0.02em',
-                                          whiteSpace: 'nowrap'
-                                        }}
-                                        title="Primary Client (counted in summary & exported to Excel)"
-                                      >
+                                      <span className="primary-client-tag" title="Primary Client (counted in summary & exported to Excel)">
                                         ★ Primary
                                       </span>
                                     ) : (
-                                      <span
-                                        style={{
-                                          fontSize: '9px',
-                                          fontWeight: 600,
-                                          background: '#F1F5F9',
-                                          color: '#64748B',
-                                          border: '1px solid #E2E8F0',
-                                          padding: '1px 5px',
-                                          borderRadius: '10px',
-                                          lineHeight: '1.3',
-                                          whiteSpace: 'nowrap'
-                                        }}
-                                        title="Secondary Client"
-                                      >
+                                      <span className="secondary-client-tag" title="Secondary Client">
                                         Secondary
                                       </span>
                                     )}
@@ -1222,38 +1144,11 @@ const FullManpowerView: React.FC = () => {
                                   <div key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                     <span>{trimmed}</span>
                                     {isPrimary ? (
-                                      <span
-                                        style={{
-                                          fontSize: '9.5px',
-                                          fontWeight: 700,
-                                          background: '#ECFDF5',
-                                          color: '#065F46',
-                                          border: '1px solid #A7F3D0',
-                                          padding: '1px 6px',
-                                          borderRadius: '10px',
-                                          lineHeight: '1.3',
-                                          letterSpacing: '0.02em',
-                                          whiteSpace: 'nowrap'
-                                        }}
-                                        title="Primary Client"
-                                      >
+                                      <span className="primary-client-tag" title="Primary Client">
                                         ★ Primary
                                       </span>
                                     ) : (
-                                      <span
-                                        style={{
-                                          fontSize: '9px',
-                                          fontWeight: 600,
-                                          background: '#F1F5F9',
-                                          color: '#64748B',
-                                          border: '1px solid #E2E8F0',
-                                          padding: '1px 5px',
-                                          borderRadius: '10px',
-                                          lineHeight: '1.3',
-                                          whiteSpace: 'nowrap'
-                                        }}
-                                        title="Secondary Client"
-                                      >
+                                      <span className="secondary-client-tag" title="Secondary Client">
                                         Secondary
                                       </span>
                                     )}
@@ -1270,12 +1165,10 @@ const FullManpowerView: React.FC = () => {
                         <td style={{ textAlign: 'center' }}>
                           {item.designation && item.designation !== 'TBA' ? (
                             <span
-                              className="role-badge user"
+                              className={`role-badge ${getDesignationBadgeClass(item.designation, item.empId)}`}
                               style={{
                                 fontSize: '11px',
-                                padding: '2px 8px',
-                                background: item.empId.startsWith('EMP') ? '#EFF6FF' : '#F1F5F9',
-                                color: item.empId.startsWith('EMP') ? '#1E40AF' : 'var(--ink)'
+                                padding: '2px 8px'
                               }}
                             >
                               {/year/i.test(item.designation) ? 'Student' : item.designation}
@@ -1506,9 +1399,9 @@ const FullManpowerView: React.FC = () => {
                         <tr
                           key={`${item.clientId}-${idx}`}
                           onClick={() => handleClientRowClick(item.clientName)}
+                          className={isUnassigned ? 'manpower-row-unassigned' : ''}
                           style={{
-                            cursor: 'pointer',
-                            background: isUnassigned ? '#FFFBF0' : undefined
+                            cursor: 'pointer'
                           }}
                           title={`Click to view students for ${item.clientName}`}
                         >
@@ -1526,19 +1419,7 @@ const FullManpowerView: React.FC = () => {
                           </td>
 
                           <td style={{ textAlign: 'center', fontWeight: 600 }}>
-                            <span
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                background: '#EFF6FF',
-                                color: '#1E40AF'
-                              }}
-                            >
+                            <span className="manpower-count-badge">
                               <Users size={11} /> {item.manpowerCount}
                             </span>
                           </td>

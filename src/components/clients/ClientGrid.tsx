@@ -158,16 +158,7 @@ export const ClientGrid: React.FC = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span className="client-card-name">{client.name}</span>
-                <span
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    background: client.status === 'ACTIVE' ? '#DCFCE7' : '#F3F4F6',
-                    color: client.status === 'ACTIVE' ? '#166534' : '#4B5563'
-                  }}
-                >
+                <span className={`client-status-badge ${client.status.toLowerCase()}`}>
                   {client.status}
                 </span>
               </div>

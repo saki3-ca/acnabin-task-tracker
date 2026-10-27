@@ -16,6 +16,7 @@ import { StatPills } from '../dashboard/StatPills';
 import { Modal } from '../ui/Modal';
 import { InvoiceFilesModal } from './InvoiceFilesModal';
 import { InvoiceImport } from './InvoiceImport';
+import { useAppTheme } from '../../context/ThemeContext';
 
 type Form = Omit<Invoice, 'id' | 'createdAt'>;
 const EMPTY: Form = {
@@ -26,14 +27,24 @@ const EMPTY: Form = {
 };
 
 const Chip: React.FC<{ value: string; dateIso?: string }> = ({ value, dateIso }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
   const yes = isYes(value);
   const set = value === 'Yes' || value === 'No';
   return (
     <span
       title={yes && dateIso ? fmtDate(dateIso) : undefined}
       style={{
-        display: 'inline-block', padding: '2px 9px', borderRadius: '10px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
-        background: yes ? '#DCFCE7' : set ? '#FEE2E2' : '#E5E7EB', color: yes ? '#166534' : set ? '#991B1B' : '#374151'
+        display: 'inline-block', padding: '2px 9px', borderRadius: isGlass ? '6px' : '10px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
+        background: isGlass
+          ? (yes ? 'rgba(119, 223, 192, 0.22)' : set ? 'rgba(246, 139, 139, 0.22)' : 'rgba(255, 255, 255, 0.10)')
+          : (yes ? '#DCFCE7' : set ? '#FEE2E2' : '#E5E7EB'),
+        color: isGlass
+          ? (yes ? '#77dfc0' : set ? '#f68b8b' : 'rgba(255, 255, 255, 0.65)')
+          : (yes ? '#166534' : set ? '#991B1B' : '#374151'),
+        border: isGlass
+          ? (yes ? '1px solid rgba(119, 223, 192, 0.40)' : set ? '1px solid rgba(246, 139, 139, 0.40)' : '1px solid rgba(255, 255, 255, 0.15)')
+          : undefined
       }}
     >
       {yes ? 'Yes' : set ? 'No' : '—'}
@@ -50,7 +61,7 @@ const YesNo: React.FC<{ value: string; onChange: (v: string) => void }> = ({ val
 
 type Group = 'inv' | 'amt' | 'sub' | 'col' | 'vds' | 'tds' | 'note';
 // Soft tinted look (same family as the Profile counters): background, border, text and the header underline per group
-const GROUPS: Record<Group, { label: string; bg: string; border: string; fg: string; accent: string }> = {
+const CLASSIC_GROUPS: Record<Group, { label: string; bg: string; border: string; fg: string; accent: string }> = {
   inv: { label: 'Invoice', bg: '#F0FDF4', border: '#86EFAC', fg: '#166534', accent: '#16A34A' },
   amt: { label: 'Amount', bg: '#EFF6FF', border: '#BFDBFE', fg: '#1E40AF', accent: '#2563EB' },
   sub: { label: 'Submission', bg: '#FFFBEB', border: '#FDE68A', fg: '#92400E', accent: '#D97706' },
@@ -59,6 +70,17 @@ const GROUPS: Record<Group, { label: string; bg: string; border: string; fg: str
   tds: { label: 'TDS', bg: '#F0FDFA', border: '#99F6E4', fg: '#0F766E', accent: '#0D9488' },
   note: { label: 'Notes', bg: '#F8FAFC', border: '#CBD5E1', fg: '#334155', accent: '#64748B' }
 };
+
+const GLASS_GROUPS: Record<Group, { label: string; bg: string; border: string; fg: string; accent: string }> = {
+  inv: { label: 'Invoice', bg: 'rgba(119, 223, 192, 0.16)', border: 'rgba(119, 223, 192, 0.35)', fg: '#77dfc0', accent: '#77dfc0' },
+  amt: { label: 'Amount', bg: 'rgba(201, 164, 235, 0.16)', border: 'rgba(201, 164, 235, 0.35)', fg: '#c9a4eb', accent: '#c9a4eb' },
+  sub: { label: 'Submission', bg: 'rgba(254, 240, 138, 0.16)', border: 'rgba(254, 240, 138, 0.35)', fg: '#fef08a', accent: '#fef08a' },
+  col: { label: 'Collection', bg: 'rgba(246, 139, 139, 0.16)', border: 'rgba(246, 139, 139, 0.35)', fg: '#f68b8b', accent: '#f68b8b' },
+  vds: { label: 'VDS', bg: 'rgba(201, 164, 235, 0.16)', border: 'rgba(201, 164, 235, 0.35)', fg: '#c9a4eb', accent: '#c9a4eb' },
+  tds: { label: 'TDS', bg: 'rgba(119, 223, 192, 0.16)', border: 'rgba(119, 223, 192, 0.35)', fg: '#77dfc0', accent: '#77dfc0' },
+  note: { label: 'Notes', bg: 'rgba(255, 255, 255, 0.10)', border: 'rgba(255, 255, 255, 0.25)', fg: '#FFFFFF', accent: '#94a3b8' }
+};
+
 const TITLE_GREEN = '#146860';
 // Order of the column groups (the table and the legend follow it)
 const GROUP_ORDER: Group[] = ['inv', 'amt', 'sub', 'col', 'vds', 'tds', 'note'];
@@ -77,19 +99,51 @@ const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 
 const grid3: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'end' };
 
 /** One tinted mini card of the New Invoice form; its colour matches the column group in the table legend. */
-const FormCard: React.FC<{ group: Group; title: string; hint?: string; children: React.ReactNode }> = ({ group, title, hint, children }) => (
-  <div style={{ background: GROUPS[group].bg, border: `1px solid ${GROUPS[group].border}`, borderLeft: `4px solid ${GROUPS[group].accent}`, borderRadius: '10px', padding: '12px 16px 6px', marginBottom: '12px' }}>
-    <div style={{ fontSize: '13.5px', fontWeight: 700, color: GROUPS[group].fg }}>{title}</div>
-    {hint && <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginBottom: '8px' }}>{hint}</div>}
-    {children}
-  </div>
-);
+const FormCard: React.FC<{ group: Group; title: string; hint?: string; children: React.ReactNode }> = ({ group, title, hint, children }) => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
+  const g = isGlass ? GLASS_GROUPS[group] : CLASSIC_GROUPS[group];
+  return (
+    <div style={{
+      background: isGlass ? 'rgba(255, 255, 255, 0.07)' : g.bg,
+      border: `1px solid ${isGlass ? 'rgba(255, 255, 255, 0.16)' : g.border}`,
+      borderLeft: `4px solid ${g.accent}`,
+      borderRadius: isGlass ? '8px' : '10px',
+      padding: '12px 16px 6px',
+      marginBottom: '12px',
+      backdropFilter: isGlass ? 'blur(12px)' : undefined,
+      WebkitBackdropFilter: isGlass ? 'blur(12px)' : undefined
+    }}>
+      <div style={{ fontSize: '13.5px', fontWeight: 700, color: isGlass ? '#FFFFFF' : g.fg }}>{title}</div>
+      {hint && <div style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)', marginBottom: '8px' }}>{hint}</div>}
+      {children}
+    </div>
+  );
+};
 
 // Client filter value meaning "the clients I work on"
 const MINE = '__MINE__';
 const compact = (v?: string | null) => (v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export const InvoiceTracker: React.FC = () => {
+  const { theme } = useAppTheme();
+  const isGlass = theme === 'glass';
+  const groups = isGlass ? GLASS_GROUPS : CLASSIC_GROUPS;
+  const stripBtn: React.CSSProperties = {
+    background: isGlass ? 'rgba(255, 255, 255, 0.18)' : 'rgba(255, 255, 255, 0.95)',
+    color: isGlass ? '#ffffff' : TITLE_GREEN,
+    border: isGlass ? '1px solid rgba(255, 255, 255, 0.35)' : 'none',
+    backdropFilter: isGlass ? 'blur(8px)' : undefined,
+    padding: '3px 10px',
+    borderRadius: isGlass ? '6px' : '4px',
+    fontSize: '11.5px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+  };
   const { currentUser, allClients, allUsers } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
   // Only Admin and Assistant Director and above may download Excel reports
@@ -506,9 +560,9 @@ export const InvoiceTracker: React.FC = () => {
   const totalWidth = cols.reduce((sum, c) => sum + c.w, 0);
   const stickyStyle = (c: Col, head: boolean): React.CSSProperties =>
     c.sticky === 'left'
-      ? { position: 'sticky', left: c.left, zIndex: head ? 5 : 2, boxShadow: c.key === 'client' ? '2px 0 4px rgba(0,0,0,0.08)' : undefined }
+      ? { position: 'sticky', left: c.left, zIndex: head ? 5 : 2, boxShadow: c.key === 'client' ? (isGlass ? '2px 0 8px rgba(0,0,0,0.35)' : '2px 0 4px rgba(0,0,0,0.08)') : undefined }
       : c.sticky === 'right'
-      ? { position: 'sticky', right: 0, zIndex: head ? 5 : 2, boxShadow: '-2px 0 4px rgba(0,0,0,0.08)' }
+      ? { position: 'sticky', right: 0, zIndex: head ? 5 : 2, boxShadow: isGlass ? '-2px 0 8px rgba(0,0,0,0.35)' : '-2px 0 4px rgba(0,0,0,0.08)' }
       : {};
 
   return (
@@ -532,7 +586,7 @@ export const InvoiceTracker: React.FC = () => {
 
           <div
             className="filter-bar"
-            style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between', background: '#ffffff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--line)' }}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between', background: isGlass ? undefined : '#ffffff', padding: '12px 18px', borderRadius: isGlass ? '10px' : '8px', border: isGlass ? undefined : '1px solid var(--line)' }}
           >
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', flex: 1 }}>
               <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 240px' }}>
@@ -569,7 +623,7 @@ export const InvoiceTracker: React.FC = () => {
                 </button>
               )}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--ink-soft)', fontWeight: 600 }}>
+            <div style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.85)' : 'var(--ink-soft)', fontWeight: 600 }}>
               Showing {rows.length} of {invoices.length} invoice{invoices.length === 1 ? '' : 's'}
             </div>
           </div>
@@ -581,16 +635,41 @@ export const InvoiceTracker: React.FC = () => {
                 {GROUP_ORDER.map(g => (
                   <span
                     key={g}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '1px 9px', borderRadius: '10px', background: GROUPS[g].bg, border: `1px solid ${GROUPS[g].border}`, color: GROUPS[g].fg, fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '1px 9px',
+                      borderRadius: isGlass ? '6px' : '10px',
+                      background: groups[g].bg,
+                      border: `1px solid ${groups[g].border}`,
+                      color: groups[g].fg,
+                      fontSize: '9.5px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.4px',
+                      backdropFilter: isGlass ? 'blur(8px)' : undefined
+                    }}
                   >
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: GROUPS[g].accent, display: 'inline-block' }} />
-                    {GROUPS[g].label}
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: groups[g].accent, display: 'inline-block' }} />
+                    {groups[g].label}
                   </span>
                 ))}
               </div>
             </div>
           <div className="table-card" style={{ marginBottom: 0 }}>
-            <div className="banner-strip" style={{ justifyContent: 'center', padding: '0 16px', background: TITLE_GREEN, color: '#fff' }}>
+            <div
+              className="banner-strip"
+              style={{
+                justifyContent: 'center',
+                padding: '0 16px',
+                background: isGlass ? 'rgba(20, 104, 96, 0.65)' : TITLE_GREEN,
+                backdropFilter: isGlass ? 'blur(16px)' : undefined,
+                WebkitBackdropFilter: isGlass ? 'blur(16px)' : undefined,
+                borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.18)' : undefined,
+                color: '#fff'
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Receipt size={16} />
                 <span>INVOICES</span>
@@ -600,7 +679,7 @@ export const InvoiceTracker: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setImportOpen(true)}
-                    style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                    style={stripBtn}
                     title="Import old invoices from a CSV (Admin)"
                   >
                     <FileUp size={12} /> Import CSV
@@ -611,7 +690,7 @@ export const InvoiceTracker: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setMonthlyOpen(true)}
-                      style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                      style={stripBtn}
                       title="Download official 2-sheet monthly report (Collection & Invoicing)"
                     >
                       <FileSpreadsheet size={12} /> Monthly Excel
@@ -619,7 +698,7 @@ export const InvoiceTracker: React.FC = () => {
                     <button
                       type="button"
                       onClick={exportExcel}
-                      style={{ background: 'rgba(255, 255, 255, 0.95)', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                      style={stripBtn}
                       title="Export to Excel"
                     >
                       <Download size={12} /> Export Excel
@@ -629,7 +708,21 @@ export const InvoiceTracker: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => openModal()}
-                  style={{ background: '#ffffff', color: TITLE_GREEN, border: 'none', padding: '3px 10px', borderRadius: '4px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                  style={{
+                    background: isGlass ? 'rgba(119, 223, 192, 0.28)' : '#ffffff',
+                    color: isGlass ? '#77dfc0' : TITLE_GREEN,
+                    border: isGlass ? '1px solid rgba(119, 223, 192, 0.50)' : 'none',
+                    backdropFilter: isGlass ? 'blur(8px)' : undefined,
+                    padding: '3px 10px',
+                    borderRadius: isGlass ? '6px' : '4px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }}
                 >
                   <Plus size={12} /> New Invoice
                 </button>
@@ -646,7 +739,28 @@ export const InvoiceTracker: React.FC = () => {
                 <thead>
                   <tr>
                     {cols.map(c => (
-                      <th key={c.key} title={c.head} style={{ ...stickyStyle(c, true), textAlign: 'center', background: GROUPS[c.group].bg, color: GROUPS[c.group].fg, whiteSpace: 'normal', lineHeight: 1.25, padding: '10px 6px', fontSize: '11px', borderTop: 'none', borderBottom: `2px solid ${GROUPS[c.group].accent}`, borderRight: `1px solid ${GROUPS[c.group].border}`, position: 'sticky', top: 0, zIndex: c.sticky ? 4 : 3 }}>
+                      <th
+                        key={c.key}
+                        title={c.head}
+                        style={{
+                          ...stickyStyle(c, true),
+                          textAlign: 'center',
+                          background: isGlass ? `linear-gradient(${groups[c.group].bg}, ${groups[c.group].bg}), var(--table-sticky-bg)` : groups[c.group].bg,
+                          color: groups[c.group].fg,
+                          whiteSpace: 'normal',
+                          lineHeight: 1.25,
+                          padding: '10px 6px',
+                          fontSize: '11px',
+                          borderTop: 'none',
+                          borderBottom: `2px solid ${groups[c.group].accent}`,
+                          borderRight: `1px solid ${groups[c.group].border}`,
+                          position: 'sticky',
+                          top: 0,
+                          zIndex: c.sticky ? 4 : 3,
+                          backdropFilter: isGlass ? 'blur(16px)' : undefined,
+                          WebkitBackdropFilter: isGlass ? 'blur(16px)' : undefined
+                        }}
+                      >
                         {c.head}
                       </th>
                     ))}
@@ -663,7 +777,25 @@ export const InvoiceTracker: React.FC = () => {
                     rows.map((i, n) => (
                       <tr key={i.id}>
                         {cols.map(c => (
-                          <td key={c.key} style={{ ...stickyStyle(c, false), textAlign: c.align, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', background: '#fff', borderBottom: '1px solid var(--line)', padding: '8px 8px' }}>
+                          <td
+                            key={c.key}
+                            style={{
+                              ...stickyStyle(c, false),
+                              textAlign: c.align,
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              textOverflow: 'ellipsis',
+                              background: isGlass
+                                ? (n % 2 === 0 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.02)')
+                                : '#fff',
+                              color: isGlass ? '#FFFFFF' : undefined,
+                              backdropFilter: isGlass && c.sticky ? 'blur(10px)' : undefined,
+                              WebkitBackdropFilter: isGlass && c.sticky ? 'blur(10px)' : undefined,
+                              borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid var(--line)',
+                              borderRight: isGlass ? '1px solid rgba(255, 255, 255, 0.06)' : undefined,
+                              padding: '8px 8px'
+                            }}
+                          >
                             {c.render(i, n)}
                           </td>
                         ))}
@@ -709,9 +841,9 @@ export const InvoiceTracker: React.FC = () => {
                   </tr>
                 ) : (
                   popupList.map((i, n) => (
-                    <tr key={i.id}>
+                    <tr key={i.id} style={{ background: isGlass ? (n % 2 === 0 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.02)') : undefined }}>
                       <td style={{ textAlign: 'center', fontWeight: 600 }}>{n + 1}</td>
-                      <td style={{ textAlign: 'left', fontWeight: 600 }}>{i.client}</td>
+                      <td style={{ textAlign: 'left', fontWeight: 600, color: isGlass ? '#FFFFFF' : undefined }}>{i.client}</td>
                       <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{i.invoiceNo}</td>
                       <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtDate(i.invoiceDate)}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600 }}>{money(i.amount)}</td>
@@ -729,7 +861,7 @@ export const InvoiceTracker: React.FC = () => {
             </table>
           </div>
           {popupList.length > 0 && (
-            <div style={{ padding: '10px 14px 2px', fontSize: '12.5px', color: 'var(--ink-soft)', fontWeight: 600, textAlign: 'right' }}>
+            <div style={{ padding: '10px 14px 2px', fontSize: '12.5px', color: isGlass ? 'rgba(255, 255, 255, 0.85)' : 'var(--ink-soft)', fontWeight: 600, textAlign: 'right' }}>
               Total invoice amount: ৳ {fmtMoney(popupList.reduce((sum, i) => sum + toNum(i.amount), 0))}
               {popup === 'VDS' && <> · Total VDS: ৳ {fmtMoney(popupList.reduce((sum, i) => sum + toNum(i.vds), 0))}</>}
               {popup === 'TDS' && <> · Total TDS: ৳ {fmtMoney(popupList.reduce((sum, i) => sum + toNum(i.tds), 0))}</>}
@@ -746,13 +878,13 @@ export const InvoiceTracker: React.FC = () => {
         maxWidth="560px"
       >
         <div style={{ padding: '4px 0 10px' }}>
-          <div style={{ fontSize: '13px', color: 'var(--ink-soft)', marginBottom: '16px', lineHeight: 1.4 }}>
+          <div style={{ fontSize: '13px', color: isGlass ? 'rgba(255, 255, 255, 0.85)' : 'var(--ink-soft)', marginBottom: '16px', lineHeight: 1.4 }}>
             Generates the official ACNABIN 2-sheet monthly report (<strong>Details of collection</strong> &amp; <strong>Details of invoicing</strong>) with formulas and matching the firm's required Excel format.
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '14px', marginBottom: '16px' }}>
             <div className="form-field">
-              <label style={{ fontWeight: 600, fontSize: '12px', marginBottom: '4px', display: 'block' }}>Month</label>
+              <label style={{ fontWeight: 600, fontSize: '12px', marginBottom: '4px', display: 'block', color: isGlass ? '#FFFFFF' : undefined }}>Month</label>
               <select
                 className="form-select"
                 value={monthlyMonth}
@@ -765,7 +897,7 @@ export const InvoiceTracker: React.FC = () => {
               </select>
             </div>
             <div className="form-field">
-              <label style={{ fontWeight: 600, fontSize: '12px', marginBottom: '4px', display: 'block' }}>Year</label>
+              <label style={{ fontWeight: 600, fontSize: '12px', marginBottom: '4px', display: 'block', color: isGlass ? '#FFFFFF' : undefined }}>Year</label>
               <select
                 className="form-select"
                 value={monthlyYear}
@@ -779,25 +911,25 @@ export const InvoiceTracker: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
-            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>
+          <div style={{ background: isGlass ? 'rgba(255, 255, 255, 0.07)' : '#F8FAFC', border: `1px solid ${isGlass ? 'rgba(255, 255, 255, 0.16)' : '#E2E8F0'}`, borderRadius: isGlass ? '8px' : '8px', padding: '12px 14px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 700, color: isGlass ? 'rgba(255, 255, 255, 0.85)' : '#475569', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '8px' }}>
               Summary for {monthlyMonth} {monthlyYear}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '8px 12px' }}>
-                <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Collections (Sheet 1)</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>{monthlyStats.colCount} items</div>
-                <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)' }}>৳ {fmtMoney(monthlyStats.colAmt)}</div>
+              <div style={{ background: isGlass ? 'rgba(255, 255, 255, 0.08)' : '#fff', border: `1px solid ${isGlass ? 'rgba(255, 255, 255, 0.14)' : '#E2E8F0'}`, borderRadius: '6px', padding: '8px 12px' }}>
+                <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)' }}>Collections (Sheet 1)</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: isGlass ? '#77dfc0' : '#166534' }}>{monthlyStats.colCount} items</div>
+                <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.60)' : 'var(--ink-muted)' }}>৳ {fmtMoney(monthlyStats.colAmt)}</div>
               </div>
-              <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: '6px', padding: '8px 12px' }}>
-                <div style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Invoices Raised (Sheet 2)</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#1E40AF' }}>{monthlyStats.invCount} items</div>
-                <div style={{ fontSize: '11.5px', color: 'var(--ink-muted)' }}>৳ {fmtMoney(monthlyStats.invAmt)}</div>
+              <div style={{ background: isGlass ? 'rgba(255, 255, 255, 0.08)' : '#fff', border: `1px solid ${isGlass ? 'rgba(255, 255, 255, 0.14)' : '#E2E8F0'}`, borderRadius: '6px', padding: '8px 12px' }}>
+                <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)' }}>Invoices Raised (Sheet 2)</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: isGlass ? '#c9a4eb' : '#1E40AF' }}>{monthlyStats.invCount} items</div>
+                <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.60)' : 'var(--ink-muted)' }}>৳ {fmtMoney(monthlyStats.invAmt)}</div>
               </div>
             </div>
           </div>
 
-          <div style={{ fontSize: '12px', color: '#64748B', background: '#F1F5F9', padding: '8px 12px', borderRadius: '6px', marginBottom: '18px' }}>
+          <div style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.85)' : '#64748B', background: isGlass ? 'rgba(255, 255, 255, 0.06)' : '#F1F5F9', border: isGlass ? '1px solid rgba(255, 255, 255, 0.12)' : undefined, padding: '8px 12px', borderRadius: '6px', marginBottom: '18px' }}>
             <strong>ERP Header:</strong> Mr. Abdullah - Al - Mamun, FCA (ERP ID : EMP-000644)
           </div>
 

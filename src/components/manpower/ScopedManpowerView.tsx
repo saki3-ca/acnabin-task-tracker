@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Building, Download, Filter, RotateCcw, Search, Users } from 'lucide-react';
 import { academicYearFromStart, employmentYearFromJoining, isEmployeeProfile, principalDisplay } from '../../lib/academicYear';
 import { downloadScopedManpowerExcel } from '../../lib/manpowerScopedExcel';
-import { isStudentLevelDesignation } from '../../lib/permissions';
+import { getDesignationBadgeClass, isStudentLevelDesignation } from '../../lib/permissions';
 import { formatPeriodDate } from '../../lib/staffSheet';
 import { clientText } from '../ui/ClientLabel';
 import { ScopedManpower, ScopedManpowerRow } from '../../types';
@@ -49,8 +49,8 @@ const COLS: Col[] = [
 const SL_W = 44;
 const ID_W = COLS[0].width;
 const stickyLeft = (i: number): React.CSSProperties | undefined =>
-  i === 0 ? { position: 'sticky', left: SL_W, zIndex: 2, background: '#fff' }
-  : i === 1 ? { position: 'sticky', left: SL_W + ID_W, zIndex: 2, background: '#fff', boxShadow: '2px 0 0 var(--line)' }
+  i === 0 ? { position: 'sticky', left: SL_W, zIndex: 2, background: 'var(--table-sticky-bg, #fff)' }
+  : i === 1 ? { position: 'sticky', left: SL_W + ID_W, zIndex: 2, background: 'var(--table-sticky-bg, #fff)', boxShadow: '2px 0 0 var(--line)' }
   : undefined;
 
 export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
@@ -157,14 +157,28 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
         {pill('STUDENTS', students)}
         {pill('MANAGERS & ABOVE', shown.length - students)}
         <div className="stat-pill" style={{ padding: '6px 8px', display: 'flex', alignItems: 'stretch' }}>
-          <div style={{ display: 'flex', width: '100%', background: 'rgba(244, 240, 240, 0.75)', borderRadius: '8px', padding: '3px', gap: '4px', border: '1px solid rgba(128, 0, 0, 0.14)' }}>
-            {toggle('details', <Users size={13} />, 'Details')}
-            {toggle('summary', <Building size={13} />, 'Summary')}
+          <div className="segmented-control" style={{ width: '100%', height: '100%' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('details')}
+              className={`segmented-btn ${viewMode === 'details' ? 'active' : ''}`}
+              title="Staff details view"
+            >
+              <Users size={13} /> Details
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('summary')}
+              className={`segmented-btn ${viewMode === 'summary' ? 'active' : ''}`}
+              title="Client summary view"
+            >
+              <Building size={13} /> Summary
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--line)' }}>
+      <div className="filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', padding: '12px 18px', borderRadius: '8px' }}>
         <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 240px' }}>
           <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-soft)' }} />
           <input type="text" className="form-input" style={{ paddingLeft: '32px', height: '36px', fontSize: '12.5px', width: '100%' }}
@@ -235,7 +249,7 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
                   </tr>
                 ) : shown.map((r, idx) => (
                   <tr key={`${r.empId}-${idx}`}>
-                    <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)', position: 'sticky', left: 0, zIndex: 2, background: '#fff' }}>{idx + 1}</td>
+                    <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)', position: 'sticky', left: 0, zIndex: 2, background: 'var(--table-sticky-bg, #fff)' }}>{idx + 1}</td>
                     {COLS.map((c, i) => {
                       const v = c.get(r);
                       return (
@@ -259,11 +273,11 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
                                   <div key={cid} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                     <span>{txt}</span>
                                     {isPrimary ? (
-                                      <span style={{ fontSize: '9.5px', fontWeight: 700, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', padding: '1px 6px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
+                                      <span className="primary-client-tag" title="Primary Client">
                                         ★ Primary
                                       </span>
                                     ) : (
-                                      <span style={{ fontSize: '9px', fontWeight: 600, background: '#F1F5F9', color: '#64748B', border: '1px solid #E2E8F0', padding: '1px 5px', borderRadius: '10px', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
+                                      <span className="secondary-client-tag" title="Secondary Client">
                                         Secondary
                                       </span>
                                     )}
@@ -271,6 +285,13 @@ export const ScopedManpowerView: React.FC<Props> = ({ data }) => {
                                 );
                               })}
                             </div>
+                          ) : c.key === 'designation' && v ? (
+                            <span
+                              className={`role-badge ${getDesignationBadgeClass(v, r.empId)}`}
+                              style={{ fontSize: '11px', padding: '2px 8px' }}
+                            >
+                              {/year/i.test(v) ? 'Student' : v}
+                            </span>
                           ) : (
                             v || <span style={{ color: 'var(--ink-muted)' }}>-</span>
                           )}

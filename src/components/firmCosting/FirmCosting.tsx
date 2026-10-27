@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, Check, Download, Palette, PencilLine, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { FcColorsContext, FcTheme, THEMES, THEME_COLORS, isFcTheme } from './chartColors';
 import { ClientCost, clientNameOf, currentMonth, loadClientCosts, monthLabel, monthRange, projectRevenue, summarize } from '../../lib/firmCosting';
 import { firmCostingService } from '../../services/firmCostingService';
@@ -11,8 +12,10 @@ import { MonthlyEntry } from './MonthlyEntry';
 
 export const FirmCosting: React.FC = () => {
   const { allClients, currentUser } = useAuth();
+  const { theme: appTheme } = useTheme();
   const isAdmin = currentUser?.role === 'ADMIN';
   const [theme, setThemeState] = useState<FcTheme>('glass');
+  const effectiveTheme: FcTheme = appTheme === 'glass' ? 'glass' : theme;
   const [themeOpen, setThemeOpen] = useState(false);
   const [themeError, setThemeError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -119,8 +122,8 @@ export const FirmCosting: React.FC = () => {
 
   return (
     <div className="tab-pane">
-      <FcColorsContext.Provider value={THEME_COLORS[theme]}>
-      <div className="fc-stage" data-theme={theme}>
+      <FcColorsContext.Provider value={THEME_COLORS[effectiveTheme]}>
+      <div className="fc-stage" data-theme={effectiveTheme}>
         <div className="fc-glass fc-top fc-t7">
           <div className="fc-title">Firm Costing<small>{view === 'entry' ? 'Enter client-wise invoice values' : `${monthLabel(from, false)} – ${monthLabel(to, false)}`}</small></div>
           {view !== 'entry' && (
