@@ -35,6 +35,7 @@ import { StaffExamLeaveRecord } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { canViewAllClients, getUserAssignedClientIds, isSAMOrAbove } from '../../lib/permissions';
 import { ApplyExamLeaveModal } from './ApplyExamLeaveModal';
+import { InstantTooltip } from '../ui/InstantTooltip';
 
 const formatRoutineDate = (dateStr: string, dayName: string) => `${formatShortDate(dateStr)}, ${dayName}`;
 
@@ -690,10 +691,10 @@ export const ExamLeaveTracker: React.FC = () => {
                   <th style={{ position: 'sticky', left: 0, zIndex: 13, background: '#FAF7F2', width: '38px', textAlign: 'center', padding: '10px 4px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
                     SL.
                   </th>
-                  <th style={{ position: 'sticky', left: '38px', zIndex: 13, background: '#FAF7F2', minWidth: '190px', padding: '10px 12px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
+                  <th style={{ position: 'sticky', left: '38px', zIndex: 13, background: '#FAF7F2', width: '190px', minWidth: '190px', maxWidth: '190px', padding: '10px 12px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
                     NAME
                   </th>
-                  <th style={{ position: 'sticky', left: '228px', zIndex: 13, background: '#FAF7F2', minWidth: '140px', padding: '10px 10px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
+                  <th style={{ position: 'sticky', left: '228px', zIndex: 13, background: '#FAF7F2', width: '230px', minWidth: '230px', maxWidth: '230px', padding: '10px 10px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
                     CLIENT
                   </th>
                   <th style={{ minWidth: '70px', textAlign: 'center', padding: '10px 6px', borderRight: '1px solid var(--line)', color: 'var(--maroon)' }}>
@@ -835,7 +836,10 @@ export const ExamLeaveTracker: React.FC = () => {
                           borderBottom: '1px solid #E2E8F0',
                           borderRight: '1px solid #E2E8F0',
                           fontWeight: 600,
-                          color: 'var(--navy)'
+                          color: 'var(--navy)',
+                          width: '190px',
+                          minWidth: '190px',
+                          maxWidth: '190px'
                         }}
                       >
                         <div
@@ -861,10 +865,17 @@ export const ExamLeaveTracker: React.FC = () => {
                           borderRight: '1px solid #E2E8F0',
                           color: 'var(--ink-soft)',
                           fontSize: '11.5px',
-                          whiteSpace: 'nowrap'
+                          width: '230px',
+                          minWidth: '230px',
+                          maxWidth: '230px'
                         }}
                       >
-                        {record.category}
+                        {/* a long client list wraps to two lines; hover shows every client, one per line */}
+                        <InstantTooltip content={String(record.category || '').split(',').map(c => c.trim()).filter(Boolean).join(String.fromCharCode(10))} style={{ width: '210px' }}>
+                          <div style={{ lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
+                            {record.category}
+                          </div>
+                        </InstantTooltip>
                       </td>
 
                       {/* Level */}
