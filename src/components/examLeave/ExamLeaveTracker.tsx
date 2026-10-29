@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -52,7 +52,7 @@ const todayInTimeline = (): string => {
 export const ExamLeaveTracker: React.FC = () => {
   const { theme } = useAppTheme();
   const isGlass = theme === 'glass';
-  const { currentUser, allUsers } = useAuth();
+  const { currentUser, allUsers, allClients } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
 
   const [allRecords, setRecords] = useState<StaffExamLeaveRecord[]>([]);
@@ -191,16 +191,59 @@ export const ExamLeaveTracker: React.FC = () => {
     return canSeeEveryone || teamUsers.some(u => sameName(u.name, r.name));
   };
 
-  // Distinct clients list for filter
+  // Map user names to their assigned client names (live from allUsers and allClients)
+  const userClientMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    allUsers.forEach(u => {
+      const cids = getUserAssignedClientIds(u);
+      const names = cids.map(cid => allClients.find(c => c.id === cid)?.name).filter(Boolean) as string[];
+      if (names.length > 0) {
+        map.set(u.name.toLowerCase().trim(), names);
+      }
+    });
+    return map;
+  }, [allUsers, allClients]);
+
+  // Resolves all individual clients a candidate belongs to:
+  // If the user has assigned clients in the system, their live assignments take priority.
+  // Falls back to r.category for historical or unlinked records.
+  const getRecordClients = useCallback((r: StaffExamLeaveRecord): string[] => {
+    const liveClients = userClientMap.get(r.name.toLowerCase().trim());
+    if (liveClients && liveClients.length > 0) {
+      return liveClients;
+    }
+
+    const clientSet = new Set<string>();
+    if (r.category && r.category.trim()) {
+      r.category.split(',').forEach(c => {
+        const trimmed = c.trim();
+        if (trimmed && trimmed !== '—' && trimmed.toLowerCase() !== 'general client assignment') {
+          const live = allClients.find(ac => ac.name.toLowerCase() === trimmed.toLowerCase() || ac.id === trimmed);
+          clientSet.add(live ? live.name : trimmed);
+        }
+      });
+    }
+    if (clientSet.size === 0) {
+      const fallback = (r.category || '').trim();
+      if (fallback) clientSet.add(fallback);
+    }
+    return Array.from(clientSet);
+  }, [userClientMap, allClients]);
+
+  // Distinct clients list for filter (client-wise, each client listed individually)
   const uniqueClients = useMemo(() => {
     const set = new Set<string>();
     records.forEach(r => {
-      if (r.category && r.category.trim()) {
-        set.add(r.category.trim());
-      }
+      const clients = getRecordClients(r);
+      clients.forEach(c => {
+        const trimmed = c.trim();
+        if (trimmed && trimmed !== '—' && trimmed.toLowerCase() !== 'general client assignment') {
+          set.add(trimmed);
+        }
+      });
     });
-    return Array.from(set).sort();
-  }, [records]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [records, getRecordClients]);
 
   // Distinct levels list
   const uniqueLevels = useMemo(() => {
@@ -213,19 +256,28 @@ export const ExamLeaveTracker: React.FC = () => {
     return Array.from(set).sort();
   }, [records]);
 
-  // Filtered Records
+  // Filtered Records (client-wise matching for multi-client users)
   const filteredRecords = useMemo(() => {
     return records.filter(r => {
+      const recordClients = getRecordClients(r);
+
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase().trim();
         const matchesName = r.name.toLowerCase().includes(term);
-        const matchesClient = r.category.toLowerCase().includes(term);
-        const matchesSubject = r.subjects.toLowerCase().includes(term);
+        const matchesClient =
+          recordClients.some(c => c.toLowerCase().includes(term)) ||
+          (r.category || '').toLowerCase().includes(term);
+        const matchesSubject = (r.subjects || '').toLowerCase().includes(term);
         if (!matchesName && !matchesClient && !matchesSubject) return false;
       }
 
       if (selectedClient) {
-        if (!r.category.toLowerCase().includes(selectedClient.toLowerCase())) {
+        const target = selectedClient.toLowerCase().trim();
+        // Exact match so "Walton Hi-Tech Industries PLC" does not unintentionally match "(Merger)" or other variants
+        const matches = recordClients.some(
+          c => c.toLowerCase().trim() === target
+        );
+        if (!matches) {
           return false;
         }
       }
@@ -237,7 +289,7 @@ export const ExamLeaveTracker: React.FC = () => {
 
       return true;
     });
-  }, [records, searchTerm, selectedClient, selectedLevel]);
+  }, [records, searchTerm, selectedClient, selectedLevel, getRecordClients]);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -422,7 +474,7 @@ export const ExamLeaveTracker: React.FC = () => {
               type="text"
               className="form-input"
               style={{ paddingLeft: '32px', height: '36px', fontSize: '12.5px', width: '100%' }}
-              placeholder="Search by candidate name or subject…"
+              placeholder="Search by candidate name, client, or subject…"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -794,9 +846,9 @@ export const ExamLeaveTracker: React.FC = () => {
                         }}
                       >
                         {/* a long client list wraps to two lines; hover shows every client, one per line */}
-                        <InstantTooltip content={String(record.category || '').split(',').map(c => c.trim()).filter(Boolean).join(String.fromCharCode(10))} style={{ width: '210px' }}>
+                        <InstantTooltip content={getRecordClients(record).join(String.fromCharCode(10)) || record.category || '—'} style={{ width: '210px' }}>
                           <div className="exam-client-name" style={{ lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
-                            {record.category}
+                            {getRecordClients(record).join(', ') || record.category || '—'}
                           </div>
                         </InstantTooltip>
                       </td>
@@ -1151,7 +1203,7 @@ export const ExamLeaveTracker: React.FC = () => {
                         </h3>
                         {/* Client replaces Team / Category */}
                         <span style={{ fontSize: '12px', color: 'var(--ink-muted)', fontWeight: 600 }}>
-                          Client: {record.category}
+                          Client: {getRecordClients(record).join(', ') || record.category || '—'}
                         </span>
                       </div>
 
@@ -1505,7 +1557,7 @@ export const ExamLeaveTracker: React.FC = () => {
                     {selectedStudentForDrawer.name}
                   </h2>
                   <span style={{ fontSize: '13px', color: 'var(--ink-muted)', fontWeight: 600 }}>
-                    Client: {selectedStudentForDrawer.category}
+                    Client: {getRecordClients(selectedStudentForDrawer).join(', ') || selectedStudentForDrawer.category || '—'}
                   </span>
                 </div>
                 <button

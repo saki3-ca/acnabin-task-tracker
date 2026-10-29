@@ -15,6 +15,7 @@ export const ClientGrid: React.FC = () => {
   const [jobNumber, setJobNumber] = useState('');
   const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const canSeeAll = canViewAllClients(currentUser);
 
@@ -89,6 +90,7 @@ export const ClientGrid: React.FC = () => {
     e.preventDefault();
     if (!clientName.trim()) return;
 
+    setSaveError(null);
     setIsSubmitting(true);
     try {
       if (selectedClient) {
@@ -102,8 +104,9 @@ export const ClientGrid: React.FC = () => {
       }
       await refreshContextData();
       setIsModalOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setSaveError(err?.message || 'Failed to save client. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -191,6 +194,11 @@ export const ClientGrid: React.FC = () => {
       >
         <form onSubmit={handleSave}>
           <div className="modal-body">
+            {saveError && (
+              <div className="auth-alert-error" style={{ marginBottom: '12px' }}>
+                {saveError}
+              </div>
+            )}
             <div className="form-field">
               <label>Client Corporate Name</label>
               <input

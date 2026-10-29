@@ -2425,6 +2425,14 @@ export const api = {
         const jobNumber = payload.jobNumber !== undefined ? String(payload.jobNumber).trim() : undefined;
         if (name !== undefined && !name) throw new Error('Client name cannot be empty.');
 
+        const { data: currentClient } = await supabase
+          .from('clients')
+          .select('id, name, job_number')
+          .eq('id', clientId)
+          .maybeSingle();
+        const oldName = currentClient?.name;
+        const oldJobNumber = currentClient?.job_number;
+
         if (name !== undefined || jobNumber) {
           const { data: others, error: othersErr } = await supabase
             .from('clients')
@@ -2433,8 +2441,7 @@ export const api = {
           if (othersErr) throw othersErr;
           // The same name is allowed when the job number is different.
           if (name !== undefined) {
-            const { data: current } = await supabase.from('clients').select('job_number').eq('id', clientId).maybeSingle();
-            const effectiveJob = (jobNumber !== undefined ? jobNumber : (current?.job_number || '')).trim().toLowerCase();
+            const effectiveJob = (jobNumber !== undefined ? jobNumber : (oldJobNumber || '')).trim().toLowerCase();
             const clash = (others || []).some(
               (c: any) =>
                 (c.name || '').trim().toLowerCase() === name.toLowerCase() &&
@@ -2465,11 +2472,108 @@ export const api = {
 
         if (error) throw error;
 
-        // Tasks store the client name; keep existing tasks in step with a rename.
+        // Keep existing records across all tables in step with client rename/job number change.
         if (name !== undefined) {
-          const { error: taskErr } = await supabase.from('tasks').update({ client_name: name }).eq('client_id', clientId);
-          if (taskErr) console.warn('Could not update client name on tasks:', taskErr);
+          // 1. Tasks: update by client_id and also any matching old client name
+          try {
+            await supabase.from('tasks').update({ client_name: name }).eq('client_id', clientId);
+            if (oldName && oldName !== name) {
+              await supabase.from('tasks').update({ client_name: name, client_id: clientId }).eq('client_name', oldName);
+            }
+          } catch (taskErr) {
+            console.warn('Could not update client name on tasks:', taskErr);
+          }
+
+          // 2. Task requests: update by client_id and old name
+          try {
+            await supabase.from('task_requests').update({ client_name: name }).eq('client_id', clientId);
+            if (oldName && oldName !== name) {
+              await supabase.from('task_requests').update({ client_name: name, client_id: clientId }).eq('client_name', oldName);
+            }
+          } catch (reqErr) {
+            console.warn('Could not update client name on task_requests:', reqErr);
+          }
+
+          // 3. Invoices: update client name and job number
+          try {
+            const invUpdates: any = { client: name };
+            if (jobNumber !== undefined) invUpdates.job_number = jobNumber;
+            if (oldName && oldName !== name) {
+              await supabase.from('invoices').update(invUpdates).eq('client', oldName);
+            }
+            if (oldJobNumber && jobNumber !== undefined && oldJobNumber !== jobNumber) {
+              await supabase.from('invoices').update(invUpdates).eq('job_number', oldJobNumber);
+            }
+          } catch (invErr) {
+            console.warn('Could not update client name on invoices:', invErr);
+          }
+
+          // 4. Proposals: update client name
+          try {
+            if (oldName && oldName !== name) {
+              await supabase.from('proposals').update({ client: name }).eq('client', oldName);
+            }
+          } catch (propErr) {
+            console.warn('Could not update client name on proposals:', propErr);
+          }
+
+          // 5. Firm Costing: update by client_id and old name
+          try {
+            await supabase.from('firm_costing').update({ client_name: name }).eq('client_id', clientId);
+            if (oldName && oldName !== name) {
+              await supabase.from('firm_costing').update({ client_name: name }).eq('client_name', oldName);
+            }
+          } catch (fcErr) {
+            console.warn('Could not update client name on firm_costing:', fcErr);
+          }
+
+          // 6. Manpower: update client name
+          try {
+            if (oldName && oldName !== name) {
+              await supabase.from('manpower').update({ client_name: name }).eq('client_name', oldName);
+            }
+          } catch (mpErr) {
+            console.warn('Could not update client name on manpower:', mpErr);
+          }
+
+          // 7. Users: update signup_client_name
+          try {
+            if (oldName && oldName !== name) {
+              await supabase.from('users').update({ signup_client_name: name }).eq('signup_client_name', oldName);
+            }
+          } catch (uErr) {
+            console.warn('Could not update signup_client_name on users:', uErr);
+          }
         }
+
+        // Also sync local fallback store in case of offline/fallback usage
+        try {
+          const fbIdx = fallbackStore.clients.findIndex(c => c.id === clientId);
+          if (fbIdx !== -1) {
+            fallbackStore.clients[fbIdx] = {
+              ...fallbackStore.clients[fbIdx],
+              ...(name !== undefined ? { name } : {}),
+              ...(jobNumber !== undefined ? { jobNumber } : {}),
+              ...(status !== undefined ? { status } : {})
+            };
+          }
+          if (oldName && name !== undefined && oldName !== name) {
+            fallbackStore.tasks.forEach(t => {
+              if (t.clientId === clientId || t.clientName === oldName) {
+                t.clientName = name;
+                t.clientId = clientId;
+              }
+            });
+            fallbackStore.manpower.forEach(m => {
+              if (m.clientId === clientId || m.assignedClient === oldName) {
+                m.assignedClient = name;
+                m.clientId = clientId;
+              }
+            });
+          }
+          fallbackStore.save();
+        } catch {}
+
         return mapClientFromDb(data) as T;
       }
 
@@ -3434,7 +3538,21 @@ export const api = {
         const { clientId, ...updates } = payload;
         const index = fallbackStore.clients.findIndex(c => c.id === clientId);
         if (index === -1) throw new Error('Client not found');
+        const oldName = fallbackStore.clients[index].name;
         fallbackStore.clients[index] = { ...fallbackStore.clients[index], ...updates };
+        const newName = updates.name;
+        if (newName && oldName && newName !== oldName) {
+          fallbackStore.tasks.forEach(t => {
+            if (t.clientId === clientId || t.clientName === oldName) {
+              t.clientName = newName;
+            }
+          });
+          fallbackStore.manpower.forEach(m => {
+            if (m.clientId === clientId || m.assignedClient === oldName) {
+              m.assignedClient = newName;
+            }
+          });
+        }
         fallbackStore.save();
         return fallbackStore.clients[index] as T;
       }

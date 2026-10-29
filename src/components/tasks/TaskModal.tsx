@@ -247,8 +247,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
           ? (assignableUsers.find(u => u.id === assignedToId) || allUsers.find(u => u.id === assignedToId))
           : currentUser;
         // Keep the task's existing client (e.g. 'general') unless the user changed it.
+        const currentClient = taskToEdit.clientId ? allClients.find(c => c.id === taskToEdit.clientId) : null;
         const resolvedClient = taskToEdit.clientId && finalClientId === taskToEdit.clientId
-          ? { id: taskToEdit.clientId, name: taskToEdit.clientName || 'General' }
+          ? { id: taskToEdit.clientId, name: currentClient?.name || taskToEdit.clientName || 'General' }
           : resolveClientForUser(targetUser);
         await updateTask(taskToEdit.id, {
           clientId: resolvedClient.id,

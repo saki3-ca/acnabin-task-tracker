@@ -75,12 +75,13 @@ export const CompletedTasksModal: React.FC<CompletedTasksModalProps> = ({
   const clientOptions = useMemo(() => {
     const clients = new Map<string, string>();
     tasks.forEach(t => {
-      if (t.clientId && t.clientName) {
-        clients.set(t.clientId, t.clientName);
+      if (t.clientId) {
+        const liveName = allClients.find(c => c.id === t.clientId)?.name || t.clientName;
+        if (liveName) clients.set(t.clientId, liveName);
       }
     });
     return Array.from(clients.entries()).map(([id, name]) => ({ id, name }));
-  }, [tasks]);
+  }, [tasks, allClients]);
 
   // Filter tasks based on search & client
   const filteredTasks = useMemo(() => {

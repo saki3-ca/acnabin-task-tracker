@@ -14,17 +14,18 @@ export function clientText(name: string, jobNumber?: string): string {
 export const ClientLabel: React.FC<{ id?: string | null; name: string }> = ({ id, name }) => {
   const { allClients } = useAuth();
 
-  let job: string | undefined;
-  if (id) {
-    job = allClients.find(c => c.id === id)?.jobNumber;
-  } else {
-    const matches = allClients.filter(c => c.name.trim().toLowerCase() === name.trim().toLowerCase());
-    if (matches.length === 1) job = matches[0].jobNumber;
-  }
+  const foundClient = id
+    ? allClients.find(c => c.id === id)
+    : allClients.find(c => c.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+  const displayName = foundClient?.name || name;
+  const job = foundClient?.jobNumber || (
+    !id ? allClients.find(c => c.name.trim().toLowerCase() === name.trim().toLowerCase())?.jobNumber : undefined
+  );
 
   return (
     <>
-      {name}
+      {displayName}
       {job && (
         <span
           style={{

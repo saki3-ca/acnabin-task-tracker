@@ -26,7 +26,7 @@ interface TaskContextType {
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, allUsers } = useAuth();
+  const { currentUser, allUsers, allClients } = useAuth();
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [teamTasks, setTeamTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -79,13 +79,23 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ]);
       // A task keeps the name the person had when it was created. If the account was renamed since,
       // show the current name so the same person is not listed under two names.
+      // Also ensure tasks reflect the current client name if the client was renamed.
       const currentName = new Map(allUsers.map(u => [u.id, u.name]));
+      const currentClientName = new Map(allClients.map(c => [c.id, c.name]));
       const withCurrentNames = (list: Task[]) =>
         list.map(t => {
           const assignee = currentName.get(t.assignedToId);
           const creator = currentName.get(t.createdById);
-          return assignee !== t.assignedToName || (creator && creator !== t.createdByName)
-            ? { ...t, assignedToName: assignee || t.assignedToName, createdByName: creator || t.createdByName }
+          const cName = t.clientId ? currentClientName.get(t.clientId) : undefined;
+          return (assignee && assignee !== t.assignedToName) ||
+            (creator && creator !== t.createdByName) ||
+            (cName && cName !== t.clientName)
+            ? {
+                ...t,
+                assignedToName: assignee || t.assignedToName,
+                createdByName: creator || t.createdByName,
+                clientName: cName || t.clientName
+              }
             : t;
         });
 
@@ -113,7 +123,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser?.id) {
       fetchTasks();
     }
-  }, [currentUser?.id, teamFilters.clientId, teamFilters.memberId]);
+  }, [currentUser?.id, teamFilters.clientId, teamFilters.memberId, allClients]);
 
   const createTask = async (taskData: Partial<Task>) => {
     try {

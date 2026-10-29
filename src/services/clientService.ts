@@ -41,8 +41,14 @@ export const clientService = {
 
   async addClient(name: string, jobNumber?: string): Promise<Client> {
     const res = await api.callBackend<Client>('addClient', { name, jobNumber });
-    // Invalidate/refresh cache
-    this.getAllClients().catch(() => {});
+    // Invalidate/refresh cache immediately in memory and localStorage
+    if (inMemoryClientsCache) {
+      inMemoryClientsCache = [...inMemoryClientsCache, res];
+      try {
+        localStorage.setItem(CLIENTS_CACHE_KEY, JSON.stringify(inMemoryClientsCache));
+      } catch {}
+    }
+    await this.getAllClients().catch(() => {});
     return res;
   },
 
@@ -52,14 +58,19 @@ export const clientService = {
     try {
       localStorage.setItem(CLIENTS_CACHE_KEY, JSON.stringify(inMemoryClientsCache));
     } catch {}
-    this.getAllClients().catch(() => {});
+    await this.getAllClients().catch(() => {});
   },
 
   async updateClient(clientId: string, updates: Partial<Client>): Promise<Client> {
     const res = await api.callBackend<Client>('updateClient', { clientId, ...updates });
-    // Invalidate/refresh cache
-    this.getAllClients().catch(() => {});
+    // Invalidate/refresh cache immediately in memory and localStorage
+    if (inMemoryClientsCache) {
+      inMemoryClientsCache = inMemoryClientsCache.map(c => (c.id === clientId ? { ...c, ...res } : c));
+      try {
+        localStorage.setItem(CLIENTS_CACHE_KEY, JSON.stringify(inMemoryClientsCache));
+      } catch {}
+    }
+    await this.getAllClients().catch(() => {});
     return res;
   }
 };
-
