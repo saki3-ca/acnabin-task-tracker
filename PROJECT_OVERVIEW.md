@@ -69,7 +69,7 @@ Project 101/
 ├── package.json                               # NPM project manifest, scripts, and dependencies
 ├── package-lock.json                          # Exact dependency lockfile
 ├── README.md                                  # Vite template readme
-├── supabase_schema_and_seed.sql               # Complete SQL schema, RLS policies, and seed data
+├── supabase_schema_and_seed.sql               # Complete SQL schema and RLS policies (no seed data)
 ├── tsconfig.json                              # TypeScript root config
 ├── tsconfig.app.json                          # TypeScript app bundle compiler configuration
 ├── tsconfig.node.json                         # TypeScript Vite node configuration
@@ -104,7 +104,7 @@ Project 101/
     │   ├── authService.ts                     # Login, registration, session validation, demo switching
     │   ├── clientService.ts                   # Client listing, addition, updates, in-memory/LS caching
     │   ├── manpowerService.ts                 # Manpower roster, cost summary, client remarks, staff editing
-    │   ├── mockData.ts                        # Fallback initial data seed for users, clients, tasks, manpower
+    │   ├── mockData.ts                        # Empty starting data for the offline fallback store
     │   ├── notificationService.ts             # Notification fetching, read status updates
     │   ├── taskRequestService.ts              # Task request creation, querying, accept/decline resolution
     │   └── taskService.ts                     # Task CRUD and manager commenting service wrappers

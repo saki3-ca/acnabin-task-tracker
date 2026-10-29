@@ -34,3 +34,6 @@ manpower_salary_seed.sql
 *_seed.sql
 # Audit screenshots (local only)
 audit-screenshots/
+*.xlsm
+*.xls
+supabase_*_sep26.sql
