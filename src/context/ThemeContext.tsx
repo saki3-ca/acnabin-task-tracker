@@ -66,8 +66,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Each person keeps their own choice; reload it when someone else signs in
   useEffect(() => {
-    setPersonalState(readPersonal(empId));
-  }, [empId]);
+    const saved = readPersonal(empId);
+    if (saved) {
+      setPersonalState(saved);
+    } else if (currentUser?.theme) {
+      setPersonalState(currentUser.theme);
+    } else {
+      setPersonalState(null);
+    }
+  }, [empId, currentUser?.theme]);
 
   // Sync data-ui-theme attribute on <html> element
   useEffect(() => {
@@ -136,6 +143,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const url = new URL(window.location.href);
       url.searchParams.delete('uiTheme');
       window.history.replaceState(null, '', url.toString());
+    }
+    if (newTheme) {
+      void appThemeService.setUserTheme(newTheme);
     }
   }, [empId]);
 

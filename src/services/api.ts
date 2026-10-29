@@ -138,7 +138,9 @@ function mapUserFromDb(row: any): User {
     status: row.status || 'ACTIVE',
     avatarUrl: row.avatar_url || '',
     mobile: row.mobile || '',
-    createdDate: row.created_date
+    createdDate: row.created_date,
+    theme: (row.theme === 'glass' ? 'glass' : 'classic'),
+    lastLogin: row.last_login_at || row.last_login || undefined
   };
 }
 
@@ -1989,6 +1991,31 @@ export const api = {
         return { success: true } as T;
       }
 
+      case 'appUserThemeSet': {
+        const session = readSession();
+        if (!session) return { success: false } as T;
+        try {
+          await supabase.rpc('app_user_theme_set', { p_session: session.token, p_theme: payload.theme });
+        } catch {}
+        try {
+          await supabase.from('users').update({ theme: payload.theme }).eq('id', session.userId);
+        } catch {}
+        return { success: true } as T;
+      }
+
+      case 'userAnalyticsGet': {
+        const session = readSession();
+        if (!session) throw new Error('Please log out and log in again.');
+        const { data, error } = await supabase.rpc('app_user_analytics_get', { p_session: session.token });
+        if (error) {
+          if (isMissingFunction(error)) {
+            return null as T;
+          }
+          throw new Error('Could not load user analytics. (' + error.message + ')');
+        }
+        return data as T;
+      }
+
       case 'firmCostingList': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again.');
@@ -3555,6 +3582,20 @@ export const api = {
         }
         fallbackStore.save();
         return fallbackStore.clients[index] as T;
+      }
+
+      case 'appUserThemeSet': {
+        const targetId = payload.userId || fallbackStore.currentUser?.id;
+        const u = fallbackStore.users.find(x => x.id === targetId || (payload.empId && x.empId === payload.empId));
+        if (u) {
+          u.theme = payload.theme;
+          fallbackStore.save();
+        }
+        return { success: true } as T;
+      }
+
+      case 'userAnalyticsGet': {
+        return null as T;
       }
 
       case 'getAllUsers':

@@ -11,10 +11,12 @@ import { Modal } from '../ui/Modal';
 import { StaffImport } from './StaffImport';
 import { TabAccessManager } from './TabAccessManager';
 import { TaskLog } from './TaskLog';
+import { UserAnalyticsDashboard } from './UserAnalyticsDashboard';
 
-type Section = 'users' | 'access' | 'managers' | 'import' | 'log';
+type Section = 'users' | 'analytics' | 'access' | 'managers' | 'import' | 'log';
 const SECTIONS: { key: Section; label: string }[] = [
   { key: 'users', label: 'Users & Roles' },
+  { key: 'analytics', label: 'User Analytics' },
   { key: 'access', label: 'Tab Access' },
   { key: 'managers', label: 'Manager Access' },
   { key: 'import', label: 'Staff Import' },
@@ -236,6 +238,8 @@ export const AdminPanel: React.FC = () => {
       {section === 'import' && <StaffImport />}
 
       {section === 'log' && <TaskLog />}
+
+      {section === 'analytics' && <UserAnalyticsDashboard />}
 
       {section === 'managers' && (
         <>

@@ -21,5 +21,16 @@ export const appThemeService = {
    */
   async setTheme(theme: AppTheme): Promise<void> {
     await api.callBackend('appThemeSet', { theme });
+  },
+
+  /**
+   * Persists personal user theme preference to the database for tracking & sync.
+   */
+  async setUserTheme(theme: AppTheme): Promise<void> {
+    try {
+      await api.callBackend('appUserThemeSet', { theme });
+    } catch (e) {
+      console.warn('Could not sync user theme to database:', e);
+    }
   }
 };

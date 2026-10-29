@@ -32,6 +32,8 @@ export interface User {
   mobile?: string;
   lastLogin?: string;
   createdDate?: string;
+  theme?: 'classic' | 'glass';
+  loginCount?: number;
   /** Students/trainees assigned to this person in Manager Student Supervisory Assignments (Admin panel). */
   teamMemberIds?: string[];
 }
