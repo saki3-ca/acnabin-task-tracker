@@ -217,6 +217,31 @@ const FullManpowerView: React.FC = () => {
     });
   }, [records, searchTerm, selectedClient, clientPrimaryOnly, selectedDesignation]);
 
+  const jobOf = (id?: string | null) => (id ? allClients.find(c => c.id === id)?.jobNumber : undefined);
+
+  // Extracts only the Primary client for Excel export so each record reconciles client-wise
+  const primaryClientText = (r: ManpowerRecord): string => {
+    if (r.assignedClient === ALL_CLIENTS) return ALL_CLIENTS;
+    if (r.clientIds && r.clientIds.length > 0) {
+      const primaryId = r.clientIds[0];
+      const match = allClients.find(c => c.id === primaryId);
+      const name = match ? match.name : r.assignedClient.split(',')[0].trim();
+      if (!name || name === '—' || name.toLowerCase() === 'unassigned') return '';
+      return clientText(name, jobOf(primaryId));
+    }
+    if (r.clientId) {
+      const match = allClients.find(c => c.id === r.clientId);
+      const name = match ? match.name : r.assignedClient.split(',')[0].trim();
+      if (!name || name === '—' || name.toLowerCase() === 'unassigned') return '';
+      return clientText(name, jobOf(r.clientId));
+    }
+    if (r.assignedClient && r.assignedClient !== '—' && r.assignedClient.toLowerCase() !== 'unassigned') {
+      const first = r.assignedClient.split(',')[0].trim();
+      return first;
+    }
+    return '';
+  };
+
   const sortedDetails = useMemo(() => {
     const list = [...filteredDetails];
     list.sort((a, b) => {
@@ -411,36 +436,12 @@ const FullManpowerView: React.FC = () => {
     setViewMode('details');
   };
 
-  const jobOf = (id?: string | null) => (id ? allClients.find(c => c.id === id)?.jobNumber : undefined);
   const assignedClientText = (r: ManpowerRecord) =>
     r.clientIds && r.clientIds.length > 0
       ? r.clientIds
           .map(id => clientText(allClients.find(c => c.id === id)?.name || r.assignedClient, jobOf(id)))
           .join(', ')
       : r.assignedClient;
-
-  // Extracts only the Primary client for Excel export so each record reconciles client-wise
-  const primaryClientText = (r: ManpowerRecord): string => {
-    if (r.assignedClient === ALL_CLIENTS) return ALL_CLIENTS;
-    if (r.clientIds && r.clientIds.length > 0) {
-      const primaryId = r.clientIds[0];
-      const match = allClients.find(c => c.id === primaryId);
-      const name = match ? match.name : r.assignedClient.split(',')[0].trim();
-      if (!name || name === '—' || name.toLowerCase() === 'unassigned') return '';
-      return clientText(name, jobOf(primaryId));
-    }
-    if (r.clientId) {
-      const match = allClients.find(c => c.id === r.clientId);
-      const name = match ? match.name : r.assignedClient.split(',')[0].trim();
-      if (!name || name === '—' || name.toLowerCase() === 'unassigned') return '';
-      return clientText(name, jobOf(r.clientId));
-    }
-    if (r.assignedClient && r.assignedClient !== '—' && r.assignedClient.toLowerCase() !== 'unassigned') {
-      const first = r.assignedClient.split(',')[0].trim();
-      return first;
-    }
-    return '';
-  };
 
   // Extracts Secondary client(s) for Excel export
   const secondaryClientsText = (r: ManpowerRecord): string => {
