@@ -52,7 +52,9 @@ var TABLES = [
   'firm_costing_settings',
   'tab_access_mode',
   'tab_access_users',
-  'tab_access_except'
+  'tab_access_except',
+  'task_history',
+  'user_login_logs'
 ];
 var PAGE_SIZE = 1000;
 var FOLDER_NAME = 'ACNABIN Task Tracker Backups';

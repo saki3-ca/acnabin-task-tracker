@@ -1,42 +1,35 @@
 -- ============================================================================
--- USER ANALYTICS & DASHBOARD: Logins, Weekly Activity, Client Usage, and Theme
--- Run once in Supabase Dashboard -> SQL Editor.
+-- USER ANALYTICS (Admin Panel -> User Analytics)
+-- Run once in Supabase Dashboard -> SQL Editor. Safe to run again.
+--
+-- What it records: every successful login (user_login_logs), from now on.
+-- Logins before you ran this file are rebuilt from the sessions that still exist (one per login, 30-day life),
+-- so older history is partial. "Client activity" comes from the Task Log (task_history): every task created or
+-- changed counts as one action by the person who did it, on that task's client.
+-- Only Admin can read the dashboard. Nothing here changes how the app behaves for staff.
+-- Requires supabase_task_history.sql to have been run.
 -- ============================================================================
 
--- 1. Ensure theme and last_login_at columns exist on public.users
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'classic';
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 
--- 2. Persistent table for recording every user login
 CREATE TABLE IF NOT EXISTS public.user_login_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id BIGSERIAL PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  logged_in_at TIMESTAMPTZ DEFAULT NOW()
+  logged_in_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
-CREATE INDEX IF NOT EXISTS idx_user_login_logs_user_id ON public.user_login_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_login_logs_time ON public.user_login_logs(logged_in_at DESC);
-
+CREATE INDEX IF NOT EXISTS user_login_logs_user_idx ON public.user_login_logs (user_id, logged_in_at DESC);
+CREATE INDEX IF NOT EXISTS user_login_logs_time_idx ON public.user_login_logs (logged_in_at DESC);
 ALTER TABLE public.user_login_logs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.user_login_logs FROM anon, authenticated;
 
--- 3. Backfill initial login history from existing sessions if empty
+-- One-time backfill from sessions that still exist
 INSERT INTO public.user_login_logs (user_id, logged_in_at)
 SELECT s.user_id, s.created_at
 FROM public.user_sessions s
-WHERE NOT EXISTS (SELECT 1 FROM public.user_login_logs l WHERE l.user_id = s.user_id);
+WHERE EXISTS (SELECT 1 FROM public.users u WHERE u.id = s.user_id)
+  AND NOT EXISTS (SELECT 1 FROM public.user_login_logs);
 
--- Update users.last_login_at from user_sessions
-UPDATE public.users u
-SET last_login_at = s.max_time
-FROM (
-  SELECT user_id, MAX(created_at) AS max_time
-  FROM public.user_sessions
-  GROUP BY user_id
-) s
-WHERE u.id = s.user_id AND (u.last_login_at IS NULL OR u.last_login_at < s.max_time);
-
--- 4. Update login session function to log permanently and update last_login_at
+-- Login: same as before, plus one row in the login log
 CREATE OR REPLACE FUNCTION public.app_login_session(p_user_id TEXT, p_password TEXT)
 RETURNS TABLE (status TEXT, session_token TEXT)
 LANGUAGE plpgsql
@@ -68,12 +61,7 @@ BEGIN
   INSERT INTO public.user_sessions (token_hash, user_id, expires_at)
   VALUES (encode(digest(v_token, 'sha256'), 'hex'), p_user_id, NOW() + INTERVAL '30 days');
 
-  -- Record persistent login audit
-  INSERT INTO public.user_login_logs (user_id, logged_in_at)
-  VALUES (p_user_id, NOW());
-
-  -- Update user last login timestamp
-  UPDATE public.users SET last_login_at = NOW() WHERE id = p_user_id;
+  INSERT INTO public.user_login_logs (user_id) VALUES (p_user_id);
 
   -- Housekeeping: drop this user's expired sessions.
   DELETE FROM public.user_sessions WHERE user_id = p_user_id AND expires_at < NOW();
@@ -82,7 +70,7 @@ BEGIN
 END;
 $$;
 
--- 5. User theme update function
+-- Saves the signed-in person's Classic/Glass choice on their account
 CREATE OR REPLACE FUNCTION public.app_user_theme_set(p_session TEXT, p_theme TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -107,8 +95,10 @@ BEGIN
 END;
 $$;
 
--- 6. User Analytics Aggregator (Admin Only)
-CREATE OR REPLACE FUNCTION public.app_user_analytics_get(p_session TEXT)
+-- Admin only. p_days = how many days back (0 = all time). Days are counted in Bangladesh time.
+-- Returns NULL for anyone who is not an active Admin.
+DROP FUNCTION IF EXISTS public.app_user_analytics_get(TEXT);
+CREATE OR REPLACE FUNCTION public.app_user_analytics_get(p_session TEXT, p_days INT DEFAULT 30)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -116,83 +106,113 @@ SET search_path = public, extensions
 AS $$
 DECLARE
   v_admin public.users%ROWTYPE;
-  v_total_logins BIGINT;
-  v_weekly_logins BIGINT;
-  v_today_logins BIGINT;
-  v_active_users_7d BIGINT;
-  v_active_users_today BIGINT;
-  v_daily_logins JSONB;
-  v_user_stats JSONB;
-  v_theme_counts JSONB;
+  v_today DATE := (NOW() AT TIME ZONE 'Asia/Dhaka')::date;
+  v_from TIMESTAMPTZ;
+  v_days INT := LEAST(GREATEST(COALESCE(p_days, 30), 0), 365);
+  v_out JSONB;
 BEGIN
-  -- Authenticate caller
-  IF COALESCE(p_session, '') = '' THEN
-    RAISE EXCEPTION 'NO_ACCESS';
-  END IF;
-
   SELECT u.* INTO v_admin
   FROM public.user_sessions s JOIN public.users u ON u.id = s.user_id
-  WHERE s.token_hash = encode(digest(p_session, 'sha256'), 'hex')
+  WHERE s.token_hash = encode(digest(COALESCE(p_session, ''), 'sha256'), 'hex')
     AND s.expires_at > NOW() AND u.status = 'ACTIVE';
+  IF NOT FOUND OR v_admin.role <> 'ADMIN' THEN RETURN NULL; END IF;
 
-  IF v_admin.id IS NULL OR v_admin.role <> 'ADMIN' THEN
-    RAISE EXCEPTION 'FORBIDDEN';
-  END IF;
+  v_from := CASE WHEN v_days = 0 THEN '-infinity'::timestamptz
+                 ELSE ((v_today - (v_days - 1))::timestamp AT TIME ZONE 'Asia/Dhaka') END;
 
-  -- 1. Aggregated Login Counts (combines user_login_logs and active user_sessions)
-  SELECT COUNT(*) INTO v_total_logins FROM public.user_login_logs;
-  SELECT COUNT(*) INTO v_weekly_logins FROM public.user_login_logs WHERE logged_in_at >= NOW() - INTERVAL '7 days';
-  SELECT COUNT(*) INTO v_today_logins FROM public.user_login_logs WHERE logged_in_at >= CURRENT_DATE;
+  SELECT jsonb_build_object(
+    'trackingSince', (SELECT MIN(logged_in_at) FROM public.user_login_logs),
+    'totalLogins', (SELECT COUNT(*) FROM public.user_login_logs),
+    'logins', (SELECT COUNT(*) FROM public.user_login_logs WHERE logged_in_at >= v_from),
+    'loginsToday', (SELECT COUNT(*) FROM public.user_login_logs
+                    WHERE (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date = v_today),
+    'loginsWeek', (SELECT COUNT(*) FROM public.user_login_logs
+                   WHERE (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date > v_today - 7),
+    'activeUsers', (SELECT COUNT(DISTINCT user_id) FROM public.user_login_logs WHERE logged_in_at >= v_from),
+    'activeUsersWeek', (SELECT COUNT(DISTINCT user_id) FROM public.user_login_logs
+                        WHERE (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date > v_today - 7),
 
-  SELECT COUNT(DISTINCT user_id) INTO v_active_users_7d FROM public.user_login_logs WHERE logged_in_at >= NOW() - INTERVAL '7 days';
-  SELECT COUNT(DISTINCT user_id) INTO v_active_users_today FROM public.user_login_logs WHERE logged_in_at >= CURRENT_DATE;
+    -- logins and distinct people per day (days with nothing are filled with 0)
+    'daily', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('date', to_char(d.day, 'YYYY-MM-DD'), 'logins', COALESCE(x.n, 0), 'users', COALESCE(x.u, 0)) ORDER BY d.day)
+      FROM generate_series(
+             (CASE WHEN v_days = 0
+                  THEN COALESCE((SELECT MIN((logged_in_at AT TIME ZONE 'Asia/Dhaka')::date) FROM public.user_login_logs), v_today)
+                  ELSE v_today - (v_days - 1) END)::timestamp,
+             v_today::timestamp, INTERVAL '1 day') AS d(day)
+      LEFT JOIN (
+        SELECT (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date AS day, COUNT(*) AS n, COUNT(DISTINCT user_id) AS u
+        FROM public.user_login_logs WHERE logged_in_at >= v_from GROUP BY 1
+      ) x ON x.day = d.day::date
+    ), '[]'::jsonb),
 
-  -- 2. Daily Logins (Last 30 Days timeline)
-  SELECT COALESCE(jsonb_agg(d ORDER BY d->>'date' ASC), '[]'::jsonb) INTO v_daily_logins
-  FROM (
-    SELECT
-      to_char(day::date, 'YYYY-MM-DD') AS "date",
-      COUNT(l.id) AS "count"
-    FROM generate_series(CURRENT_DATE - INTERVAL '29 days', CURRENT_DATE, INTERVAL '1 day') AS day
-    LEFT JOIN public.user_login_logs l ON date_trunc('day', l.logged_in_at) = day::date
-    GROUP BY day::date
-  ) d;
+    -- logins by weekday (0 = Sunday) and by hour of day
+    'byWeekday', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('day', g.i, 'logins', COALESCE(x.n, 0)) ORDER BY g.i)
+      FROM generate_series(0, 6) g(i)
+      LEFT JOIN (SELECT EXTRACT(DOW FROM logged_in_at AT TIME ZONE 'Asia/Dhaka')::int AS i, COUNT(*) AS n
+                 FROM public.user_login_logs WHERE logged_in_at >= v_from GROUP BY 1) x ON x.i = g.i
+    ), '[]'::jsonb),
+    'byHour', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('hour', g.i, 'logins', COALESCE(x.n, 0)) ORDER BY g.i)
+      FROM generate_series(0, 23) g(i)
+      LEFT JOIN (SELECT EXTRACT(HOUR FROM logged_in_at AT TIME ZONE 'Asia/Dhaka')::int AS i, COUNT(*) AS n
+                 FROM public.user_login_logs WHERE logged_in_at >= v_from GROUP BY 1) x ON x.i = g.i
+    ), '[]'::jsonb),
 
-  -- 3. Per-User Stats (login counts & last login)
-  SELECT COALESCE(jsonb_agg(u), '[]'::jsonb) INTO v_user_stats
-  FROM (
-    SELECT
-      user_id,
-      COUNT(*) AS login_count,
-      MAX(logged_in_at) AS last_login_at
-    FROM public.user_login_logs
-    GROUP BY user_id
-  ) u;
+    -- one row per person
+    'users', COALESCE((
+      SELECT jsonb_agg(to_jsonb(r))
+      FROM (
+        SELECT u.id AS "userId", u.name, u.emp_id AS "empId", u.designation, u.role, u.status,
+               COALESCE(u.theme, 'classic') AS theme,
+               (SELECT COUNT(*) FROM public.user_login_logs l WHERE l.user_id = u.id) AS "totalLogins",
+               (SELECT COUNT(*) FROM public.user_login_logs l WHERE l.user_id = u.id AND l.logged_in_at >= v_from) AS logins,
+               (SELECT COUNT(*) FROM public.user_login_logs l WHERE l.user_id = u.id
+                  AND (l.logged_in_at AT TIME ZONE 'Asia/Dhaka')::date > v_today - 7) AS "loginsWeek",
+               (SELECT COUNT(DISTINCT (l.logged_in_at AT TIME ZONE 'Asia/Dhaka')::date) FROM public.user_login_logs l
+                  WHERE l.user_id = u.id AND l.logged_in_at >= v_from) AS "activeDays",
+               (SELECT MAX(l.logged_in_at) FROM public.user_login_logs l WHERE l.user_id = u.id) AS "lastLogin",
+               (SELECT COUNT(*) FROM public.task_history h WHERE h.changed_by_id = u.id AND h.changed_at >= v_from) AS actions
+        FROM public.users u
+      ) r
+    ), '[]'::jsonb),
 
-  -- 4. Theme Counts
-  SELECT COALESCE(jsonb_object_agg(COALESCE(theme, 'classic'), cnt), '{}'::jsonb) INTO v_theme_counts
-  FROM (
-    SELECT COALESCE(theme, 'classic') AS theme, COUNT(*) AS cnt
-    FROM public.users
-    GROUP BY theme
-  ) t;
+    -- actions per client (task created/changed, by whom the Task Log knows)
+    'clients', COALESCE((
+      SELECT jsonb_agg(to_jsonb(c) ORDER BY c.actions DESC)
+      FROM (
+        SELECT COALESCE(NULLIF(TRIM(h.client_name), ''), 'General') AS "clientName",
+               COUNT(*) AS actions,
+               COUNT(DISTINCT h.changed_by_id) AS users,
+               COUNT(DISTINCT h.task_id) AS tasks
+        FROM public.task_history h
+        WHERE h.changed_by_id IS NOT NULL AND h.changed_at >= v_from
+        GROUP BY 1
+      ) c
+    ), '[]'::jsonb),
 
-  RETURN jsonb_build_object(
-    'total_logins', v_total_logins,
-    'weekly_logins', v_weekly_logins,
-    'today_logins', v_today_logins,
-    'active_users_7d', v_active_users_7d,
-    'active_users_today', v_active_users_today,
-    'daily_logins', v_daily_logins,
-    'user_stats', v_user_stats,
-    'theme_counts', v_theme_counts
-  );
+    -- person x client matrix: who works on which client how much
+    'userClients', COALESCE((
+      SELECT jsonb_agg(to_jsonb(m))
+      FROM (
+        SELECT h.changed_by_id AS "userId",
+               COALESCE(NULLIF(TRIM(h.client_name), ''), 'General') AS "clientName",
+               COUNT(*) AS actions
+        FROM public.task_history h
+        WHERE h.changed_by_id IS NOT NULL AND h.changed_at >= v_from
+        GROUP BY 1, 2
+        ORDER BY COUNT(*) DESC
+        LIMIT 3000
+      ) m
+    ), '[]'::jsonb)
+  ) INTO v_out;
+
+  RETURN v_out;
 END;
 $$;
 
--- Permissions
 REVOKE ALL ON FUNCTION public.app_user_theme_set(TEXT, TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.app_user_analytics_get(TEXT) FROM PUBLIC;
-
+REVOKE ALL ON FUNCTION public.app_user_analytics_get(TEXT, INT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.app_user_theme_set(TEXT, TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.app_user_analytics_get(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.app_user_analytics_get(TEXT, INT) TO anon, authenticated;

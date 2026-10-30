@@ -1,34 +1,40 @@
 import { api } from './api';
 
-export interface DailyLoginPoint {
-  date: string;
-  count: number;
+export interface AnalyticsUser {
+  userId: string;
+  name: string;
+  empId: string;
+  designation: string;
+  role: string;
+  status: string;
+  theme: string;
+  totalLogins: number;
+  logins: number;
+  loginsWeek: number;
+  activeDays: number;
+  lastLogin: string | null;
+  actions: number;
 }
 
-export interface UserLoginStat {
-  user_id: string;
-  login_count: number;
-  last_login_at: string | null;
-}
-
-export interface UserAnalyticsSummary {
-  total_logins: number;
-  weekly_logins: number;
-  today_logins: number;
-  active_users_7d: number;
-  active_users_today: number;
-  daily_logins: DailyLoginPoint[];
-  user_stats: UserLoginStat[];
-  theme_counts: Record<string, number>;
+export interface UserAnalytics {
+  trackingSince: string | null;
+  totalLogins: number;
+  logins: number;
+  loginsToday: number;
+  loginsWeek: number;
+  activeUsers: number;
+  activeUsersWeek: number;
+  daily: { date: string; logins: number; users: number }[];
+  byWeekday: { day: number; logins: number }[];
+  byHour: { hour: number; logins: number }[];
+  users: AnalyticsUser[];
+  clients: { clientName: string; actions: number; users: number; tasks: number }[];
+  userClients: { userId: string; clientName: string; actions: number }[];
 }
 
 export const userAnalyticsService = {
-  async getAnalytics(): Promise<UserAnalyticsSummary | null> {
-    try {
-      return await api.callBackend<UserAnalyticsSummary | null>('userAnalyticsGet');
-    } catch (e) {
-      console.warn('Could not fetch backend user analytics:', e);
-      return null;
-    }
+  /** Admin only. days = how far back (0 = all time). */
+  async get(days: number): Promise<UserAnalytics> {
+    return api.callBackend<UserAnalytics>('userAnalyticsGet', { days });
   }
 };

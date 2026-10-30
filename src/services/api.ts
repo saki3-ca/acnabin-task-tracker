@@ -2006,13 +2006,9 @@ export const api = {
       case 'userAnalyticsGet': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again.');
-        const { data, error } = await supabase.rpc('app_user_analytics_get', { p_session: session.token });
-        if (error) {
-          if (isMissingFunction(error)) {
-            return null as T;
-          }
-          throw new Error('Could not load user analytics. (' + error.message + ')');
-        }
+        const { data, error } = await supabase.rpc('app_user_analytics_get', { p_session: session.token, p_days: payload?.days ?? 30 });
+        if (error) throw new Error(isMissingFunction(error) ? 'The User Analytics database update has not been run yet (supabase_user_analytics.sql). Please run it first.' : 'Could not load user analytics. (' + error.message + ')');
+        if (data === null) throw new Error('Only Admin can see user analytics.');
         return data as T;
       }
 
@@ -3594,9 +3590,8 @@ export const api = {
         return { success: true } as T;
       }
 
-      case 'userAnalyticsGet': {
-        return null as T;
-      }
+      case 'userAnalyticsGet':
+        throw new Error('User Analytics needs the live database.');
 
       case 'getAllUsers':
         return fallbackStore.users.map(u => ({ ...u, teamMemberIds: fallbackStore.managerStudents[u.id] || [] })) as T;
