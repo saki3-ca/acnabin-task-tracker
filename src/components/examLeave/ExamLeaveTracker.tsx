@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   BookOpen,
   Calendar,
   Check,
@@ -263,7 +266,16 @@ export const ExamLeaveTracker: React.FC = () => {
     return Array.from(set).sort();
   }, [records]);
 
-  // Filtered Records (client-wise matching and sorted client-wise)
+  // Column sort (default: Primary Client A-Z, then name)
+  type SortKey = 'name' | 'primary' | 'secondary' | 'level' | 'leave';
+  const [sortKey, setSortKey] = useState<SortKey>('primary');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(key); setSortDir(key === 'leave' ? 'desc' : 'asc'); }
+  };
+
+  // Filtered Records (client-wise matching and sorted by the chosen column)
   const filteredRecords = useMemo(() => {
     const list = records.filter(r => {
       const recordClients = getRecordClients(r);
@@ -297,21 +309,29 @@ export const ExamLeaveTracker: React.FC = () => {
       return true;
     });
 
-    // Group / Sort client-wise: Primary Client (A-Z), then Candidate Name (A-Z)
-    return list.sort((a, b) => {
-      const aClients = getRecordClients(a);
-      const bClients = getRecordClients(b);
-      const aPrimary = (aClients[0] || a.category || '').trim().toLowerCase();
-      const bPrimary = (bClients[0] || b.category || '').trim().toLowerCase();
-      const isUnassignedA = !aPrimary || aPrimary === '—' || aPrimary === 'unassigned';
-      const isUnassignedB = !bPrimary || bPrimary === '—' || bPrimary === 'unassigned';
-      if (isUnassignedA && !isUnassignedB) return 1;
-      if (!isUnassignedA && isUnassignedB) return -1;
-      const cComp = aPrimary.localeCompare(bPrimary);
-      if (cComp !== 0) return cComp;
-      return a.name.localeCompare(b.name);
+    // Empty / unassigned values always go last; ties fall back to Primary Client, then name
+    const isBlank = (v: string) => !v || v === '—' || v === 'unassigned';
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const primaryOf = (r: StaffExamLeaveRecord) => (getRecordClients(r)[0] || r.category || '').trim().toLowerCase();
+    const valueOf = (r: StaffExamLeaveRecord): string | number => {
+      if (sortKey === 'name') return r.name.toLowerCase();
+      if (sortKey === 'secondary') return (getRecordClients(r)[1] || '').trim().toLowerCase();
+      if (sortKey === 'level') return (r.level || '').trim().toLowerCase();
+      if (sortKey === 'leave') return r.totalLeaveDays;
+      return primaryOf(r);
+    };
+    return list.sort((x, y) => {
+      const vx = valueOf(x);
+      const vy = valueOf(y);
+      if (typeof vx === 'string' && typeof vy === 'string') {
+        if (isBlank(vx) && !isBlank(vy)) return 1;
+        if (!isBlank(vx) && isBlank(vy)) return -1;
+      }
+      const c = typeof vx === 'number' && typeof vy === 'number' ? vx - vy : String(vx).localeCompare(String(vy));
+      if (c !== 0) return c * dir;
+      return primaryOf(x).localeCompare(primaryOf(y)) || x.name.localeCompare(y.name);
     });
-  }, [records, searchTerm, selectedClient, selectedLevel, getRecordClients]);
+  }, [records, searchTerm, selectedClient, selectedLevel, getRecordClients, sortKey, sortDir]);
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -700,19 +720,34 @@ export const ExamLeaveTracker: React.FC = () => {
                     SL.
                   </th>
                   <th className="exam-th-sticky" style={{ position: 'sticky', left: '38px', zIndex: 13, boxSizing: 'border-box', width: '185px', minWidth: '185px', maxWidth: '185px', padding: '10px 12px' }}>
-                    NAME
+                    <span onClick={() => handleSort('name')} title="Sort by Name" style={{ cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      NAME
+                      {sortKey === 'name' ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} opacity={0.5} />}
+                    </span>
                   </th>
                   <th className="exam-th-sticky" style={{ position: 'sticky', left: '223px', zIndex: 13, boxSizing: 'border-box', width: '190px', minWidth: '190px', maxWidth: '190px', padding: '10px 10px' }}>
-                    PRIMARY CLIENT
+                    <span onClick={() => handleSort('primary')} title="Sort by Primary Client" style={{ cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      PRIMARY CLIENT
+                      {sortKey === 'primary' ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} opacity={0.5} />}
+                    </span>
                   </th>
                   <th className="exam-th" style={{ width: '200px', minWidth: '200px', maxWidth: '200px', padding: '10px 10px', textAlign: 'left' }}>
-                    SECONDARY CLIENT
+                    <span onClick={() => handleSort('secondary')} title="Sort by Secondary Client" style={{ cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      SECONDARY CLIENT
+                      {sortKey === 'secondary' ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} opacity={0.5} />}
+                    </span>
                   </th>
                   <th className="exam-th" style={{ minWidth: '70px', textAlign: 'center', padding: '10px 6px' }}>
-                    LEVEL
+                    <span onClick={() => handleSort('level')} title="Sort by Level" style={{ cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      LEVEL
+                      {sortKey === 'level' ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} opacity={0.5} />}
+                    </span>
                   </th>
                   <th className="exam-th" style={{ minWidth: '85px', textAlign: 'center', padding: '10px 6px' }}>
-                    TOTAL LEAVE
+                    <span onClick={() => handleSort('leave')} title="Sort by Total Leave" style={{ cursor: 'pointer', userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      TOTAL LEAVE
+                      {sortKey === 'leave' ? (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} opacity={0.5} />}
+                    </span>
                   </th>
 
                   {/* 36 Date Columns */}
