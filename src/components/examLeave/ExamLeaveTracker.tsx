@@ -156,7 +156,13 @@ export const ExamLeaveTracker: React.FC = () => {
   const handleExport = async () => {
     setExporting(true);
     try {
-      await examLeaveService.exportToExcel(records, EXAM_TIMELINE_DATES, totalStaffCount);
+      await examLeaveService.exportToExcel(records, EXAM_TIMELINE_DATES, totalStaffCount, r => {
+        const clients = getRecordClients(r);
+        return {
+          primaryClient: clients[0] || '—',
+          allClients: clients.join(', ') || r.category || '—'
+        };
+      });
     } catch (err) {
       console.error('Export failed:', err);
       alert('Failed to export leave matrix to Excel.');

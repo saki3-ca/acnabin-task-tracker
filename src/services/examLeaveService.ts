@@ -507,7 +507,12 @@ class ExamLeaveService {
     };
   }
 
-  async exportToExcel(allRecords: StaffExamLeaveRecord[], dates: string[], totalStaff?: number): Promise<void> {
+  async exportToExcel(
+    allRecords: StaffExamLeaveRecord[],
+    dates: string[],
+    totalStaff?: number,
+    clientResolver?: (r: StaffExamLeaveRecord) => { primaryClient: string; allClients: string }
+  ): Promise<void> {
     const ExcelJS = (await import('exceljs')).default;
     const records = allRecords.filter(countsAsLeave);
     const staffTotal = Math.max(totalStaff || 0, countPeople(records));
@@ -529,10 +534,10 @@ class ExamLeaveService {
       return new Date(Date.UTC(y, m - 1, d));
     };
 
-    // Column widths: A spacer, B SL, C Name, D Client, E Subjects, F Level, G-I leave info, then one narrow column per day
-    const FIRST_DAY_COL = 10;
+    // Column widths: A spacer, B SL, C Name, D Primary Client, E All Clients, F Subjects, G Level, H-J leave info, then one narrow column per day
+    const FIRST_DAY_COL = 11;
     sheet.getColumn(1).width = 2;
-    [5, 30, 24, 34, 9, 16, 14, 18].forEach((w, i) => { sheet.getColumn(i + 2).width = w; });
+    [5, 30, 26, 30, 34, 9, 16, 14, 18].forEach((w, i) => { sheet.getColumn(i + 2).width = w; });
     dates.forEach((_, i) => { sheet.getColumn(FIRST_DAY_COL + i).width = 6; });
     sheet.getColumn(FIRST_DAY_COL + dates.length).width = 11;
 
@@ -598,11 +603,11 @@ class ExamLeaveService {
     sheet.getCell('P4').fill = fill('FFE2E8F0');
 
     // --- Row 17: total manpower (type a new number here and every "available" figure below updates)
-    sheet.getCell(17, 8).value = 'Total Manpower:';
-    sheet.getCell(17, 8).font = { bold: true };
-    sheet.getCell(17, 8).alignment = { horizontal: 'right', vertical: 'middle' };
-    const TOTAL_CELL = '$I$17';
-    const totalManpowerCell = sheet.getCell(17, 9);
+    sheet.getCell(17, 9).value = 'Total Manpower:';
+    sheet.getCell(17, 9).font = { bold: true };
+    sheet.getCell(17, 9).alignment = { horizontal: 'right', vertical: 'middle' };
+    const TOTAL_CELL = '$J$17';
+    const totalManpowerCell = sheet.getCell(17, 10);
     totalManpowerCell.value = staffTotal;
     totalManpowerCell.font = { bold: true, color: { argb: 'FF1B2A6B' } };
     totalManpowerCell.fill = fill('FFEEF0F8');
@@ -611,9 +616,9 @@ class ExamLeaveService {
 
     // --- Row 18: available manpower, row 19: headers
     const HEADER_ROW = 19;
-    sheet.getCell(18, 9).value = 'Available Manpower';
-    sheet.getCell(18, 9).font = { bold: true };
-    const headers = ['SL', 'Name', 'Client', 'Subjects', 'Level', 'Total Leave Days', 'Leave Start Day', 'Appear in Last Exam Date'];
+    sheet.getCell(18, 10).value = 'Available Manpower';
+    sheet.getCell(18, 10).font = { bold: true };
+    const headers = ['SL', 'Name', 'Primary Client', 'All Clients', 'Subjects', 'Level', 'Total Leave Days', 'Leave Start Day', 'Appear in Last Exam Date'];
     headers.forEach((h, idx) => {
       const cell = sheet.getRow(HEADER_ROW).getCell(idx + 2);
       cell.value = h;
@@ -656,8 +661,27 @@ class ExamLeaveService {
       const row = sheet.getRow(rowNo);
       const startDate = toDate(rec.leaveStartDay);
       const lastExam = toDate(rec.appearInLastExamDate);
+
+      let primaryClient = '—';
+      let allClientsStr = rec.category || '—';
+      if (clientResolver) {
+        const resolved = clientResolver(rec);
+        primaryClient = resolved.primaryClient || '—';
+        allClientsStr = resolved.allClients || '—';
+      } else if (rec.category && rec.category.trim()) {
+        const parts = rec.category.split(',').map(s => s.trim()).filter(Boolean);
+        primaryClient = parts[0] || '—';
+        allClientsStr = rec.category.trim();
+      }
+
       const values: (string | number | Date | null)[] = [
-        rIdx + 1, rec.name, rec.category, rec.subjects, rec.level, null,
+        rIdx + 1,
+        rec.name,
+        primaryClient,
+        allClientsStr,
+        rec.subjects,
+        rec.level,
+        null,
         startDate || (rec.leaveStartDay === '—' ? '' : rec.leaveStartDay),
         lastExam || (rec.appearInLastExamDate === '—' ? '' : rec.appearInLastExamDate)
       ];
@@ -665,7 +689,7 @@ class ExamLeaveService {
         const cell = row.getCell(i + 2);
         cell.value = v;
         cell.border = box;
-        cell.alignment = { vertical: 'middle', horizontal: i === 1 || i === 2 || i === 3 ? 'left' : 'center', wrapText: true };
+        cell.alignment = { vertical: 'middle', horizontal: i === 1 || i === 2 || i === 3 || i === 4 ? 'left' : 'center', wrapText: true };
         if (v instanceof Date) cell.numFmt = 'dd mmm yy';
       });
       // keep tall subject lists readable
@@ -694,14 +718,14 @@ class ExamLeaveService {
       total.font = { bold: true };
       total.alignment = { horizontal: 'center', vertical: 'middle' };
       total.border = box;
-      const label = row.getCell(7);
+      const label = row.getCell(8);
       label.value = { formula: `COUNTA(${range})&" Days"`, result: `${n} Days` };
     });
 
     // --- Summary row under the table (formulas) + available manpower in row 18 (formulas)
     const SUMMARY_ROW = HEADER_ROW + 1 + records.length;
     const summaryRow = sheet.getRow(SUMMARY_ROW);
-    summaryRow.getCell(9).value = 'Total on Leave:';
+    summaryRow.getCell(10).value = 'Total on Leave:';
     summaryRow.getCell(9).font = { bold: true };
     summaryRow.getCell(9).alignment = { horizontal: 'right' };
 
@@ -733,6 +757,13 @@ class ExamLeaveService {
       rules: [{ type: 'expression', priority: 2, formulae: [`AND(ISNUMBER(${firstDayLetter}18),${firstDayLetter}18<=7)`], style: { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FFFCA5A5' } } } }]
     });
     workbook.calcProperties.fullCalcOnLoad = true;
+
+    if (hasRows) {
+      sheet.autoFilter = {
+        from: { row: HEADER_ROW, column: 2 },
+        to: { row: LAST_DATA, column: totalCol }
+      };
+    }
 
     // Landscape, fit all columns on one page width
     sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
