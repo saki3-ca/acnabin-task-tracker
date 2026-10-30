@@ -160,6 +160,7 @@ export const ExamLeaveTracker: React.FC = () => {
         const clients = getRecordClients(r);
         return {
           primaryClient: clients[0] || '—',
+          secondaryClients: clients.slice(1).join(', ') || '—',
           allClients: clients.join(', ') || r.category || '—'
         };
       });
@@ -683,11 +684,14 @@ export const ExamLeaveTracker: React.FC = () => {
                   <th className="exam-th-sticky" style={{ position: 'sticky', left: 0, zIndex: 13, width: '38px', minWidth: '38px', maxWidth: '38px', boxSizing: 'border-box', textAlign: 'center', padding: '10px 4px' }}>
                     SL.
                   </th>
-                  <th className="exam-th-sticky" style={{ position: 'sticky', left: '38px', zIndex: 13, boxSizing: 'border-box', width: '190px', minWidth: '190px', maxWidth: '190px', padding: '10px 12px' }}>
+                  <th className="exam-th-sticky" style={{ position: 'sticky', left: '38px', zIndex: 13, boxSizing: 'border-box', width: '185px', minWidth: '185px', maxWidth: '185px', padding: '10px 12px' }}>
                     NAME
                   </th>
-                  <th className="exam-th-sticky" style={{ position: 'sticky', left: '228px', zIndex: 13, boxSizing: 'border-box', width: '230px', minWidth: '230px', maxWidth: '230px', padding: '10px 10px' }}>
-                    CLIENT
+                  <th className="exam-th-sticky" style={{ position: 'sticky', left: '223px', zIndex: 13, boxSizing: 'border-box', width: '190px', minWidth: '190px', maxWidth: '190px', padding: '10px 10px' }}>
+                    PRIMARY CLIENT
+                  </th>
+                  <th className="exam-th" style={{ width: '200px', minWidth: '200px', maxWidth: '200px', padding: '10px 10px', textAlign: 'left' }}>
+                    SECONDARY CLIENT
                   </th>
                   <th className="exam-th" style={{ minWidth: '70px', textAlign: 'center', padding: '10px 6px' }}>
                     LEVEL
@@ -821,9 +825,9 @@ export const ExamLeaveTracker: React.FC = () => {
                           boxSizing: 'border-box',
                           padding: '9px 12px',
                           fontWeight: 600,
-                          width: '190px',
-                          minWidth: '190px',
-                          maxWidth: '190px'
+                          width: '185px',
+                          minWidth: '185px',
+                          maxWidth: '185px'
                         }}
                       >
                         <div
@@ -837,26 +841,57 @@ export const ExamLeaveTracker: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Client (Replaced Team / Category) */}
+                      {/* Primary Client */}
                       <td
                         className="exam-td-sticky"
                         style={{
                           position: 'sticky',
-                          left: '228px',
+                          left: '223px',
                           zIndex: 10,
                           padding: '9px 10px',
                           fontSize: '11.5px',
-                          width: '230px',
-                          minWidth: '230px',
-                          maxWidth: '230px'
+                          width: '190px',
+                          minWidth: '190px',
+                          maxWidth: '190px'
                         }}
                       >
-                        {/* a long client list wraps to two lines; hover shows every client, one per line */}
-                        <InstantTooltip content={getRecordClients(record).join(String.fromCharCode(10)) || record.category || '—'} style={{ width: '210px' }}>
-                          <div className="exam-client-name" style={{ lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
-                            {getRecordClients(record).join(', ') || record.category || '—'}
-                          </div>
-                        </InstantTooltip>
+                        {(() => {
+                          const rClients = getRecordClients(record);
+                          const primary = rClients[0] || record.category || '—';
+                          return (
+                            <InstantTooltip content={primary} style={{ width: '210px' }}>
+                              <div className="exam-client-name" style={{ lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word', fontWeight: 600 }}>
+                                {primary}
+                              </div>
+                            </InstantTooltip>
+                          );
+                        })()}
+                      </td>
+
+                      {/* Secondary Client */}
+                      <td
+                        className="exam-td"
+                        style={{
+                          padding: '9px 10px',
+                          fontSize: '11.5px',
+                          width: '200px',
+                          minWidth: '200px',
+                          maxWidth: '200px'
+                        }}
+                      >
+                        {(() => {
+                          const rClients = getRecordClients(record);
+                          const secondary = rClients.slice(1);
+                          return secondary.length > 0 ? (
+                            <InstantTooltip content={secondary.join(String.fromCharCode(10))} style={{ width: '210px' }}>
+                              <div className="exam-client-name" style={{ lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word', color: 'var(--ink-muted)' }}>
+                                {secondary.join(', ')}
+                              </div>
+                            </InstantTooltip>
+                          ) : (
+                            <span style={{ color: 'var(--ink-muted)' }}>—</span>
+                          );
+                        })()}
                       </td>
 
                       {/* Level */}
@@ -985,7 +1020,7 @@ export const ExamLeaveTracker: React.FC = () => {
                 {/* Row 1: TOTAL ON LEAVE PER DAY: */}
                 <tr className="exam-footer-row total" style={{ background: '#1B2A6B', color: '#ffffff', fontWeight: 700 }}>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="exam-footer-sticky"
                     style={{
                       padding: '9px 12px',
@@ -1027,7 +1062,7 @@ export const ExamLeaveTracker: React.FC = () => {
                 {/* Row 2: AVAILABLE IN-OFFICE MANPOWER: */}
                 <tr className="exam-footer-row avail" style={{ background: '#141F52', color: '#ffffff', fontWeight: 700 }}>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="exam-footer-sticky"
                     style={{
                       padding: '9px 12px',
@@ -1208,9 +1243,16 @@ export const ExamLeaveTracker: React.FC = () => {
                           {record.name}
                         </h3>
                         {/* Client replaces Team / Category */}
-                        <span style={{ fontSize: '12px', color: 'var(--ink-muted)', fontWeight: 600 }}>
-                          Client: {getRecordClients(record).join(', ') || record.category || '—'}
-                        </span>
+                        <div style={{ fontSize: '12px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--navy)' }}>
+                            Client: {getRecordClients(record)[0] || record.category || '—'}
+                          </span>
+                          {getRecordClients(record).length > 1 && (
+                            <span style={{ display: 'block', fontSize: '11px', color: 'var(--ink-muted)', marginTop: '2px' }}>
+                              Secondary: {getRecordClients(record).slice(1).join(', ')}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <span
@@ -1562,9 +1604,16 @@ export const ExamLeaveTracker: React.FC = () => {
                   <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--navy)' }}>
                     {selectedStudentForDrawer.name}
                   </h2>
-                  <span style={{ fontSize: '13px', color: 'var(--ink-muted)', fontWeight: 600 }}>
-                    Client: {getRecordClients(selectedStudentForDrawer).join(', ') || selectedStudentForDrawer.category || '—'}
-                  </span>
+                  <div>
+                    <span style={{ fontSize: '13px', color: 'var(--navy)', fontWeight: 700 }}>
+                      Primary Client: {getRecordClients(selectedStudentForDrawer)[0] || selectedStudentForDrawer.category || '—'}
+                    </span>
+                    {getRecordClients(selectedStudentForDrawer).length > 1 && (
+                      <span style={{ display: 'block', fontSize: '12px', color: 'var(--ink-muted)', marginTop: '2px' }}>
+                        Secondary: {getRecordClients(selectedStudentForDrawer).slice(1).join(', ')}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={() => setSelectedStudentForDrawer(null)}

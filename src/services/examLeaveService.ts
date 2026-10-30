@@ -511,7 +511,7 @@ class ExamLeaveService {
     allRecords: StaffExamLeaveRecord[],
     dates: string[],
     totalStaff?: number,
-    clientResolver?: (r: StaffExamLeaveRecord) => { primaryClient: string; allClients: string }
+    clientResolver?: (r: StaffExamLeaveRecord) => { primaryClient: string; secondaryClients?: string; allClients?: string }
   ): Promise<void> {
     const ExcelJS = (await import('exceljs')).default;
     const records = allRecords.filter(countsAsLeave);
@@ -618,7 +618,7 @@ class ExamLeaveService {
     const HEADER_ROW = 19;
     sheet.getCell(18, 10).value = 'Available Manpower';
     sheet.getCell(18, 10).font = { bold: true };
-    const headers = ['SL', 'Name', 'Primary Client', 'All Clients', 'Subjects', 'Level', 'Total Leave Days', 'Leave Start Day', 'Appear in Last Exam Date'];
+    const headers = ['SL', 'Name', 'Primary Client', 'Secondary Client', 'Subjects', 'Level', 'Total Leave Days', 'Leave Start Day', 'Appear in Last Exam Date'];
     headers.forEach((h, idx) => {
       const cell = sheet.getRow(HEADER_ROW).getCell(idx + 2);
       cell.value = h;
@@ -663,22 +663,22 @@ class ExamLeaveService {
       const lastExam = toDate(rec.appearInLastExamDate);
 
       let primaryClient = '—';
-      let allClientsStr = rec.category || '—';
+      let secondaryClientsStr = '—';
       if (clientResolver) {
         const resolved = clientResolver(rec);
         primaryClient = resolved.primaryClient || '—';
-        allClientsStr = resolved.allClients || '—';
+        secondaryClientsStr = resolved.secondaryClients || '—';
       } else if (rec.category && rec.category.trim()) {
         const parts = rec.category.split(',').map(s => s.trim()).filter(Boolean);
         primaryClient = parts[0] || '—';
-        allClientsStr = rec.category.trim();
+        secondaryClientsStr = parts.slice(1).join(', ') || '—';
       }
 
       const values: (string | number | Date | null)[] = [
         rIdx + 1,
         rec.name,
         primaryClient,
-        allClientsStr,
+        secondaryClientsStr,
         rec.subjects,
         rec.level,
         null,
