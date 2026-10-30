@@ -514,7 +514,20 @@ class ExamLeaveService {
     clientResolver?: (r: StaffExamLeaveRecord) => { primaryClient: string; secondaryClients?: string; allClients?: string }
   ): Promise<void> {
     const ExcelJS = (await import('exceljs')).default;
-    const records = allRecords.filter(countsAsLeave);
+    // Group / Sort client-wise: Primary Client (A-Z), then Candidate Name (A-Z)
+    const records = allRecords.filter(countsAsLeave).sort((a, b) => {
+      const aInfo = clientResolver ? clientResolver(a) : { primaryClient: (a.category?.split(',')[0] || '').trim() };
+      const bInfo = clientResolver ? clientResolver(b) : { primaryClient: (b.category?.split(',')[0] || '').trim() };
+      const aClient = (aInfo.primaryClient || '').toLowerCase().trim();
+      const bClient = (bInfo.primaryClient || '').toLowerCase().trim();
+      const isUnassignedA = !aClient || aClient === '—' || aClient === 'unassigned';
+      const isUnassignedB = !bClient || bClient === '—' || bClient === 'unassigned';
+      if (isUnassignedA && !isUnassignedB) return 1;
+      if (!isUnassignedA && isUnassignedB) return -1;
+      const cComp = aClient.localeCompare(bClient);
+      if (cComp !== 0) return cComp;
+      return a.name.localeCompare(b.name);
+    });
     const staffTotal = Math.max(totalStaff || 0, countPeople(records));
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'ACNABIN Task Tracker';
@@ -726,8 +739,8 @@ class ExamLeaveService {
     const SUMMARY_ROW = HEADER_ROW + 1 + records.length;
     const summaryRow = sheet.getRow(SUMMARY_ROW);
     summaryRow.getCell(10).value = 'Total on Leave:';
-    summaryRow.getCell(9).font = { bold: true };
-    summaryRow.getCell(9).alignment = { horizontal: 'right' };
+    summaryRow.getCell(10).font = { bold: true };
+    summaryRow.getCell(10).alignment = { horizontal: 'right' };
 
     dates.forEach((d, dIdx) => {
       const col = FIRST_DAY_COL + dIdx;

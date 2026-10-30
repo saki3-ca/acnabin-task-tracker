@@ -263,9 +263,9 @@ export const ExamLeaveTracker: React.FC = () => {
     return Array.from(set).sort();
   }, [records]);
 
-  // Filtered Records (client-wise matching for multi-client users)
+  // Filtered Records (client-wise matching and sorted client-wise)
   const filteredRecords = useMemo(() => {
-    return records.filter(r => {
+    const list = records.filter(r => {
       const recordClients = getRecordClients(r);
 
       if (searchTerm.trim()) {
@@ -295,6 +295,21 @@ export const ExamLeaveTracker: React.FC = () => {
       }
 
       return true;
+    });
+
+    // Group / Sort client-wise: Primary Client (A-Z), then Candidate Name (A-Z)
+    return list.sort((a, b) => {
+      const aClients = getRecordClients(a);
+      const bClients = getRecordClients(b);
+      const aPrimary = (aClients[0] || a.category || '').trim().toLowerCase();
+      const bPrimary = (bClients[0] || b.category || '').trim().toLowerCase();
+      const isUnassignedA = !aPrimary || aPrimary === '—' || aPrimary === 'unassigned';
+      const isUnassignedB = !bPrimary || bPrimary === '—' || bPrimary === 'unassigned';
+      if (isUnassignedA && !isUnassignedB) return 1;
+      if (!isUnassignedA && isUnassignedB) return -1;
+      const cComp = aPrimary.localeCompare(bPrimary);
+      if (cComp !== 0) return cComp;
+      return a.name.localeCompare(b.name);
     });
   }, [records, searchTerm, selectedClient, selectedLevel, getRecordClients]);
 

@@ -86,8 +86,8 @@ const FullManpowerView: React.FC = () => {
   const [clientPrimaryOnly, setClientPrimaryOnly] = useState(false);
   const [selectedDesignation, setSelectedDesignation] = useState<string>('');
 
-  // Details View Sorting
-  const [detailSortField, setDetailSortField] = useState<DetailSortField>('empId');
+  // Details View Sorting (default grouped/sorted by client-wise)
+  const [detailSortField, setDetailSortField] = useState<DetailSortField>('assignedClient');
   const [detailSortDirection, setDetailSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Summary View Sorting (default by Total Cost descending)
@@ -220,6 +220,18 @@ const FullManpowerView: React.FC = () => {
   const sortedDetails = useMemo(() => {
     const list = [...filteredDetails];
     list.sort((a, b) => {
+      if (detailSortField === 'assignedClient') {
+        const aPrimary = primaryClientText(a).toLowerCase();
+        const bPrimary = primaryClientText(b).toLowerCase();
+        const isUnassignedA = !aPrimary || aPrimary === '—' || aPrimary === 'unassigned';
+        const isUnassignedB = !bPrimary || bPrimary === '—' || bPrimary === 'unassigned';
+        if (isUnassignedA && !isUnassignedB) return 1;
+        if (!isUnassignedA && isUnassignedB) return -1;
+        const cComp = detailSortDirection === 'asc' ? aPrimary.localeCompare(bPrimary) : bPrimary.localeCompare(aPrimary);
+        if (cComp !== 0) return cComp;
+        return a.name.localeCompare(b.name);
+      }
+
       let aVal = a[detailSortField];
       let bVal = b[detailSortField];
 
@@ -234,7 +246,7 @@ const FullManpowerView: React.FC = () => {
         : bStr.localeCompare(aStr);
     });
     return list;
-  }, [filteredDetails, detailSortField, detailSortDirection]);
+  }, [filteredDetails, detailSortField, detailSortDirection, allClients]);
 
   // Grouped Summary Data by Client
   const summaryList = useMemo(() => {
@@ -430,6 +442,26 @@ const FullManpowerView: React.FC = () => {
     return '';
   };
 
+  // Extracts Secondary client(s) for Excel export
+  const secondaryClientsText = (r: ManpowerRecord): string => {
+    if (r.assignedClient === ALL_CLIENTS) return '';
+    if (r.clientIds && r.clientIds.length > 1) {
+      return r.clientIds
+        .slice(1)
+        .map(id => {
+          const match = allClients.find(c => c.id === id);
+          const name = match ? match.name : id;
+          return clientText(name, jobOf(id));
+        })
+        .join(', ');
+    }
+    const parts = (r.assignedClient || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts.slice(1).join(', ');
+    }
+    return '';
+  };
+
   const handleExportExcel = async () => {
     const today = new Date().toISOString().split('T')[0];
     const fileName = `ACNABIN_Manpower_Summary_and_Details_${today}.xlsx`;
@@ -452,6 +484,8 @@ const FullManpowerView: React.FC = () => {
       empId: item.empId,
       name: item.name,
       designation: /year/i.test(item.designation || '') ? 'Student' : (item.designation || ''),
+      primaryClient: primaryClientText(item),
+      secondaryClients: secondaryClientsText(item),
       clients: primaryClientText(item),
       academicYear: item.academicYear || '',
       salary: item.salary,

@@ -17,6 +17,8 @@ export interface DetailLine {
   name: string;
   designation: string;
   clients: string;
+  primaryClient?: string;
+  secondaryClients?: string;
   academicYear: string;
   salary: number;
   conveyance: number;
@@ -118,7 +120,8 @@ export async function buildManpowerWorkbook(
     { header: 'Name', width: 28, align: 'left' },
     { header: 'Designation', width: 22, align: 'left' },
     ...(hasStaff ? [{ header: 'Department', width: 22, align: 'left' } as Col] : []),
-    { header: 'Primary Client', width: 38, align: 'left', wrap: true },
+    { header: 'Primary Client', width: 34, align: 'left', wrap: true },
+    { header: 'Secondary Client', width: 34, align: 'left', wrap: true },
     { header: 'Academic / Employment Year', width: 16, align: 'center' },
     ...(hasStaff
       ? ([
@@ -164,7 +167,8 @@ export async function buildManpowerWorkbook(
       case 'Designation': return d.designation;
       case 'Department': return st?.department || null;
       case 'Primary Client':
-      case 'Client Name(s)': return d.clients || null;
+      case 'Client Name(s)': return d.primaryClient || d.clients || null;
+      case 'Secondary Client': return d.secondaryClients || null;
       case 'Academic / Employment Year': {
         const y = st
           ? isEmp
@@ -196,7 +200,20 @@ export async function buildManpowerWorkbook(
     }
   };
 
-  details.forEach((d, i) => {
+  // Sort client-wise: Primary Client (A-Z), then Name (A-Z)
+  const sortedDetails = [...details].sort((a, b) => {
+    const aClient = (a.primaryClient || a.clients || '').trim().toLowerCase();
+    const bClient = (b.primaryClient || b.clients || '').trim().toLowerCase();
+    const isUnassignedA = !aClient || aClient === '—' || aClient === 'unassigned';
+    const isUnassignedB = !bClient || bClient === '—' || bClient === 'unassigned';
+    if (isUnassignedA && !isUnassignedB) return 1;
+    if (!isUnassignedA && isUnassignedB) return -1;
+    const comp = aClient.localeCompare(bClient);
+    if (comp !== 0) return comp;
+    return a.name.localeCompare(b.name);
+  });
+
+  sortedDetails.forEach((d, i) => {
     const st = byId.get(d.empId.trim().toUpperCase());
     const r = ws2.addRow(cols.map(c => cell(c.header, d, st, i)));
     r.height = 22;
@@ -213,7 +230,7 @@ export async function buildManpowerWorkbook(
   });
 
   // Totals
-  const sum = (k: 'salary' | 'conveyance' | 'total') => details.reduce((a, d) => a + (Number(d[k]) || 0), 0);
+  const sum = (k: 'salary' | 'conveyance' | 'total') => sortedDetails.reduce((a, d) => a + (Number(d[k]) || 0), 0);
   const totals = ws2.addRow(
     cols.map(c =>
       c.header === 'Name' ? 'TOTAL' :
