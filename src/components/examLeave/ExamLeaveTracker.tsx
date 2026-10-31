@@ -349,33 +349,77 @@ export const ExamLeaveTracker: React.FC = () => {
     const staff = canSeeEveryone ? allUsers.filter(u => u.status !== 'INACTIVE' && u.role !== 'ADMIN').length : teamUsers.length;
     return Math.max(staff, countPeople(leaveRecords));
   }, [allUsers, teamUsers, canSeeEveryone, leaveRecords]);
+
+  // Active leave records currently displayed/filtered in the table
+  const activeLeaveRecords = useMemo(
+    () => (hasActiveFilters ? filteredRecords.filter(countsAsLeave) : leaveRecords),
+    [hasActiveFilters, filteredRecords, leaveRecords]
+  );
+
+  // Effective manpower count for the current view:
+  // When filtered by client: total active staff assigned to that client
+  // When filtered by other criteria: number of people in the filtered view
+  // When unfiltered: firm-wide headcount
+  const currentViewTotalStaff = useMemo(() => {
+    if (selectedClient) {
+      const target = selectedClient.toLowerCase().trim();
+      const clientObj = allClients.find(
+        c => c.name.toLowerCase().trim() === target || c.id.toLowerCase().trim() === target
+      );
+      const userCount = allUsers.filter(u => {
+        if (u.status === 'INACTIVE' || u.role === 'ADMIN') return false;
+        const cids = getUserAssignedClientIds(u);
+        if (clientObj && cids.includes(clientObj.id)) return true;
+        const names = cids.map(cid => allClients.find(c => c.id === cid)?.name).filter(Boolean) as string[];
+        return (
+          names.some(n => n.toLowerCase().trim() === target) ||
+          cids.some(cid => cid.toLowerCase().trim() === target)
+        );
+      }).length;
+
+      const recordCount = countPeople(
+        records.filter(r => {
+          const rClients = getRecordClients(r);
+          return rClients.some(c => c.toLowerCase().trim() === target);
+        })
+      );
+      return Math.max(userCount, recordCount, countPeople(activeLeaveRecords), 1);
+    }
+
+    if (hasActiveFilters) {
+      return Math.max(countPeople(filteredRecords), 1);
+    }
+
+    return totalStaffCount;
+  }, [selectedClient, hasActiveFilters, allUsers, allClients, records, filteredRecords, activeLeaveRecords, totalStaffCount, getRecordClients]);
+
   const peakLeaveInfo = useMemo(() => {
     let maxOnLeave = 0;
     let peakDate = '2026-11-12';
     for (const d of EXAM_TIMELINE_DATES) {
       if (ICAB_OFF_DAYS.has(d)) continue;
-      const count = countOnLeave(leaveRecords, d);
+      const count = countOnLeave(activeLeaveRecords, d);
       if (count > maxOnLeave) {
         maxOnLeave = count;
         peakDate = d;
       }
     }
-    const minAvailable = Math.max(0, totalStaffCount - maxOnLeave);
+    const minAvailable = Math.max(0, currentViewTotalStaff - maxOnLeave);
     return { maxOnLeave, peakDate, minAvailable };
-  }, [leaveRecords, totalStaffCount]);
+  }, [activeLeaveRecords, currentViewTotalStaff]);
 
   // Day columns available manpower map
   const dailyAvailabilityMap = useMemo(() => {
     const map = new Map<string, { onLeave: number; available: number }>();
     for (const d of EXAM_TIMELINE_DATES) {
-      const onLeaveCount = countOnLeave(leaveRecords, d);
+      const onLeaveCount = countOnLeave(activeLeaveRecords, d);
       map.set(d, {
         onLeave: onLeaveCount,
-        available: totalStaffCount - onLeaveCount
+        available: currentViewTotalStaff - onLeaveCount
       });
     }
     return map;
-  }, [leaveRecords, totalStaffCount]);
+  }, [activeLeaveRecords, currentViewTotalStaff]);
 
   return (
     <div className="tab-pane">
@@ -417,7 +461,7 @@ export const ExamLeaveTracker: React.FC = () => {
         <div className="stat-pill">
           <span className="stat-pill-label">MIN IN-OFFICE</span>
           <span className="stat-pill-value" style={{ color: '#03543F' }}>
-            {String(peakLeaveInfo.minAvailable).padStart(2, '0')} / {String(totalStaffCount).padStart(2, '0')}
+            {String(peakLeaveInfo.minAvailable).padStart(2, '0')} / {String(currentViewTotalStaff).padStart(2, '0')}
           </span>
         </div>
 
@@ -1079,14 +1123,17 @@ export const ExamLeaveTracker: React.FC = () => {
                       left: 0,
                       zIndex: 11,
                       background: '#1B2A6B',
+                      color: '#ffffff',
+                      fontWeight: 800,
                       fontSize: '11.5px',
-                      letterSpacing: '0.3px'
+                      letterSpacing: '0.4px',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)'
                     }}
                   >
                     TOTAL ON LEAVE PER DAY:
                   </td>
                   {EXAM_TIMELINE_DATES.map(dateStr => {
-                    const count = countOnLeave(leaveRecords, dateStr);
+                    const count = countOnLeave(activeLeaveRecords, dateStr);
                     const isFri = ICAB_OFF_DAYS.has(dateStr);
                     return (
                       <td
@@ -1121,17 +1168,22 @@ export const ExamLeaveTracker: React.FC = () => {
                       left: 0,
                       zIndex: 11,
                       background: '#141F52',
+                      color: '#ffffff',
+                      fontWeight: 800,
                       fontSize: '11.5px',
-                      letterSpacing: '0.3px'
+                      letterSpacing: '0.4px',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.5)'
                     }}
                   >
-                    AVAILABLE IN-OFFICE MANPOWER (OUT OF {totalStaffCount}):
+                    AVAILABLE IN-OFFICE MANPOWER (OUT OF {currentViewTotalStaff}):
                   </td>
                   {EXAM_TIMELINE_DATES.map(dateStr => {
-                    const count = countOnLeave(leaveRecords, dateStr);
-                    const avail = Math.max(0, totalStaffCount - count);
+                    const count = countOnLeave(activeLeaveRecords, dateStr);
+                    const avail = Math.max(0, currentViewTotalStaff - count);
                     const isFri = ICAB_OFF_DAYS.has(dateStr);
-                    const isDeficit = avail <= 7;
+                    const isDeficit = currentViewTotalStaff > 10
+                      ? avail <= 7
+                      : avail === 0 || (currentViewTotalStaff > 1 && avail <= 1);
                     return (
                       <td
                         key={`avail-ft-${dateStr}`}
@@ -1140,7 +1192,7 @@ export const ExamLeaveTracker: React.FC = () => {
                           padding: '7px 2px',
                           borderTop: '1px solid #33438A',
                           borderRight: '1px solid #1B2A6B',
-                          background: isFri ? '#3F1D2B' : isDeficit && totalStaffCount > 0 ? '#9B2C2C' : '#141F52',
+                          background: isFri ? '#3F1D2B' : isDeficit && currentViewTotalStaff > 0 ? '#9B2C2C' : '#141F52',
                           color: isFri ? '#E3B3B3' : '#ffffff',
                           fontWeight: 800,
                           fontSize: '11px'

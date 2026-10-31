@@ -2565,13 +2565,25 @@ html[data-ui-theme="glass"] .exam-code-chip {
 }
 
 /* Exam Matrix Footer Total Rows */
+.exam-footer-row td,
+.exam-footer-sticky {
+  color: #ffffff !important;
+}
+.exam-footer-row.total td {
+  background-color: #1B2A6B;
+}
+.exam-footer-row.avail td {
+  background-color: #141F52;
+}
 html[data-ui-theme="glass"] .exam-footer-row.total td,
 html[data-ui-theme="glass"] .exam-footer-row.avail td {
   border-top-color: rgba(255, 255, 255, 0.20) !important;
+  color: #ffffff !important;
 }
 html[data-ui-theme="glass"] .exam-footer-sticky {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  color: #ffffff !important;
 }
 
 /* Roster Cards in Exam Leave */
