@@ -141,7 +141,7 @@ export const UserAnalyticsDashboard: React.FC = () => {
             <BarChart3 size={18} /> User Analytics
           </h3>
           <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', marginTop: '4px' }}>
-            Logins per person and the clients they work on. Logins are counted from {data?.trackingSince ? fmtWhen(data.trackingSince) : 'the first login recorded'}; client activity comes from the Task Log.
+            Logins per person and the clients they work on. A login is counted when someone signs in or opens the app (once per 4 hours). Counting starts from {data?.trackingSince ? fmtWhen(data.trackingSince) : 'the first login recorded'}; client activity comes from the Task Log.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -159,7 +159,7 @@ export const UserAnalyticsDashboard: React.FC = () => {
       {data && (
         <>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <Tile label="Logins today" value={data.loginsToday} />
+            <Tile label="Logins today" value={data.loginsToday} sub={`${data.activeUsersToday} different people`} />
             <Tile label="Logins this week" value={data.loginsWeek} sub={`${data.activeUsersWeek} different people (last 7 days)`} />
             <Tile label="Logins in range" value={data.logins} sub={`${data.activeUsers} of ${activeStaff} active staff`} />
             <Tile label="Never logged in" value={neverLoggedIn} sub="active staff, since tracking began" />

@@ -2003,6 +2003,13 @@ export const api = {
         return { success: true } as T;
       }
 
+      case 'sessionPing': {
+        const session = readSession();
+        if (!session) return { success: false } as T;
+        try { await supabase.rpc('app_session_ping', { p_session: session.token }); } catch {}
+        return { success: true } as T;
+      }
+
       case 'userAnalyticsGet': {
         const session = readSession();
         if (!session) throw new Error('Please log out and log in again.');
@@ -3589,6 +3596,9 @@ export const api = {
         }
         return { success: true } as T;
       }
+
+      case 'sessionPing':
+        return { success: true } as T;
 
       case 'userAnalyticsGet':
         throw new Error('User Analytics needs the live database.');

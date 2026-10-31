@@ -3,6 +3,7 @@ import { useLivePolling } from '../lib/useLivePolling';
 import { adminService } from '../services/adminService';
 import { authService } from '../services/authService';
 import { clientService } from '../services/clientService';
+import { userAnalyticsService } from '../services/userAnalyticsService';
 import { Client, User } from '../types';
 
 interface AuthContextType {
@@ -86,6 +87,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     refreshContextData();
   }, []);
+
+  // Count this visit for User Analytics: once when the app opens signed in, and again when a tab left open
+  // comes back into view after a while (the database keeps at most one entry per person per 4 hours)
+  const userId = currentUser?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let last = Date.now();
+    userAnalyticsService.ping();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && Date.now() - last > 30 * 60 * 1000) {
+        last = Date.now();
+        userAnalyticsService.ping();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [userId]);
 
   // Only show the global loading screen after the credentials are accepted:
   // showing it earlier unmounts the login/signup form and drops its error message.

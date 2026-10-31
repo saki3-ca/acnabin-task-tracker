@@ -2,7 +2,8 @@
 -- USER ANALYTICS (Admin Panel -> User Analytics)
 -- Run once in Supabase Dashboard -> SQL Editor. Safe to run again.
 --
--- What it records: every successful login (user_login_logs), from now on.
+-- What it records: every password login, plus every time the app is opened with a saved session (at most one
+-- row per person per 4 hours) in user_login_logs, from now on.
 -- Logins before you ran this file are rebuilt from the sessions that still exist (one per login, 30-day life),
 -- so older history is partial. "Client activity" comes from the Task Log (task_history): every task created or
 -- changed counts as one action by the person who did it, on that task's client.
@@ -70,6 +71,32 @@ BEGIN
 END;
 $$;
 
+-- The app calls this each time it is opened with a saved session (people stay signed in for 30 days, so many
+-- visits never go through the password login). Adds one row to the login log unless this person already has
+-- one in the last 4 hours. Returns 'OK' | 'NO_ACCESS'.
+CREATE OR REPLACE FUNCTION public.app_session_ping(p_session TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  v_user_id TEXT;
+BEGIN
+  SELECT u.id INTO v_user_id
+  FROM public.user_sessions s JOIN public.users u ON u.id = s.user_id
+  WHERE s.token_hash = encode(digest(COALESCE(p_session, ''), 'sha256'), 'hex')
+    AND s.expires_at > NOW() AND u.status = 'ACTIVE';
+  IF v_user_id IS NULL THEN RETURN 'NO_ACCESS'; END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.user_login_logs
+                 WHERE user_id = v_user_id AND logged_in_at > NOW() - INTERVAL '4 hours') THEN
+    INSERT INTO public.user_login_logs (user_id) VALUES (v_user_id);
+  END IF;
+  RETURN 'OK';
+END;
+$$;
+
 -- Saves the signed-in person's Classic/Glass choice on their account
 CREATE OR REPLACE FUNCTION public.app_user_theme_set(p_session TEXT, p_theme TEXT)
 RETURNS TEXT
@@ -128,6 +155,8 @@ BEGIN
                     WHERE (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date = v_today),
     'loginsWeek', (SELECT COUNT(*) FROM public.user_login_logs
                    WHERE (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date > v_today - 7),
+    'activeUsersToday', (SELECT COUNT(DISTINCT user_id) FROM public.user_login_logs
+                         WHERE (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date = v_today),
     'activeUsers', (SELECT COUNT(DISTINCT user_id) FROM public.user_login_logs WHERE logged_in_at >= v_from),
     'activeUsersWeek', (SELECT COUNT(DISTINCT user_id) FROM public.user_login_logs
                         WHERE (logged_in_at AT TIME ZONE 'Asia/Dhaka')::date > v_today - 7),
@@ -212,6 +241,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.app_session_ping(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.app_session_ping(TEXT) TO anon, authenticated;
 REVOKE ALL ON FUNCTION public.app_user_theme_set(TEXT, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.app_user_analytics_get(TEXT, INT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.app_user_theme_set(TEXT, TEXT) TO anon, authenticated;

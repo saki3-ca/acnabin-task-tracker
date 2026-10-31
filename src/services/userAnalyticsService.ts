@@ -22,6 +22,7 @@ export interface UserAnalytics {
   logins: number;
   loginsToday: number;
   loginsWeek: number;
+  activeUsersToday: number;
   activeUsers: number;
   activeUsersWeek: number;
   daily: { date: string; logins: number; users: number }[];
@@ -33,6 +34,11 @@ export interface UserAnalytics {
 }
 
 export const userAnalyticsService = {
+  /** Tell the database this person just opened the app with a saved session (counted at most once per 4 hours). */
+  ping(): void {
+    void api.callBackend('sessionPing').catch(() => {});
+  },
+
   /** Admin only. days = how far back (0 = all time). */
   async get(days: number): Promise<UserAnalytics> {
     return api.callBackend<UserAnalytics>('userAnalyticsGet', { days });
