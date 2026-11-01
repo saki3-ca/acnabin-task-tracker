@@ -2044,6 +2044,8 @@ export const api = {
         if (!session) throw new Error('Please log out and log in again.');
         const { data, error } = await supabase.rpc('app_exam_leave_list', { p_session: session.token });
         if (error) throw new Error('Could not load exam leave. Has supabase_exam_leaves.sql been run?');
+        // The database answers NULL (not an empty list) when the saved login session is missing or expired
+        if (data === null) throw new Error('Your login has expired. Please log out and log in again to see Exam Leave.');
         return ((data as any[]) || []) as T;
       }
 

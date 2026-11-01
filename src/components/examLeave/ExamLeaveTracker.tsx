@@ -80,7 +80,7 @@ export const ExamLeaveTracker: React.FC = () => {
 
   // My leave: one per person, covering every level (PL, AL, CL) in the same record
   const myRecordIds = useMemo(
-    () => new Set(allRecords.filter(r => sameName(r.name, currentUser?.name)).map(r => r.id)),
+    () => new Set(allRecords.filter(r => (currentUser && r.userId === currentUser.id) || sameName(r.name, currentUser?.name)).map(r => r.id)),
     [allRecords, currentUser]
   );
   const hasMyRecord = myRecordIds.size > 0;
@@ -101,10 +101,9 @@ export const ExamLeaveTracker: React.FC = () => {
       u => u.status !== 'INACTIVE' && u.role !== 'ADMIN' && (u.id === currentUser.id || getUserAssignedClientIds(u).some(id => mine.has(id)))
     );
   }, [allUsers, currentUser]);
-  const records = useMemo(() => {
-    if (canSeeEveryone) return allRecords;
-    return allRecords.filter(r => sameName(r.name, currentUser?.name) || teamUsers.some(u => sameName(u.name, r.name)));
-  }, [allRecords, canSeeEveryone, teamUsers, currentUser]);
+  // The database already returns only the leaves this person may see (matched by account, not by how the name
+  // is spelled), so they are shown as they come. Filtering again by name here made some people see a blank page.
+  const records = allRecords;
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingLocal, setPendingLocal] = useState<{ id: string; name: string; reason: string }[]>([]);
@@ -198,7 +197,7 @@ export const ExamLeaveTracker: React.FC = () => {
   const canEditRecord = (r: StaffExamLeaveRecord): boolean => {
     if (isAdmin || myRecordIds.has(r.id)) return true;
     if (!currentUser || !isSAMOrAbove(currentUser.designation)) return false;
-    return canSeeEveryone || teamUsers.some(u => sameName(u.name, r.name));
+    return canSeeEveryone || teamUsers.some(u => u.id === r.userId || sameName(u.name, r.name));
   };
 
   // Map user names to their assigned client names (live from allUsers and allClients)
@@ -209,6 +208,7 @@ export const ExamLeaveTracker: React.FC = () => {
       const names = cids.map(cid => allClients.find(c => c.id === cid)?.name).filter(Boolean) as string[];
       if (names.length > 0) {
         map.set(u.name.toLowerCase().trim(), names);
+        map.set(`id:${u.id}`, names);
       }
     });
     return map;
@@ -218,7 +218,7 @@ export const ExamLeaveTracker: React.FC = () => {
   // If the user has assigned clients in the system, their live assignments take priority.
   // Falls back to r.category for historical or unlinked records.
   const getRecordClients = useCallback((r: StaffExamLeaveRecord): string[] => {
-    const liveClients = userClientMap.get(r.name.toLowerCase().trim());
+    const liveClients = (r.userId && userClientMap.get(`id:${r.userId}`)) || userClientMap.get(r.name.toLowerCase().trim());
     if (liveClients && liveClients.length > 0) {
       return liveClients;
     }
@@ -837,7 +837,16 @@ export const ExamLeaveTracker: React.FC = () => {
               </thead>
 
               <tbody>
-                {filteredRecords.length === 0 ? (
+                {loading && allRecords.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={EXAM_TIMELINE_DATES.length + 6}
+                      style={{ padding: '70px 20px', textAlign: 'center', background: '#ffffff', color: 'var(--ink-soft)', fontSize: '13.5px', fontWeight: 600 }}
+                    >
+                      Loading exam leave…
+                    </td>
+                  </tr>
+                ) : filteredRecords.length === 0 ? (
                   <tr>
                     <td
                       colSpan={EXAM_TIMELINE_DATES.length + 6}
@@ -866,7 +875,7 @@ export const ExamLeaveTracker: React.FC = () => {
                         No Exam Leave Records Found
                       </h3>
                       <p style={{ fontSize: '12.5px', color: 'var(--ink-soft)', maxWidth: '420px', margin: '0 auto 16px' }}>
-                        All previous data has been reset for a fresh start. Students and employees can now submit their ICAB exam leave applications.
+                        {hasActiveFilters ? 'No candidates match your search or filters.' : 'Nobody has submitted an exam leave that you can see yet. If you have already applied and it is missing, log out and log in again.'}
                       </p>
                       <button
                         type="button"
