@@ -145,21 +145,23 @@ const labelFor = (name: string, all: string[]): string => {
 
 /**
  * Profit or loss per client as an HTML list (not an SVG), so names are real text: full name, wraps to two lines,
- * stays readable on any screen. Every client is listed, best first, worst last; the list scrolls when long.
- * The bar grows right (green) for profit and left (red) for loss from a shared zero line.
+ * stays readable on any screen. Best first, worst last: with many clients only the top 6 and bottom 6 show,
+ * and "Show all" lists the rest. The bar grows right (green) for profit and left (red) for loss from a shared zero line.
  */
-export const ClientProfitBars: React.FC<{ clients: ClientTotals[] }> = ({ clients }) => {
+export const ClientProfitBars: React.FC<{ clients: ClientTotals[]; limit?: number }> = ({ clients, limit = 12 }) => {
   const C = useColors();
+  const [showAll, setShowAll] = useState(false);
   const list = [...clients].sort((a, b) => b.profit - a.profit);
+  const half = Math.ceil(limit / 2);
+  const cut = !showAll && list.length > limit;
+  const hidden = cut ? list.length - limit : 0;
   if (list.length === 0) return <div style={{ color: 'var(--ink-muted)', fontSize: 13, padding: 24 }}>No data for this selection.</div>;
   const maxGain = Math.max(...list.map(c => c.profit), 0);
   const maxLoss = Math.max(...list.map(c => -c.profit), 0);
   const span = maxGain + maxLoss || 1;
   // where zero sits in the bar track (0% = all loss, 100% = all profit)
   const zero = (maxLoss / span) * 100;
-  return (
-    <div className="fc-pl-list" role="list" aria-label="Profit or loss by client">
-      {list.map(c => {
+  const row = (c: ClientTotals) => {
         const w = (Math.abs(c.profit) / span) * 100;
         const loss = c.profit < 0;
         return (
@@ -183,8 +185,24 @@ export const ClientProfitBars: React.FC<{ clients: ClientTotals[] }> = ({ client
             <span className="fc-pl-value" style={{ color: loss ? C.loss : C.gain }}>{loss ? '−' : ''}{fmtShort(Math.abs(c.profit))}</span>
           </div>
         );
-      })}
-    </div>
+  };
+  return (
+    <>
+      <div className={`fc-pl-list${showAll ? ' all' : ''}`} role="list" aria-label="Profit or loss by client">
+        {cut ? (
+          <>
+            {list.slice(0, half).map(row)}
+            <button type="button" className="fc-pl-more" onClick={() => setShowAll(true)}>
+              ⋯ {hidden} more client{hidden === 1 ? '' : 's'} in between · Show all
+            </button>
+            {list.slice(list.length - (limit - half)).map(row)}
+          </>
+        ) : list.map(row)}
+      </div>
+      {showAll && list.length > limit && (
+        <button type="button" className="fc-pl-more" onClick={() => setShowAll(false)}>Show top 6 and bottom 6 only</button>
+      )}
+    </>
   );
 };
 
