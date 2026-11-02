@@ -19,6 +19,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   switchUser: (userId: string) => Promise<void>;
   refreshContextData: () => Promise<void>;
+  /** The saved login on this browser is missing or expired: data screens come up blank until they log in again. */
+  sessionExpired: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const allUsers = useMemo(() => everyone.filter(u => u.status !== 'INACTIVE'), [everyone]);
   const [allClients, setAllClients] = useState<Client[]>(() => clientService.getCachedAllClients() || []);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const refreshContextData = async () => {
     try {
@@ -96,13 +99,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // comes back into view after a while (the database keeps at most one entry per person per 4 hours)
   const userId = currentUser?.id;
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setSessionExpired(false);
+      return;
+    }
     let last = Date.now();
-    userAnalyticsService.ping();
+    const check = () => {
+      void userAnalyticsService.ping().then(valid => {
+        if (valid !== null) setSessionExpired(!valid);
+      });
+    };
+    check();
     const onVisible = () => {
       if (document.visibilityState === 'visible' && Date.now() - last > 30 * 60 * 1000) {
         last = Date.now();
-        userAnalyticsService.ping();
+        check();
       }
     };
     document.addEventListener('visibilitychange', onVisible);
@@ -170,7 +181,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         switchUser,
-        refreshContextData
+        refreshContextData,
+        sessionExpired
       }}
     >
       {children}

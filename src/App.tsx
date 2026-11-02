@@ -34,7 +34,7 @@ import { FirmCosting } from './components/firmCosting/FirmCosting';
 import { ExamLeaveTracker } from './components/examLeave/ExamLeaveTracker';
 
 const MainApp: React.FC = () => {
-  const { currentUser, isLoading: authLoading } = useAuth();
+  const { currentUser, isLoading: authLoading, sessionExpired, logout } = useAuth();
   const { myTasks, teamTasks, teamFilters, myStats, teamStats, isLoading: tasksLoading, toast } = useTasks();
 
   const [activeTab, setActiveTab] = useState<TabKey>('own');
@@ -181,6 +181,19 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="app-container">
+      {sessionExpired && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap',
+            background: '#FEF3C7', color: '#92400E', border: '1px solid #FCD34D', borderRadius: '8px',
+            padding: '10px 14px', margin: '8px 0', fontSize: '13px', fontWeight: 600
+          }}
+        >
+          <span>Your login on this device has expired, so some details (profile, exam leave, salary info) may show blank. Please log out and log in again.</span>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => void logout()}>Log out now</button>
+        </div>
+      )}
       {/* Header & User Profile Bar */}
       <Header 
         onOpenAddTask={() => handleOpenAddTask('own')} 

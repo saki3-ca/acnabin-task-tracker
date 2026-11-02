@@ -2013,10 +2013,16 @@ export const api = {
       }
 
       case 'sessionPing': {
+        // valid: true / false when the database could say; null when it could not (offline, function missing)
         const session = readSession();
-        if (!session) return { success: false } as T;
-        try { await supabase.rpc('app_session_ping', { p_session: session.token }); } catch {}
-        return { success: true } as T;
+        if (!session) return { success: false, valid: false } as T;
+        try {
+          const { data, error } = await supabase.rpc('app_session_ping', { p_session: session.token });
+          if (error) return { success: false, valid: null } as T;
+          return { success: true, valid: data === 'OK' ? true : data === 'NO_ACCESS' ? false : null } as T;
+        } catch {
+          return { success: false, valid: null } as T;
+        }
       }
 
       case 'userAnalyticsGet': {
@@ -3609,7 +3615,7 @@ export const api = {
       }
 
       case 'sessionPing':
-        return { success: true } as T;
+        return { success: true, valid: true } as T;
 
       case 'userAnalyticsGet':
         throw new Error('User Analytics needs the live database.');

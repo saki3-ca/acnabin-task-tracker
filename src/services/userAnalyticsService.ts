@@ -34,9 +34,17 @@ export interface UserAnalytics {
 }
 
 export const userAnalyticsService = {
-  /** Tell the database this person just opened the app with a saved session (counted at most once per 4 hours). */
-  ping(): void {
-    void api.callBackend('sessionPing').catch(() => {});
+  /**
+   * Tell the database this person just opened the app with a saved session (counted at most once per 4 hours).
+   * Resolves true / false when the saved login is valid / expired, null when that could not be checked.
+   */
+  async ping(): Promise<boolean | null> {
+    try {
+      const res = await api.callBackend<{ valid: boolean | null }>('sessionPing');
+      return res?.valid ?? null;
+    } catch {
+      return null;
+    }
   },
 
   /** Admin only. days = how far back (0 = all time). */
