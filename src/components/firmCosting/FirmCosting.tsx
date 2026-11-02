@@ -3,7 +3,7 @@ import { BarChart3, Check, Download, Palette, PencilLine, Users } from 'lucide-r
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { FcColorsContext, FcTheme, THEMES, THEME_COLORS, isFcTheme } from './chartColors';
-import { ClientCost, clientNameOf, currentMonth, loadClientCosts, monthLabel, monthRange, projectRevenue, summarize } from '../../lib/firmCosting';
+import { ClientCost, UNALLOCATED_ID, clientNameOf, currentMonth, loadClientCosts, monthLabel, monthRange, projectRevenue, summarize } from '../../lib/firmCosting';
 import { firmCostingService } from '../../services/firmCostingService';
 import { FirmCostingRow } from '../../types';
 import { DashSection, Dashboard } from './Dashboard';
@@ -76,11 +76,13 @@ export const FirmCosting: React.FC = () => {
   const to = from && toRaw < from ? from : toRaw;
 
   const months = useMemo(() => (from && to && from <= to ? monthRange(from, to) : []), [from, to]);
+  // clients with invoices and clients with people on them (cost but maybe no invoice)
   const clientOptions = useMemo(() => {
     const m = new Map<string, string>();
+    costs.forEach((_, id) => { if (id !== UNALLOCATED_ID) m.set(id, clientNameOf(allClients, id, id)); });
     rows.forEach(r => m.set(r.clientId, r.clientName));
     return Array.from(m, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [rows]);
+  }, [rows, costs, allClients]);
 
   const summary = useMemo(() => summarize(rows, costs, includeConveyance, months, clientId, id => clientNameOf(allClients, id, id)), [rows, costs, includeConveyance, months, clientId, allClients]);
 
@@ -94,10 +96,14 @@ export const FirmCosting: React.FC = () => {
     const ws = wb.addWorksheet('Client-wise');
     ws.addRow([`Firm costing ${monthLabel(from, false)} to ${monthLabel(to, false)} (${includeConveyance ? 'with' : 'without'} conveyance)`]).font = { bold: true, size: 13 };
     ws.addRow([]);
-    ws.addRow(['Client', 'Type', 'Months', 'Invoice value (incl. VAT & tax)', 'Net revenue', 'Cost', 'Profit / loss', 'Margin %', 'Budget']).font = { bold: true };
-    summary.perClient.forEach(c => ws.addRow([c.clientName, c.engagement === 'ONE_TIME' ? 'One-time' : 'Recurring', c.months.length, c.gross, c.revenue, c.cost, c.profit, c.margin === null ? '' : Number(c.margin.toFixed(1)), c.budget]));
-    if (summary.unallocatedCost > 0) ws.addRow(['Unallocated cost', '', '', '', '', summary.unallocatedCost]);
-    ws.addRow(['Firm total', '', '', summary.gross, summary.revenue, summary.cost, summary.profit, summary.margin === null ? '' : Number(summary.margin.toFixed(1)), summary.budget]).font = { bold: true };
+    ws.addRow(['Client', 'Type', 'People', 'Months billed', 'Invoice value (incl. VAT & tax)', 'Net revenue', 'Cost', 'Profit / loss', 'Margin %', 'Budget']).font = { bold: true };
+    summary.perClient.forEach(c => ws.addRow([
+      c.clientName,
+      c.engagement === 'NOT_BILLED' ? 'Not billed' : c.engagement === 'ONE_TIME' ? 'One-time' : 'Recurring',
+      c.people, c.months.length, c.gross, c.revenue, c.cost, c.profit, c.margin === null ? '' : Number(c.margin.toFixed(1)), c.budget
+    ]));
+    if (summary.unallocatedCost > 0) ws.addRow(['People with no client (firm overhead)', '', '', '', '', '', summary.unallocatedCost]);
+    ws.addRow(['Firm total', '', '', '', summary.gross, summary.revenue, summary.cost, summary.profit, summary.margin === null ? '' : Number(summary.margin.toFixed(1)), summary.budget]).font = { bold: true };
     const ms = wb.addWorksheet('Month-wise');
     ms.addRow(['Month', 'Invoice value (incl. VAT & tax)', 'Net revenue', 'Cost', 'Profit / loss', 'Budget']).font = { bold: true };
     summary.perMonth.forEach(m => ms.addRow([monthLabel(m.month, false), m.gross, m.revenue, m.cost, m.profit, m.budget]));

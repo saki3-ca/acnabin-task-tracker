@@ -18,7 +18,10 @@ const Card: React.FC<{ title: string; sub?: string; cls: string; light?: boolean
   );
 };
 
-type SortKey = 'clientName' | 'revenue' | 'cost' | 'profit' | 'margin' | 'budget';
+type SortKey = 'clientName' | 'people' | 'revenue' | 'cost' | 'profit' | 'margin' | 'budget';
+type ClientFilter = 'all' | 'billed' | 'unbilled' | 'loss';
+
+const typeLabel = (c: ClientTotals) => (c.engagement === 'NOT_BILLED' ? 'Not billed' : c.engagement === 'ONE_TIME' ? 'One-time' : 'Recurring');
 
 interface Props {
   section: DashSection;
@@ -31,17 +34,25 @@ interface Props {
 
 export const Dashboard: React.FC<Props> = ({ section, summary: s, projection, includeConveyance, singleClient }) => {
   const C = useColors();
-  const [sortKey, setSortKey] = useState<SortKey>('revenue');
-  const [asc, setAsc] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('profit');
+  const [asc, setAsc] = useState(true);
+  const [filter, setFilter] = useState<ClientFilter>('all');
+
+  const visible = useMemo(() => s.perClient.filter(c =>
+    filter === 'billed' ? c.engagement !== 'NOT_BILLED'
+      : filter === 'unbilled' ? c.engagement === 'NOT_BILLED'
+        : filter === 'loss' ? c.profit < 0
+          : true
+  ), [s.perClient, filter]);
 
   const sorted = useMemo(() => {
     const val = (c: ClientTotals): number | string => (sortKey === 'margin' ? (c.margin ?? -Infinity) : c[sortKey]);
-    return [...s.perClient].sort((a, b) => {
+    return [...visible].sort((a, b) => {
       const x = val(a), y = val(b);
       const r = typeof x === 'string' ? x.localeCompare(String(y)) : (x as number) - (y as number);
       return asc ? r : -r;
     });
-  }, [s.perClient, sortKey, asc]);
+  }, [visible, sortKey, asc]);
 
   const head = (k: SortKey, label: string, right = true) => (
     <th style={{ textAlign: right ? 'right' : 'left', cursor: 'pointer', userSelect: 'none' }} onClick={() => { if (sortKey === k) setAsc(!asc); else { setSortKey(k); setAsc(k === 'clientName'); } }}>
@@ -50,7 +61,7 @@ export const Dashboard: React.FC<Props> = ({ section, summary: s, projection, in
   );
 
   if (s.perClient.length === 0) {
-    return <div className="fc-glass fc-empty">No invoice figures for this period yet. Use “Monthly Entry” to add them.</div>;
+    return <div className="fc-glass fc-empty">No invoices and no manpower cost for this period yet. Use “Monthly Entry” to add invoice figures.</div>;
   }
 
   const monthCount = Math.max(s.months.length, 1);
@@ -61,7 +72,13 @@ export const Dashboard: React.FC<Props> = ({ section, summary: s, projection, in
   const top3 = s.perClient.slice(0, 3).reduce((t, c) => t + c.revenue, 0);
   const best = [...s.perClient].sort((a, b) => b.profit - a.profit)[0];
   const worst = [...s.perClient].sort((a, b) => a.profit - b.profit)[0];
-  const billedCost = s.perClient.reduce((t, c) => t + c.cost, 0);
+  const unbilled = s.perClient.filter(c => c.engagement === 'NOT_BILLED');
+  const unbilledCost = unbilled.reduce((t, c) => t + c.cost, 0);
+  const billedCount = s.perClient.length - unbilled.length;
+  const lossTotal = lossClients.reduce((t, c) => t + c.profit, 0);
+  const shownRevenue = visible.reduce((t, c) => t + c.revenue, 0);
+  const shownCost = visible.reduce((t, c) => t + c.cost, 0);
+  const shownBudget = visible.reduce((t, c) => t + c.budget, 0);
   const revenueSlices = s.perClient.map(c => ({ label: c.clientName, value: c.revenue }));
   const costSlices = s.costByClient.map(c => ({ label: c.clientName, value: c.cost }));
 
@@ -176,37 +193,82 @@ export const Dashboard: React.FC<Props> = ({ section, summary: s, projection, in
     );
   }
 
+  const filterBtn = (k: ClientFilter, label: string, count: number) => (
+    <button type="button" className={`fc-filter-btn${filter === k ? ' on' : ''}`} onClick={() => setFilter(k)}>
+      {label}<span>{count}</span>
+    </button>
+  );
+
   return (
     <>
       <div className="fc-grid">
-        <Card title="Profit and loss by client" sub={s.perClient.length > 12 ? 'Top 6 and bottom 6 shown' : undefined} cls="fc-c6 fc-t9">
-          <ClientProfitBars clients={s.perClient} />
+        <div className="fc-glass fc-tile fc-c3 fc-t4">
+          <span className="fc-tile-label">Clients with cost or revenue</span>
+          <span className="fc-tile-value">{s.perClient.length}</span>
+          <span className="fc-tile-note">{s.perClient.reduce((t, c) => t + c.people, 0)} people on them</span>
+        </div>
+        <div className="fc-glass fc-tile fc-c3 fc-t5">
+          <span className="fc-tile-label">Billed</span>
+          <span className="fc-tile-value" style={{ color: C.gain }}>{billedCount}</span>
+          <span className="fc-tile-note">{fmtBDT(s.revenue)} net revenue</span>
+        </div>
+        <div className="fc-glass fc-tile fc-c3 fc-t2">
+          <span className="fc-tile-label">Not billed (cost, no invoice)</span>
+          <span className="fc-tile-value" style={{ color: unbilled.length ? C.loss : undefined }}>{unbilled.length}</span>
+          <span className="fc-tile-note">{fmtBDT(unbilledCost)} cost with no revenue</span>
+        </div>
+        <div className="fc-glass fc-tile fc-c3 fc-t6">
+          <span className="fc-tile-label">Loss-making</span>
+          <span className="fc-tile-value" style={{ color: lossClients.length ? C.loss : undefined }}>{lossClients.length}</span>
+          <span className="fc-tile-note">{lossClients.length ? `−${fmtBDT(Math.abs(lossTotal))} combined loss` : 'None in this period'}</span>
+        </div>
+      </div>
+
+      <div className="fc-grid">
+        <Card title="Profit and loss by client" sub={visible.length > 12 ? 'Top 6 and bottom 6 shown' : 'Every client with people or invoices; red = cost is more than revenue'} cls="fc-c6 fc-t9">
+          <ClientProfitBars clients={visible} />
         </Card>
         <Card title="Budget against actual" sub="Grey = budget, coloured = actual net revenue (green once met)" cls="fc-c6 fc-t7" light>
-          <BudgetBars clients={s.perClient} />
+          <BudgetBars clients={visible} />
         </Card>
       </div>
-      <div className="fc-grid">
-        {!singleClient && (
+
+      {!singleClient && (
+        <div className="fc-grid">
           <Card title="Management view" cls="fc-c12 fc-t7">
             <ul className="fc-notes">
-              <li><b>{top.clientName}</b> is the biggest client: {s.revenue > 0 ? ((top.revenue / s.revenue) * 100).toFixed(1) : 0}% of net revenue. The top 3 clients bring {s.revenue > 0 ? ((top3 / s.revenue) * 100).toFixed(1) : 0}%.</li>
-              <li>Best result: <b>{best.clientName}</b> ({fmtBDT(best.profit)}). Weakest: <b>{worst.clientName}</b> ({fmtBDT(worst.profit)}).</li>
+              {unbilled.length > 0 && (
+                <li><b>{unbilled.length} client{unbilled.length === 1 ? ' has' : 's have'} people but no invoice</b> in this period, costing {fmtBDT(unbilledCost)}: {unbilled.slice().sort((x, y) => y.cost - x.cost).slice(0, 5).map(c => c.clientName).join(', ')}{unbilled.length > 5 ? '…' : ''}.</li>
+              )}
+              {top && top.revenue > 0 && (
+                <li><b>{top.clientName}</b> is the biggest client: {s.revenue > 0 ? ((top.revenue / s.revenue) * 100).toFixed(1) : 0}% of net revenue. The top 3 clients bring {s.revenue > 0 ? ((top3 / s.revenue) * 100).toFixed(1) : 0}%.</li>
+              )}
+              <li>Best result: <b>{best.clientName}</b> ({best.profit < 0 ? '−' : ''}{fmtBDT(Math.abs(best.profit))}). Weakest: <b>{worst.clientName}</b> ({worst.profit < 0 ? '−' : ''}{fmtBDT(Math.abs(worst.profit))}).</li>
               <li>{lossClients.length === 0 ? 'No client is loss-making in this period.' : `${lossClients.length} of ${s.perClient.length} clients are loss-making: ${lossClients.slice(0, 5).map(c => c.clientName).join(', ')}${lossClients.length > 5 ? '…' : ''}.`}</li>
-              {s.unallocatedCost > 0 && <li>{fmtBDT(s.unallocatedCost)} of cost is not on any billed client (people with no client, or clients not billed that month). It lowers firm profit but is in no client’s line.</li>}
-              <li>Cost uses today’s manpower salary table for every month shown; past salary changes are not tracked.</li>
+              {s.unallocatedCost > 0 && <li>{fmtBDT(s.unallocatedCost)} is the cost of people with no client. It lowers firm profit but is in no client’s line.</li>}
+              <li>A client’s cost is its people’s cost for every month in the period, billed or not. It uses today’s manpower salary table; past salary changes are not tracked.</li>
             </ul>
           </Card>
-        )}
-      </div>
+        </div>
+      )}
+
       <div className="fc-glass fc-t9" style={{ marginBottom: 12, padding: 8 }}>
+        {!singleClient && (
+          <div className="fc-filter-row">
+            {filterBtn('all', 'All', s.perClient.length)}
+            {filterBtn('billed', 'Billed', billedCount)}
+            {filterBtn('unbilled', 'Not billed', unbilled.length)}
+            {filterBtn('loss', 'Loss-making', lossClients.length)}
+          </div>
+        )}
         <div className="table-responsive">
-          <table className="data-table" style={{ minWidth: 900 }}>
+          <table className="data-table" style={{ minWidth: 960 }}>
             <thead>
               <tr>
                 {head('clientName', 'Client', false)}
                 <th>Type</th>
-                <th style={{ textAlign: 'right' }}>Months</th>
+                {head('people', 'People')}
+                <th style={{ textAlign: 'right' }}>Months billed</th>
                 {head('revenue', 'Net revenue')}
                 {head('cost', 'Cost')}
                 {head('profit', 'Profit / loss')}
@@ -216,13 +278,16 @@ export const Dashboard: React.FC<Props> = ({ section, summary: s, projection, in
               </tr>
             </thead>
             <tbody>
-              {sorted.map(c => (
+              {sorted.length === 0 ? (
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: 20, color: 'var(--ink-muted)' }}>No client in this group.</td></tr>
+              ) : sorted.map(c => (
                 <tr key={c.clientId}>
                   <td style={{ fontWeight: 600 }}>{c.clientName}</td>
-                  <td>{c.engagement === 'ONE_TIME' ? 'One-time' : 'Recurring'}</td>
-                  <td style={{ textAlign: 'right' }}>{c.months.length}</td>
-                  <td style={{ textAlign: 'right' }}>{fmtBDT(c.revenue)}</td>
-                  <td style={{ textAlign: 'right' }}>{fmtBDT(c.cost)}</td>
+                  <td>{c.engagement === 'NOT_BILLED' ? <span className="fc-chip down">Not billed</span> : typeLabel(c)}</td>
+                  <td style={{ textAlign: 'right' }}>{c.people || '—'}</td>
+                  <td style={{ textAlign: 'right' }}>{c.months.length ? `${c.months.length} of ${monthCount}` : '—'}</td>
+                  <td style={{ textAlign: 'right' }}>{c.revenue ? fmtBDT(c.revenue) : '—'}</td>
+                  <td style={{ textAlign: 'right' }}>{c.cost ? fmtBDT(c.cost) : '—'}</td>
                   <td style={{ textAlign: 'right', fontWeight: 700, color: c.profit < 0 ? C.loss : C.gain }}>{c.profit < 0 ? '−' : ''}{fmtBDT(Math.abs(c.profit))}</td>
                   <td style={{ textAlign: 'right' }}>{c.margin === null ? '—' : `${c.margin.toFixed(1)}%`}</td>
                   <td style={{ textAlign: 'right' }}>{c.budget ? fmtBDT(c.budget) : '—'}</td>
@@ -232,22 +297,22 @@ export const Dashboard: React.FC<Props> = ({ section, summary: s, projection, in
             </tbody>
             <tfoot>
               <tr style={{ fontWeight: 700 }}>
-                <td colSpan={3}>{singleClient ? 'Total' : 'Billed clients'}</td>
-                <td style={{ textAlign: 'right' }}>{fmtBDT(s.revenue)}</td>
-                <td style={{ textAlign: 'right' }}>{fmtBDT(billedCost)}</td>
-                <td style={{ textAlign: 'right' }}>{fmtBDT(s.revenue - billedCost)}</td>
-                <td /><td style={{ textAlign: 'right' }}>{s.budget ? fmtBDT(s.budget) : '—'}</td><td />
+                <td colSpan={4}>{singleClient ? 'Total' : filter === 'all' ? 'All clients' : `Shown (${sorted.length})`}</td>
+                <td style={{ textAlign: 'right' }}>{fmtBDT(shownRevenue)}</td>
+                <td style={{ textAlign: 'right' }}>{fmtBDT(shownCost)}</td>
+                <td style={{ textAlign: 'right', color: shownRevenue - shownCost < 0 ? C.loss : C.gain }}>{shownRevenue - shownCost < 0 ? '−' : ''}{fmtBDT(Math.abs(shownRevenue - shownCost))}</td>
+                <td /><td style={{ textAlign: 'right' }}>{shownBudget ? fmtBDT(shownBudget) : '—'}</td><td />
               </tr>
-              {s.unallocatedCost > 0 && (
+              {!singleClient && filter === 'all' && s.unallocatedCost > 0 && (
                 <tr>
-                  <td colSpan={4}>Unallocated cost (no client / not billed that month)</td>
+                  <td colSpan={5}>People with no client (firm overhead)</td>
                   <td style={{ textAlign: 'right' }}>{fmtBDT(s.unallocatedCost)}</td>
                   <td colSpan={4} />
                 </tr>
               )}
-              {!singleClient && (
+              {!singleClient && filter === 'all' && (
                 <tr style={{ fontWeight: 700 }}>
-                  <td colSpan={3}>Firm total</td>
+                  <td colSpan={4}>Firm total</td>
                   <td style={{ textAlign: 'right' }}>{fmtBDT(s.revenue)}</td>
                   <td style={{ textAlign: 'right' }}>{fmtBDT(s.cost)}</td>
                   <td style={{ textAlign: 'right', color: s.profit < 0 ? C.loss : C.gain }}>{s.profit < 0 ? '−' : ''}{fmtBDT(Math.abs(s.profit))}</td>

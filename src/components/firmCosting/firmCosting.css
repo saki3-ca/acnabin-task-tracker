@@ -130,14 +130,27 @@
 
 /* bento grid */
 .fc-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.fc-c3 { grid-column: span 3; }
 .fc-c4 { grid-column: span 4; }
 .fc-c5 { grid-column: span 5; }
 .fc-c6 { grid-column: span 6; }
 .fc-c7 { grid-column: span 7; }
 .fc-c8 { grid-column: span 8; }
 .fc-c12 { grid-column: span 12; }
-@media (max-width: 1100px) { .fc-c4, .fc-c5, .fc-c7, .fc-c8 { grid-column: span 6; } }
+@media (max-width: 1100px) { .fc-c3, .fc-c4, .fc-c5, .fc-c7, .fc-c8 { grid-column: span 6; } }
 @media (max-width: 760px) { .fc-c4, .fc-c5, .fc-c6, .fc-c7, .fc-c8 { grid-column: span 12; } }
+
+/* client filter (All / Billed / Not billed / Loss-making) */
+.fc-filter-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 4px 10px; }
+.fc-filter-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid var(--fc-line, rgba(0, 0, 0, 0.12)); background: transparent; color: var(--ink-soft);
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.fc-filter-btn span { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--fc-hover, rgba(0, 0, 0, 0.06)); }
+.fc-filter-btn:hover { color: var(--ink); background: var(--fc-hover, rgba(0, 0, 0, 0.04)); }
+.fc-filter-btn.on { background: var(--fc-dock-on-bg, #1f2937); color: var(--fc-dock-on-ink, #fff); border-color: transparent; }
+.fc-filter-btn.on span { background: rgba(255, 255, 255, 0.22); }
 
 .fc-card-title { font-weight: 700; font-size: 14px; color: var(--ink); }
 .fc-card-sub { font-size: 11.5px; color: var(--ink-soft); margin: 2px 0 10px; }

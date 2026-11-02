@@ -93,8 +93,9 @@ export interface MonthTotals {
 export interface ClientTotals {
   clientId: string;
   clientName: string;
-  engagement: 'RECURRING' | 'ONE_TIME';
-  /** months that have a row, oldest first */
+  /** NOT_BILLED: people (cost) on the client but no invoice in the period */
+  engagement: 'RECURRING' | 'ONE_TIME' | 'NOT_BILLED';
+  /** months that have an invoice row, oldest first */
   months: string[];
   gross: number;
   revenue: number;
@@ -114,7 +115,7 @@ export interface CostingSummary {
   gross: number;
   revenue: number;
   cost: number;
-  /** manpower cost that cannot be pinned on an invoiced client that month (no client, or no invoice that month) */
+  /** manpower cost of people with no client (firm overhead, in no client's line) */
   unallocatedCost: number;
   profit: number;
   margin: number | null;
@@ -123,9 +124,10 @@ export interface CostingSummary {
 }
 
 /**
- * Cost model: a client's monthly cost is its manpower cost (salary, plus conveyance when asked), counted in every month it has a row.
- * Manpower cost of people with no client, or of clients with no row that month, is firm overhead: it is in the firm cost
- * and profit but in no client's line.
+ * Cost model: a client's cost is its manpower cost (salary, plus conveyance when asked) for EVERY month in the period,
+ * billed or not: the people are paid whether or not an invoice went out. Every client with people on it is listed, so a
+ * client with cost and no invoice shows as a loss. Only the cost of people with no client is firm overhead (in the firm
+ * cost and profit, in no client's line).
  */
 export function summarize(
   rows: FirmCostingRow[],
@@ -153,39 +155,44 @@ export function summarize(
     const revenue = mr.reduce((s, r) => s + netRevenue(r), 0);
     const gross = mr.reduce((s, r) => s + r.invoiceValue, 0);
     const budget = mr.reduce((s, r) => s + r.budget, 0);
-    const cost = clientId
-      ? (mr.length ? costOf(clientId) : 0)
-      : totalFirmMonthlyCost;
+    const cost = clientId ? costOf(clientId) : totalFirmMonthlyCost;
     return { month, revenue, gross, cost, profit: revenue - cost, budget };
   });
 
+  // every client that has people (cost) or an invoice in the period
   const byClient = new Map<string, ClientTotals>();
-  scoped.forEach(r => {
-    let c = byClient.get(r.clientId);
+  const lineFor = (id: string): ClientTotals => {
+    let c = byClient.get(id);
     if (!c) {
       c = {
-        clientId: r.clientId, clientName: r.clientName, engagement: r.engagement, months: [],
-        gross: 0, revenue: 0, cost: 0, profit: 0, margin: null, budget: 0, people: costs.get(r.clientId)?.people || 0
+        clientId: id, clientName: nameOf(id), engagement: 'NOT_BILLED', months: [],
+        gross: 0, revenue: 0, cost: costOf(id) * months.length, profit: 0, margin: null, budget: 0,
+        people: costs.get(id)?.people || 0
       };
-      byClient.set(r.clientId, c);
+      byClient.set(id, c);
     }
-    // several invoice lines in one month: the month and its manpower cost count once
-    if (!c.months.includes(r.month)) {
-      c.months.push(r.month);
-      c.cost += costOf(r.clientId);
-    }
+    return c;
+  };
+  costs.forEach((_, id) => {
+    if (id !== UNALLOCATED_ID && (!clientId || id === clientId)) lineFor(id);
+  });
+  [...scoped].sort((a, b) => a.month.localeCompare(b.month)).forEach(r => {
+    const c = lineFor(r.clientId);
+    if (!c.months.includes(r.month)) c.months.push(r.month);
     c.gross += r.invoiceValue;
     c.revenue += netRevenue(r);
     c.budget += r.budget;
     c.engagement = r.engagement;
-    c.clientName = r.clientName;
+    c.clientName = r.clientName || c.clientName;
   });
-  const perClient = Array.from(byClient.values()).map(c => {
-    c.months.sort();
-    c.profit = c.revenue - c.cost;
-    c.margin = c.revenue > 0 ? (c.profit / c.revenue) * 100 : null;
-    return c;
-  }).sort((a, b) => b.revenue - a.revenue);
+  const perClient = Array.from(byClient.values())
+    .filter(c => c.cost > 0 || c.gross !== 0 || c.revenue !== 0 || c.budget > 0)
+    .map(c => {
+      c.profit = c.revenue - c.cost;
+      c.margin = c.revenue > 0 ? (c.profit / c.revenue) * 100 : null;
+      return c;
+    })
+    .sort((a, b) => b.revenue - a.revenue || b.cost - a.cost);
 
   const costByClient = Array.from(costs.values())
     .filter(c => !clientId || c.clientId === clientId)
