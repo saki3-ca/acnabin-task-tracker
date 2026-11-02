@@ -41,6 +41,11 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({
   const { currentUser } = useAuth();
   const { pendingRequestsCount, unreadCount } = useNotifications();
 
+  // On a phone the tab strip scrolls sideways: keep the open tab in view
+  useEffect(() => {
+    document.querySelector('.nav-tabs .tab-btn.active')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [activeTab]);
+
   // The Proposal Tracker tab is only for people the Admin chose (Admin always has it)
   const isAdminUser = currentUser?.role === 'ADMIN';
   const [proposalAccess, setProposalAccess] = useState(false);

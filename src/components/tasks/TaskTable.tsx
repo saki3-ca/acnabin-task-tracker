@@ -24,7 +24,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   onOpenComment
 }) => {
   const bannerClass = `banner-strip banner-${bannerColor}`;
-  const tableClass = `data-table ${bannerColor}-table`;
+  const tableClass = `data-table task-table ${bannerColor}-table`;
 
   return (
     <div className="table-card">

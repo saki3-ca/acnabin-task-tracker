@@ -57,19 +57,19 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
   };
 
   return (
-    <tr className={overdue ? 'table-row-overdue' : ''}>
-      <td style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
+    <tr className={overdue ? 'table-row-overdue' : ''} data-status={task.status}>
+      <td data-col="sl" style={{ textAlign: 'center', fontWeight: 600, color: 'var(--ink-muted)' }}>
         {index + 1}
       </td>
 
       {showTeamColumns && (
-        <td style={{ fontWeight: 600, color: 'var(--navy)' }}>
+        <td data-label="Assigned to" style={{ fontWeight: 600, color: 'var(--navy)' }}>
           {task.assignedToName || '—'}
         </td>
       )}
 
       {/* Particulars */}
-      <td style={{ minWidth: '220px' }}>
+      <td data-col="title" style={{ minWidth: '220px' }}>
         <InstantTooltip content={task.particular}>
           <div
             style={{
@@ -94,24 +94,24 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {/* Client */}
-      <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
+      <td data-label="Client" style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
         <ClientLabel id={task.clientId} name={task.clientName || 'General'} />
       </td>
 
       {/* Added By - Only displayed in personal tasks, hidden in Team Engagement view */}
       {!showTeamColumns && (
-        <td style={{ fontSize: '12px', color: 'var(--ink-soft)', whiteSpace: 'nowrap', textAlign: 'center' }}>
+        <td data-label="Added by" style={{ fontSize: '12px', color: 'var(--ink-soft)', whiteSpace: 'nowrap', textAlign: 'center' }}>
           {task.createdByName || '—'}
         </td>
       )}
 
       {/* Priority */}
-      <td style={{ textAlign: 'center' }}>
+      <td data-label="Priority" style={{ textAlign: 'center' }}>
         <span className={priorityClass()}>{task.priority}</span>
       </td>
 
       {/* Deadline */}
-      <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
+      <td data-label="Deadline" style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
         <div className={overdue ? 'deadline-overdue-text' : ''} style={{ fontWeight: overdue ? 700 : 500, color: overdue ? '#C53030' : 'var(--ink)' }}>
           {fmtDate(task.deadline)}
         </div>
@@ -128,7 +128,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {/* Status: editable by creator or in personal view; read-only pill in Team View if not creator */}
-      <td style={{ textAlign: 'center' }}>
+      <td data-label="Status" style={{ textAlign: 'center' }}>
         {showTeamColumns && !canEdit ? (
           <span className={statusClass()}>{task.status}</span>
         ) : (
@@ -152,7 +152,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {/* Remarks */}
-      <td style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
+      <td data-label="Remarks" data-empty={task.remarks ? undefined : 'true'} style={{ fontSize: '12px', color: 'var(--ink-soft)' }}>
         {task.remarks ? (
           <InstantTooltip content={task.remarks}>
             <div
@@ -175,7 +175,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {/* Manager Comment */}
-      <td style={{ fontSize: '12px' }}>
+      <td data-label="Manager comment" data-empty={task.managerComment ? undefined : 'true'} style={{ fontSize: '12px' }}>
         {task.managerComment ? (
           <InstantTooltip content={task.managerComment}>
             <div
@@ -200,7 +200,7 @@ export const TaskTableRow: React.FC<TaskTableRowProps> = ({
       </td>
 
       {/* Actions */}
-      <td style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
+      <td data-col="actions" style={{ whiteSpace: 'nowrap', textAlign: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
           {canEdit && (
             <button
