@@ -182,6 +182,7 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
             </Section>
           ) : (
             <Section
+              isGlass={isGlass}
               title="Ask them to update"
               aside={
                 <span style={{ fontSize: '12px' }}>
