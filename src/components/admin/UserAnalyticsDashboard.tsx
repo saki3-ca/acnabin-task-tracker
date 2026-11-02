@@ -103,7 +103,7 @@ export const UserAnalyticsDashboard: React.FC = () => {
     if (!data) return [];
     const q = search.trim().toLowerCase();
     const list = data.users
-      .filter(u => u.status === 'ACTIVE' || Number(u.totalLogins) > 0)
+      .filter(u => u.status === 'ACTIVE')
       .filter(u => !q || u.name.toLowerCase().includes(q) || (u.empId || '').toLowerCase().includes(q) || (u.designation || '').toLowerCase().includes(q))
       .filter(u => !client || (clientsByUser.get(u.userId) ?? []).some(c => c.clientName === client))
       .map(u => ({

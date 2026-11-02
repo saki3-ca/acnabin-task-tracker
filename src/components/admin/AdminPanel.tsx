@@ -26,7 +26,7 @@ export const AdminPanel: React.FC = () => {
   const { theme } = useAppTheme();
   const isGlass = theme === 'glass';
   const [section, setSection] = useState<Section>('users');
-  const { allUsers, allClients, refreshContextData } = useAuth();
+  const { allUsers, allUsersIncludingInactive, allClients, refreshContextData } = useAuth();
 
   // Local state for user edits before saving
   const [userEdits, setUserEdits] = useState<Record<string, Partial<User>>>({});
@@ -63,7 +63,7 @@ export const AdminPanel: React.FC = () => {
   };
 
   const toggleUserClientAssignment = (userId: string, clientId: string) => {
-    const user = allUsers.find(u => u.id === userId);
+    const user = allUsersIncludingInactive.find(u => u.id === userId);
     if (!user) return;
     const current = getUserAssignedClientIds(user);
     let updated: string[];
@@ -427,7 +427,7 @@ export const AdminPanel: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {allUsers.map(user => {
+                {allUsersIncludingInactive.map(user => {
                   const currentEdits = userEdits[user.id] || {};
                   const designation = currentEdits.designation ?? user.designation;
                   const role = currentEdits.role ?? user.role;

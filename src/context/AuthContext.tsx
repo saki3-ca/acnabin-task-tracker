@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useLivePolling } from '../lib/useLivePolling';
 import { adminService } from '../services/adminService';
 import { authService } from '../services/authService';
@@ -9,7 +9,10 @@ import { Client, User } from '../types';
 interface AuthContextType {
   currentUser: User | null;
   isLoading: boolean;
+  /** Active people only. Inactive accounts are hidden everywhere except Admin Panel -> Users & Roles. */
   allUsers: User[];
+  /** Everyone, inactive included: only for Users & Roles (to restore someone) and for looking up an old name. */
+  allUsersIncludingInactive: User[];
   allClients: Client[];
   login: (empId: string, password?: string) => Promise<void>;
   register: (payload: any) => Promise<void>;
@@ -30,7 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
     return null;
   });
-  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [everyone, setEveryone] = useState<User[]>([]);
+  const allUsers = useMemo(() => everyone.filter(u => u.status !== 'INACTIVE'), [everyone]);
   const [allClients, setAllClients] = useState<Client[]>(() => clientService.getCachedAllClients() || []);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -41,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clientService.getAllClients().catch(() => clientService.getCachedAllClients() || [])
       ]);
       // Keep the same objects when nothing changed, so screens don't reload on every background refresh
-      setAllUsers(prev => (sameData(prev, users) ? prev : users));
+      setEveryone(prev => (sameData(prev, users) ? prev : users));
       setAllClients(prev => (sameData(prev, clients) ? prev : clients));
 
       // Resolve active user from localStorage session
@@ -160,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUser,
         isLoading,
         allUsers,
+        allUsersIncludingInactive: everyone,
         allClients,
         login,
         register,

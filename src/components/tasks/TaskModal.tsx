@@ -31,7 +31,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 }) => {
   const { theme } = useAppTheme();
   const isGlass = theme === 'glass';
-  const { currentUser, allClients, allUsers } = useAuth();
+  const { currentUser, allClients, allUsers, allUsersIncludingInactive } = useAuth();
   const { createTask, createTasksBulk, updateTask } = useTasks();
 
   const isEditing = Boolean(taskToEdit);
@@ -96,14 +96,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
     // If editing a task, preserve the current assignee in the options if they're not in the list (except Admin)
     if (taskToEdit?.assignedToId && !list.some(u => u.id === taskToEdit.assignedToId)) {
-      const existingAssignee = allUsers.find(u => u.id === taskToEdit.assignedToId);
+      const existingAssignee = allUsersIncludingInactive.find(u => u.id === taskToEdit.assignedToId);
       if (existingAssignee && existingAssignee.role !== 'ADMIN' && existingAssignee.designation !== 'Admin') {
         list = [existingAssignee, ...list];
       }
     }
 
     return list;
-  }, [currentUser, allUsers, activeClientId, mode, taskToEdit]);
+  }, [currentUser, allUsers, allUsersIncludingInactive, activeClientId, mode, taskToEdit]);
 
   // "Assign to ALL" never includes Assistant Director and above (they can still be picked one by one)
   const bulkRecipients = useMemo(

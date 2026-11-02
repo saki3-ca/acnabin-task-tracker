@@ -55,7 +55,7 @@ const todayInTimeline = (): string => {
 export const ExamLeaveTracker: React.FC = () => {
   const { theme } = useAppTheme();
   const isGlass = theme === 'glass';
-  const { currentUser, allUsers, allClients } = useAuth();
+  const { currentUser, allUsers, allUsersIncludingInactive, allClients } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
 
   const [allRecords, setRecords] = useState<StaffExamLeaveRecord[]>([]);
@@ -103,7 +103,17 @@ export const ExamLeaveTracker: React.FC = () => {
   }, [allUsers, currentUser]);
   // The database already returns only the leaves this person may see (matched by account, not by how the name
   // is spelled), so they are shown as they come. Filtering again by name here made some people see a blank page.
-  const records = allRecords;
+  // Leaves of inactive accounts are hidden (by account, or by name when the leave has no account and nobody active shares it)
+  const records = useMemo(() => {
+    const inactive = allUsersIncludingInactive.filter(u => u.status === 'INACTIVE');
+    if (inactive.length === 0) return allRecords;
+    const inactiveIds = new Set(inactive.map(u => u.id));
+    return allRecords.filter(r => {
+      if (r.userId) return !inactiveIds.has(r.userId);
+      const hidden = inactive.some(u => sameName(u.name, r.name));
+      return !hidden || allUsers.some(u => sameName(u.name, r.name));
+    });
+  }, [allRecords, allUsers, allUsersIncludingInactive]);
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingLocal, setPendingLocal] = useState<{ id: string; name: string; reason: string }[]>([]);
