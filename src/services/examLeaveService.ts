@@ -528,7 +528,7 @@ class ExamLeaveService {
       if (cComp !== 0) return cComp;
       return a.name.localeCompare(b.name);
     });
-    const staffTotal = Math.max(totalStaff || 0, countPeople(records));
+    const staffTotal = totalStaff && totalStaff > 0 ? totalStaff : countPeople(records);
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'ACNABIN Task Tracker';
     workbook.created = new Date();

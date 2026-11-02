@@ -354,10 +354,14 @@ export const ExamLeaveTracker: React.FC = () => {
   // Statistics
   // Rejected applications do not take anyone out of the office.
   const leaveRecords = useMemo(() => records.filter(countsAsLeave), [records]);
-  // In-office headcount is all active staff, not just the people who applied for leave.
+  // In-office headcount = the same people the Manpower tab counts: active accounts, not Admin and not Partners.
+  // It follows the accounts only. (It used to be floored at the number of people with a leave record, so adding or
+  // removing a person never moved the total.) The records are only used when there are no accounts to count.
+  const isManpower = (u: { status?: string; role?: string; designation?: string }) =>
+    u.status !== 'INACTIVE' && u.role !== 'ADMIN' && (u.designation || '').toLowerCase().trim() !== 'partner';
   const totalStaffCount = useMemo(() => {
-    const staff = canSeeEveryone ? allUsers.filter(u => u.status !== 'INACTIVE' && u.role !== 'ADMIN').length : teamUsers.length;
-    return Math.max(staff, countPeople(leaveRecords));
+    const staff = canSeeEveryone ? allUsers.filter(isManpower).length : teamUsers.filter(isManpower).length;
+    return staff > 0 ? staff : countPeople(leaveRecords);
   }, [allUsers, teamUsers, canSeeEveryone, leaveRecords]);
 
   // Active leave records currently displayed/filtered in the table
@@ -377,7 +381,7 @@ export const ExamLeaveTracker: React.FC = () => {
         c => c.name.toLowerCase().trim() === target || c.id.toLowerCase().trim() === target
       );
       const userCount = allUsers.filter(u => {
-        if (u.status === 'INACTIVE' || u.role === 'ADMIN') return false;
+        if (!isManpower(u)) return false;
         const cids = getUserAssignedClientIds(u);
         if (clientObj && cids.includes(clientObj.id)) return true;
         const names = cids.map(cid => allClients.find(c => c.id === cid)?.name).filter(Boolean) as string[];
@@ -393,7 +397,8 @@ export const ExamLeaveTracker: React.FC = () => {
           return rClients.some(c => c.toLowerCase().trim() === target);
         })
       );
-      return Math.max(userCount, recordCount, countPeople(activeLeaveRecords), 1);
+      // the people assigned to the client; the leave records only stand in when nobody is assigned
+      return userCount > 0 ? userCount : Math.max(recordCount, countPeople(activeLeaveRecords), 1);
     }
 
     if (hasActiveFilters) {
