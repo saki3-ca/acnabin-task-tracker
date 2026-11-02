@@ -143,39 +143,48 @@ const labelFor = (name: string, all: string[]): string => {
   return short.length > MAX_LABEL ? short.slice(0, MAX_LABEL - 1) + '…' : short;
 };
 
-/** Horizontal bars per client, one value each; negative values go left in red. */
-export const ClientProfitBars: React.FC<{ clients: ClientTotals[]; limit?: number }> = ({ clients, limit = 12 }) => {
+/**
+ * Profit or loss per client as an HTML list (not an SVG), so names are real text: full name, wraps to two lines,
+ * stays readable on any screen. Every client is listed, best first, worst last; the list scrolls when long.
+ * The bar grows right (green) for profit and left (red) for loss from a shared zero line.
+ */
+export const ClientProfitBars: React.FC<{ clients: ClientTotals[] }> = ({ clients }) => {
   const C = useColors();
   const list = [...clients].sort((a, b) => b.profit - a.profit);
-  const shown = list.length > limit ? [...list.slice(0, Math.ceil(limit / 2)), ...list.slice(-Math.floor(limit / 2))] : list;
-  if (shown.length === 0) return <div style={{ color: 'var(--ink-muted)', fontSize: 13, padding: 24 }}>No data for this selection.</div>;
-  const rowH = 24, nameW = 150, W = 640, pad = 64;
-  const names = shown.map(c => c.clientName);
-  const maxAbs = Math.max(...shown.map(c => Math.abs(c.profit)), 1);
-  const minP = Math.min(...shown.map(c => c.profit), 0);
-  const barArea = W - nameW - pad;
-  // room left of zero for the loss bars and their number, so a loss label never sits on a client name
-  const negRoom = minP < 0 ? Math.max((Math.abs(minP) / maxAbs) * barArea * 0.5, 56) : 0;
-  const zero = nameW + negRoom;
-  const scale = (barArea - negRoom) / maxAbs;
-  const H = shown.length * rowH + 8;
+  if (list.length === 0) return <div style={{ color: 'var(--ink-muted)', fontSize: 13, padding: 24 }}>No data for this selection.</div>;
+  const maxGain = Math.max(...list.map(c => c.profit), 0);
+  const maxLoss = Math.max(...list.map(c => -c.profit), 0);
+  const span = maxGain + maxLoss || 1;
+  // where zero sits in the bar track (0% = all loss, 100% = all profit)
+  const zero = (maxLoss / span) * 100;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Profit or loss by client">
-      <line x1={zero} x2={zero} y1={0} y2={H} stroke={C.grid} />
-      {shown.map((c, i) => {
-        const y0 = 4 + i * rowH;
-        const w = Math.abs(c.profit) * scale;
-        const x = c.profit >= 0 ? zero : zero - w;
+    <div className="fc-pl-list" role="list" aria-label="Profit or loss by client">
+      {list.map(c => {
+        const w = (Math.abs(c.profit) / span) * 100;
+        const loss = c.profit < 0;
         return (
-          <g key={c.clientId}>
-            <title>{`${c.clientName}: ${c.profit < 0 ? 'loss' : 'profit'} ${fmtBDT(Math.abs(c.profit))}`}</title>
-            <text x={nameW - 8} y={y0 + 15} fontSize={11.5} fill={C.ink} textAnchor="end">{labelFor(c.clientName, names)}</text>
-            <rect x={x} y={y0 + 3} width={Math.max(w, 1)} height={rowH - 8} rx={C.pill ? (rowH - 8) / 2 : 3} fill={c.profit >= 0 ? C.gain : C.loss} />
-            <text x={c.profit >= 0 ? x + w + 5 : x - 5} y={y0 + 15} fontSize={10.5} fill={C.text} textAnchor={c.profit >= 0 ? 'start' : 'end'}>{fmtShort(c.profit)}</text>
-          </g>
+          <div key={c.clientId} className="fc-pl-row" role="listitem" title={`${c.clientName}: ${loss ? 'loss' : 'profit'} ${fmtBDT(Math.abs(c.profit))}`}>
+            <span className="fc-pl-name">
+              {c.clientName}
+              {c.engagement === 'NOT_BILLED' && <em>not billed</em>}
+            </span>
+            <span className="fc-pl-track">
+              {maxLoss > 0 && maxGain > 0 && <i className="fc-pl-zero" style={{ left: `${zero}%`, background: C.grid }} />}
+              <b
+                className="fc-pl-bar"
+                style={{
+                  left: loss ? `${zero - w}%` : `${zero}%`,
+                  width: `${Math.max(w, 0.6)}%`,
+                  background: loss ? C.loss : C.gain,
+                  borderRadius: C.pill ? 999 : 3
+                }}
+              />
+            </span>
+            <span className="fc-pl-value" style={{ color: loss ? C.loss : C.gain }}>{loss ? '−' : ''}{fmtShort(Math.abs(c.profit))}</span>
+          </div>
         );
       })}
-    </svg>
+    </div>
   );
 };
 

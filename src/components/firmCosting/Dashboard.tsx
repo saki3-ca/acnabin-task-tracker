@@ -225,7 +225,7 @@ export const Dashboard: React.FC<Props> = ({ section, summary: s, projection, in
       </div>
 
       <div className="fc-grid">
-        <Card title="Profit and loss by client" sub={visible.length > 12 ? 'Top 6 and bottom 6 shown' : 'Every client with people or invoices; red = cost is more than revenue'} cls="fc-c6 fc-t9">
+        <Card title="Profit and loss by client" sub="Every client, best first. Red = cost is more than revenue" cls="fc-c6 fc-t9">
           <ClientProfitBars clients={visible} />
         </Card>
         <Card title="Budget against actual" sub="Grey = budget, coloured = actual net revenue (green once met)" cls="fc-c6 fc-t7" light>

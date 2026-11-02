@@ -140,6 +140,31 @@
 @media (max-width: 1100px) { .fc-c3, .fc-c4, .fc-c5, .fc-c7, .fc-c8 { grid-column: span 6; } }
 @media (max-width: 760px) { .fc-c4, .fc-c5, .fc-c6, .fc-c7, .fc-c8 { grid-column: span 12; } }
 
+/* profit / loss by client: name | bar | amount, as real text */
+.fc-pl-list { display: flex; flex-direction: column; max-height: 460px; overflow-y: auto; padding-right: 4px; }
+.fc-pl-row {
+  display: grid; grid-template-columns: minmax(0, 38%) minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  padding: 6px 2px; border-bottom: 1px solid var(--fc-line, rgba(0, 0, 0, 0.08));
+}
+.fc-pl-row:last-child { border-bottom: none; }
+.fc-pl-name {
+  font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+}
+.fc-pl-name em {
+  font-style: normal; font-size: 10px; font-weight: 700; margin-left: 6px; padding: 1px 6px; border-radius: 6px;
+  background: var(--fc-chip-down-bg, #fde8e8); color: var(--fc-chip-down, #b91c1c); white-space: nowrap;
+}
+.fc-pl-track { position: relative; height: 14px; }
+.fc-pl-zero { position: absolute; top: -4px; bottom: -4px; width: 1px; }
+.fc-pl-bar { position: absolute; top: 0; height: 100%; }
+.fc-pl-value { font-size: 12px; font-weight: 700; min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; }
+.fc-stage[data-theme='glass'] .fc-pl-name { color: #fff; }
+@media (max-width: 760px) {
+  .fc-pl-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+  .fc-pl-track { grid-column: 1 / -1; grid-row: 2; }
+}
+
 /* client filter (All / Billed / Not billed / Loss-making) */
 .fc-filter-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 4px 10px; }
 .fc-filter-btn {
