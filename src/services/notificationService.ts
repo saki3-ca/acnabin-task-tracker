@@ -1,5 +1,6 @@
 import { AppNotification, MyInfo, UserQuery } from '../types';
 import { api } from './api';
+import { InfoField } from '../lib/infoRequestFields';
 
 export const notificationService = {
   async getNotifications(userId: string): Promise<AppNotification[]> {
@@ -15,13 +16,13 @@ export const notificationService = {
     await api.callBackend('markNotificationRead', { notificationId });
   },
 
-  /** scope 'SALARY' asks only for salary/allowance and daily conveyance */
-  async sendInfoRequest(userId?: string, group?: 'STD' | 'EMP', scope?: 'SALARY'): Promise<{ count: number }> {
-    return api.callBackend('sendInfoRequest', { userId, group, scope });
+  /** fields = what to ask for (one or several); leave out for the full "update your information" request */
+  async sendInfoRequest(userId?: string, group?: 'STD' | 'EMP', fields?: InfoField[], excludeIds?: string[]): Promise<{ count: number }> {
+    return api.callBackend('sendInfoRequest', { userId, group, fields, excludeIds });
   },
 
-  async sendAnnouncement(message: string, userId?: string, group?: 'STD' | 'EMP'): Promise<{ count: number }> {
-    return api.callBackend('sendAnnouncement', { message, userId, group });
+  async sendAnnouncement(message: string, userId?: string, group?: 'STD' | 'EMP', excludeIds?: string[]): Promise<{ count: number }> {
+    return api.callBackend('sendAnnouncement', { message, userId, group, excludeIds });
   },
 
   async getMyInfo(): Promise<MyInfo | null> {

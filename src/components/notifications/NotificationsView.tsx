@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { api } from '../../services/api';
 import { notificationService } from '../../services/notificationService';
+import { fieldsOfRequest } from '../../lib/infoRequestFields';
 import { SendNotificationModal } from './SendNotificationModal';
 import { QueryInboxModal } from './QueryInboxModal';
 import { SendQueryModal } from './SendQueryModal';
@@ -181,7 +182,7 @@ export const NotificationsView: React.FC = () => {
 
       {infoFor && (
         <ProfileInfoModal
-          salaryOnly={notifications.find(n => n.id === infoFor)?.data?.kind === 'SALARY_INFO'}
+          fields={fieldsOfRequest(notifications.find(n => n.id === infoFor)?.data)}
           onClose={() => setInfoFor(null)}
           onDone={() => {
             markAsRead(infoFor);

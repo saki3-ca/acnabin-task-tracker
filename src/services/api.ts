@@ -1321,23 +1321,31 @@ export const api = {
           .eq('status', 'ACTIVE');
         if (tErr) throw tErr;
         const requestId = `INFO-${Date.now()}`;
-        // SALARY asks only for monthly salary/allowance and daily conveyance
-        const salaryOnly = payload?.scope === 'SALARY';
+        // The Admin picks which fields to ask for; none picked = the original full request
+        const askFields: string[] = Array.isArray(payload?.fields) ? payload.fields : [];
+        const fieldLabels: Record<string, string> = {
+          client: 'client(s)', salary: 'monthly salary/allowance', conveyance: 'daily conveyance',
+          academicYear: 'academic year', bloodGroup: 'blood group', emergency: 'emergency contact'
+        };
+        const asked = askFields.filter(f => fieldLabels[f]).map(f => fieldLabels[f]).join(', ');
         const rows = (targets || [])
           .filter((u: any) =>
             payload?.userId
               ? u.id === payload.userId
               : (u.role || '').toUpperCase() !== 'ADMIN' &&
                 (u.designation || '').toLowerCase().trim() !== 'partner' &&
+                !(payload?.excludeIds || []).includes(u.id) &&
                 (!payload?.group || String(u.emp_id || '').toUpperCase().startsWith(payload.group + '-')))
           .map((u: any) => ({
             user_id: u.id,
             type: 'INFO_REQUEST',
-            title: salaryOnly ? 'Please update your salary & conveyance' : 'Please update your information',
-            message: salaryOnly
-              ? 'Tap "Update info" to confirm your monthly salary/allowance and daily conveyance.'
+            title: asked ? `Please update your ${asked}` : 'Please update your information',
+            message: asked
+              ? `Tap "Update info" to update your ${asked}.`
               : 'Tap "Update info" to fill in your academic year, salary/allowance, daily conveyance, blood group and emergency contact.',
-            data: { requestId, kind: salaryOnly ? 'SALARY_INFO' : 'PROFILE_INFO' }
+            data: asked
+              ? { requestId, kind: 'FIELD_UPDATE', fields: askFields.filter(f => fieldLabels[f]) }
+              : { requestId, kind: 'PROFILE_INFO' }
           }));
         if (rows.length === 0) return { count: 0 } as T;
         const { error: insErr } = await supabase.from('notifications').insert(rows);
@@ -1383,6 +1391,7 @@ export const api = {
               ? u.id === payload.userId
               : (u.role || '').toUpperCase() !== 'ADMIN' &&
                 (u.designation || '').toLowerCase().trim() !== 'partner' &&
+                !(payload?.excludeIds || []).includes(u.id) &&
                 (!payload?.group || String(u.emp_id || '').toUpperCase().startsWith(payload.group + '-')))
           .map((u: any) => ({
             user_id: u.id,

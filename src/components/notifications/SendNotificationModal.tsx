@@ -2,28 +2,46 @@ import React, { useMemo, useState } from 'react';
 import { Send, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
+import { ALL_INFO_FIELDS, INFO_FIELDS, InfoField } from '../../lib/infoRequestFields';
 import { notificationService } from '../../services/notificationService';
+import { UserMultiPicker } from '../admin/UserMultiPicker';
 
 type Audience = 'ALL' | 'STD' | 'EMP' | 'ONE';
-type Kind = 'MESSAGE' | 'INFO' | 'SALARY';
+type Mode = 'MESSAGE' | 'REQUEST';
 
-const segStyle = (active: boolean, isGlass?: boolean): React.CSSProperties => ({
+const AUDIENCES: { key: Audience; label: string }[] = [
+  { key: 'ALL', label: 'Everyone' },
+  { key: 'STD', label: 'Students' },
+  { key: 'EMP', label: 'Employees' },
+  { key: 'ONE', label: 'One person' }
+];
+
+const chip = (active: boolean, isGlass: boolean): React.CSSProperties => ({
   flex: 1,
   padding: '8px 10px',
   fontSize: '12.5px',
   fontWeight: 700,
   borderRadius: '6px',
   cursor: 'pointer',
+  whiteSpace: 'nowrap',
   border: isGlass
     ? (active ? '1px solid rgba(246, 139, 139, 0.45)' : '1px solid rgba(255, 255, 255, 0.15)')
-    : ('1px solid ' + (active ? 'var(--maroon, #800000)' : 'var(--line)')),
+    : '1px solid ' + (active ? 'var(--maroon, #800000)' : 'var(--line)'),
   background: isGlass
     ? (active ? 'rgba(246, 139, 139, 0.22)' : 'rgba(255, 255, 255, 0.06)')
     : (active ? 'var(--maroon, #800000)' : '#ffffff'),
-  color: isGlass
-    ? (active ? '#fca5a5' : '#ffffff')
-    : (active ? '#ffffff' : 'var(--ink)')
+  color: isGlass ? (active ? '#fca5a5' : '#ffffff') : (active ? '#ffffff' : 'var(--ink)')
 });
+
+const Section: React.FC<{ title: string; children: React.ReactNode; aside?: React.ReactNode; isGlass: boolean }> = ({ title, children, aside, isGlass }) => (
+  <div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+      <span style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)' }}>{title}</span>
+      {aside}
+    </div>
+    {children}
+  </div>
+);
 
 interface Props {
   onClose: () => void;
@@ -35,9 +53,11 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
   const { theme } = useAppTheme();
   const isGlass = theme === 'glass';
   const [audience, setAudience] = useState<Audience>('ALL');
-  const [kind, setKind] = useState<Kind>('MESSAGE');
+  const [mode, setMode] = useState<Mode>('MESSAGE');
   const [userId, setUserId] = useState('');
   const [text, setText] = useState('');
+  const [fields, setFields] = useState<InfoField[]>([]);
+  const [excludeIds, setExcludeIds] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -49,30 +69,32 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
     [allUsers, currentUser]
   );
 
+  const toggle = (key: InfoField) => setFields(f => (f.includes(key) ? f.filter(x => x !== key) : [...f, key]));
+
   const handleSend = async () => {
     setNote(null);
-    if (audience === 'ONE' && !userId) return setNote({ ok: false, text: 'Please select a user.' });
-    if (kind === 'MESSAGE' && !text.trim()) return setNote({ ok: false, text: 'Please type your message.' });
-    const who = audience === 'STD' ? 'all active STUDENTS (STD)' : audience === 'EMP' ? 'all active EMPLOYEES (EMP)' : 'ALL active users';
-    const confirmText =
-      kind === 'INFO'
-        ? `Send an "update your information" request to ${who}?`
-        : kind === 'SALARY'
-          ? `Send a "salary & conveyance" update request to ${who}?`
-          : `Send this message to ${who}?`;
-    if (audience !== 'ONE' && !window.confirm(confirmText)) return;
+    if (audience === 'ONE' && !userId) return setNote({ ok: false, text: 'Please choose the person.' });
+    if (mode === 'MESSAGE' && !text.trim()) return setNote({ ok: false, text: 'Please type your message.' });
+    if (mode === 'REQUEST' && fields.length === 0) return setNote({ ok: false, text: 'Tick at least one thing to ask for.' });
+
+    const except = audience !== 'ONE' && excludeIds.length > 0 ? ` except ${excludeIds.length} ${excludeIds.length === 1 ? 'person' : 'people'}` : '';
+    const who = (audience === 'STD' ? 'all active students (STD)' : audience === 'EMP' ? 'all active employees (EMP)' : 'ALL active users') + except;
+    const what =
+      mode === 'MESSAGE'
+        ? 'this message'
+        : `an update request for: ${INFO_FIELDS.filter(f => fields.includes(f.key)).map(f => f.label).join(', ')}`;
+    if (audience !== 'ONE' && !window.confirm(`Send ${what} to ${who}?`)) return;
 
     setSending(true);
     try {
       const target = audience === 'ONE' ? userId : undefined;
       const group = audience === 'STD' || audience === 'EMP' ? audience : undefined;
+      const skip = audience === 'ONE' ? undefined : excludeIds;
       const { count } =
-        kind === 'INFO'
-          ? await notificationService.sendInfoRequest(target, group)
-          : kind === 'SALARY'
-            ? await notificationService.sendInfoRequest(target, group, 'SALARY')
-            : await notificationService.sendAnnouncement(text.trim(), target, group);
-      if (kind === 'MESSAGE') setText('');
+        mode === 'REQUEST'
+          ? await notificationService.sendInfoRequest(target, group, fields, skip)
+          : await notificationService.sendAnnouncement(text.trim(), target, group, skip);
+      if (mode === 'MESSAGE') setText('');
       setNote({ ok: true, text: `Sent to ${count} user${count === 1 ? '' : 's'}.` });
       onSent();
     } catch (e: any) {
@@ -93,7 +115,7 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
           background: isGlass ? 'var(--ui-modal-bg)' : '#fff',
           borderRadius: '10px',
           width: '100%',
-          maxWidth: '520px',
+          maxWidth: '540px',
           maxHeight: '92vh',
           overflowY: 'auto',
           boxShadow: isGlass ? 'var(--ui-shadow)' : '0 20px 40px rgba(0,0,0,0.25)',
@@ -111,51 +133,88 @@ export const SendNotificationModal: React.FC<Props> = ({ onClose, onSent }) => {
           </button>
         </div>
 
-        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: isGlass ? '#ffffff' : undefined }}>Send to</div>
+        <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <Section isGlass={isGlass} title="Send to">
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" style={segStyle(audience === 'ALL', isGlass)} onClick={() => setAudience('ALL')}>All users</button>
-              <button type="button" style={segStyle(audience === 'STD', isGlass)} onClick={() => setAudience('STD')}>Students (STD)</button>
-              <button type="button" style={segStyle(audience === 'EMP', isGlass)} onClick={() => setAudience('EMP')}>Employees (EMP)</button>
-              <button type="button" style={segStyle(audience === 'ONE', isGlass)} onClick={() => setAudience('ONE')}>Individual</button>
-            </div>
-          </div>
-
-          {audience === 'ONE' && (
-            <select className="form-select" value={userId} onChange={e => setUserId(e.target.value)} style={{ height: '36px', fontSize: '13px' }}>
-              <option value="">Select a user…</option>
-              {choices.map(u => (
-                <option key={u.id} value={u.id}>{u.name} ({u.empId})</option>
+              {AUDIENCES.map(a => (
+                <button key={a.key} type="button" style={chip(audience === a.key, isGlass)} onClick={() => setAudience(a.key)}>{a.label}</button>
               ))}
-            </select>
-          )}
-
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: isGlass ? '#ffffff' : undefined }}>Type</div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button type="button" style={segStyle(kind === 'MESSAGE', isGlass)} onClick={() => setKind('MESSAGE')}>Custom message</button>
-              <button type="button" style={segStyle(kind === 'INFO', isGlass)} onClick={() => setKind('INFO')}>Update info request</button>
-              <button type="button" style={segStyle(kind === 'SALARY', isGlass)} onClick={() => setKind('SALARY')}>Salary &amp; conveyance only</button>
             </div>
-            <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginTop: '6px' }}>
-              {kind === 'MESSAGE'
-                ? 'A plain notification, e.g. "Attend team meeting". Users just read it.'
-                : kind === 'SALARY'
-                  ? 'Asks only for monthly salary/allowance and daily conveyance, showing their current values. Stays unread until they submit.'
-                  : 'Asks for academic year, salary/allowance, daily conveyance, blood group and emergency contact. Stays unread until they submit.'}
-            </div>
-          </div>
+            {audience !== 'ONE' && (
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Except (optional)</div>
+                <UserMultiPicker
+                  users={choices}
+                  selectedIds={excludeIds}
+                  onChange={setExcludeIds}
+                  placeholder="Search people to leave out…"
+                />
+              </div>
+            )}
+            {audience === 'ONE' && (
+              <select className="form-select" value={userId} onChange={e => setUserId(e.target.value)} style={{ height: '36px', fontSize: '13px', marginTop: '8px', width: '100%' }}>
+                <option value="">Choose a person…</option>
+                {choices.map(u => (
+                  <option key={u.id} value={u.id}>{u.name} ({u.empId})</option>
+                ))}
+              </select>
+            )}
+          </Section>
 
-          {kind === 'MESSAGE' && (
-            <textarea
-              className="form-input"
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder="Type your message, e.g. Submit your timesheet by 5 PM."
-              rows={3}
-              style={{ fontSize: '13px', resize: 'vertical' }}
-            />
+          <Section isGlass={isGlass} title="What to send">
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button type="button" style={chip(mode === 'MESSAGE', isGlass)} onClick={() => setMode('MESSAGE')}>Message</button>
+              <button type="button" style={chip(mode === 'REQUEST', isGlass)} onClick={() => setMode('REQUEST')}>Ask to update information</button>
+            </div>
+          </Section>
+
+          {mode === 'MESSAGE' ? (
+            <Section isGlass={isGlass} title="Message">
+              <textarea
+                className="form-input"
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder="e.g. Submit your timesheet by 5 PM."
+                rows={3}
+                style={{ fontSize: '13px', resize: 'vertical', width: '100%' }}
+              />
+              <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginTop: '6px' }}>A plain notification. People just read it.</div>
+            </Section>
+          ) : (
+            <Section
+              title="Ask them to update"
+              aside={
+                <span style={{ fontSize: '12px' }}>
+                  <a href="#all" onClick={e => { e.preventDefault(); setFields(ALL_INFO_FIELDS); }}>Select all</a>
+                  {' · '}
+                  <a href="#none" onClick={e => { e.preventDefault(); setFields([]); }}>Clear</a>
+                </span>
+              }
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', border: isGlass ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid var(--line)', borderRadius: '8px', overflow: 'hidden' }}>
+                {INFO_FIELDS.map((f, i) => (
+                  <label
+                    key={f.key}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '9px 12px', cursor: 'pointer',
+                      borderTop: i === 0 ? 'none' : isGlass ? '1px solid rgba(255, 255, 255, 0.10)' : '1px solid var(--line)',
+                      background: fields.includes(f.key)
+                        ? (isGlass ? 'rgba(246, 139, 139, 0.14)' : 'rgba(128, 0, 0, 0.05)')
+                        : (isGlass ? 'rgba(255, 255, 255, 0.04)' : '#ffffff')
+                    }}
+                  >
+                    <input type="checkbox" checked={fields.includes(f.key)} onChange={() => toggle(f.key)} style={{ marginTop: '3px' }} />
+                    <span>
+                      <span style={{ fontSize: '13px', fontWeight: 600 }}>{f.label}</span>
+                      {f.hint && <span style={{ display: 'block', fontSize: '11.5px', color: 'var(--ink-muted)' }}>{f.hint}</span>}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div style={{ fontSize: '11.5px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-muted)', marginTop: '6px' }}>
+                Tick one thing or several. The notification stays unread until they submit, and only the ticked fields are changed.
+              </div>
+            </Section>
           )}
 
           {note && (
