@@ -443,70 +443,53 @@ const FullManpowerView: React.FC = () => {
           .join(', ')
       : r.assignedClient;
 
-  // Extracts Secondary client(s) for Excel export
-  const secondaryClientsText = (r: ManpowerRecord): string => {
-    if (r.assignedClient === ALL_CLIENTS) return '';
-    if (r.clientIds && r.clientIds.length > 1) {
-      return r.clientIds
-        .slice(1)
-        .map(id => {
-          const match = allClients.find(c => c.id === id);
-          const name = match ? match.name : id;
-          return clientText(name, jobOf(id));
-        })
-        .join(', ');
-    }
-    const parts = (r.assignedClient || '').split(',').map(s => s.trim()).filter(Boolean);
-    if (parts.length > 1) {
-      return parts.slice(1).join(', ');
-    }
-    return '';
-  };
-
   const handleExportExcel = async () => {
     const today = new Date().toISOString().split('T')[0];
     const fileName = `ACNABIN_Manpower_Summary_and_Details_${today}.xlsx`;
 
-    const summary = sortedSummaryList.map(item => ({
-      clientName: clientText(item.clientName, jobOf(item.jobClientId)),
-      manpower: item.manpowerCount,
-      salary: item.totalSalary,
-      conveyance: item.totalConveyance,
-      total: item.totalCost,
-      remarks: remarksMap[item.clientId] || ''
-    }));
+    // Client order follows the Summary view; names and job IDs are kept apart so the
+    // workbook can show them in separate columns (and join Spacezero + Volumezero).
+    const clientOrder = sortedSummaryList
+      .filter(item => item.clientName !== 'Unassigned' && item.clientName !== ALL_CLIENTS)
+      .map(item => ({ name: item.clientName, code: jobOf(item.jobClientId) || '' }));
 
     // Mobile numbers lose their leading 0 in some records: put it back
     const phone = (v?: string) => {
       const d = (v || '').replace(/\D/g, '');
       return d.length === 10 && d.startsWith('1') ? `0${d}` : (v || '').trim();
     };
-    const details = sortedDetails.map(item => ({
-      empId: item.empId,
-      name: item.name,
-      designation: /year/i.test(item.designation || '') ? 'Student' : (item.designation || ''),
-      primaryClient: primaryClientText(item),
-      secondaryClients: secondaryClientsText(item),
-      clients: primaryClientText(item),
-      academicYear: item.academicYear || '',
-      salary: item.salary,
-      conveyance: item.conveyance,
-      total: item.total,
-      mobile: phone(item.contactNumber),
-      email: item.email || '',
-      remarks: item.remarks || ''
-    }));
+    const idName = (id: string, fallback: string) => allClients.find(c => c.id === id)?.name || fallback;
+    const people = sortedDetails.map(item => {
+      const ids = item.clientIds && item.clientIds.length > 0 ? item.clientIds : item.clientId ? [item.clientId] : [];
+      const names = (item.assignedClient || '').split(',').map(s => s.trim()).filter(Boolean);
+      const none = (n: string) => !n || n === '—' || n === '-' || ['unassigned', 'none'].includes(n.toLowerCase());
+      const all: { name: string; code: string }[] =
+        item.assignedClient === ALL_CLIENTS
+          ? []
+          : ids.length > 0
+            ? ids.map((id, i) => ({ name: idName(id, names[i] || ''), code: jobOf(id) || '' }))
+            : names.filter(n => !none(n)).map(n => ({ name: n, code: '' }));
+      const [primary, ...secondary] = all;
+      return {
+        empId: item.empId,
+        name: item.name,
+        designation: /year/i.test(item.designation || '') ? 'Student' : (item.designation || ''),
+        academicYear: item.academicYear || '',
+        primaryName: item.assignedClient === ALL_CLIENTS ? ALL_CLIENTS : primary?.name || '',
+        primaryCode: primary?.code || '',
+        secondary,
+        salary: item.salary,
+        conveyance: item.conveyance,
+        mobile: phone(item.contactNumber),
+        email: item.email || '',
+        remarks: item.remarks || ''
+      };
+    });
 
     try {
       // Full staff details: only Admin and Assistant Director and above get any (empty for others)
       const staff = await staffService.getStaffAll().catch(() => []);
-      await downloadManpowerWorkbook(
-        summary,
-        { manpower: grandTotalManpower, salary: grandTotalSalary, conveyance: grandTotalConveyance, total: grandTotalCost },
-        details,
-        staff,
-        fileName
-      );
+      await downloadManpowerWorkbook(people, clientOrder, staff, fileName);
     } catch (err) {
       console.error('Excel export failed:', err);
       window.alert('Could not create the Excel file. Please try again.');
