@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { formatHrmId, getUserRank } from '../lib/permissions';
+import { formatHrmId, getUserRank, isAssistantDirectorOrAbove } from '../lib/permissions';
 import {
   AppNotification,
   Client,
@@ -136,6 +136,7 @@ function mapUserFromDb(row: any): User {
     signupClientId: signupClientId,
     assignedClientIds: assignedClientIds,
     status: row.status || 'ACTIVE',
+    pendingApproval: Boolean(row.pending_approval),
     avatarUrl: row.avatar_url || '',
     mobile: row.mobile || '',
     createdDate: row.created_date,
@@ -609,7 +610,9 @@ export const api = {
           throw new Error('User not found. Check your Employee / Student ID (e.g. STD-001643 or EMP-000230) or Partner Initial (e.g. AB).');
         }
         if (target.status !== 'ACTIVE') {
-          throw new Error('Your account is inactive. Contact an administrator.');
+          throw new Error(target.pending_approval
+            ? 'Your account is waiting for Admin approval. You can log in once an Admin activates it.'
+            : 'Your account is inactive. Contact an administrator.');
         }
 
         let loginResult: { status: string; token: string | null };
@@ -618,6 +621,9 @@ export const api = {
         } catch (loginErr) {
           console.error('Password verification failed:', loginErr);
           throw new Error('Password verification is unavailable. Please contact an administrator.');
+        }
+        if (loginResult.status === 'INACTIVE') {
+          throw new Error('Your account is not active yet. You can log in once an Admin activates it.');
         }
         if (loginResult.status === 'NO_PASSWORD') {
           throw new Error('This account has no password yet. Use "Forgot password?" to set one.');
@@ -695,7 +701,7 @@ export const api = {
             role: 'USER',
             designation: reqDesignation || 'Student',
             signup_client_id: clientId || '',
-            status: 'ACTIVE',
+            status: isAssistantDirectorOrAbove(reqDesignation) ? 'INACTIVE' : 'ACTIVE',
             created_date: new Date().toISOString(),
             mobile: mobile || ''
           };
@@ -730,11 +736,16 @@ export const api = {
             throw new Error('Could not save your password. Please try again or contact an administrator.');
           }
         }
-        try {
-          const { token } = await verifyPassword(newId, String(password));
-          saveSession(token ? { userId: newId, token } : null);
-        } catch (sessionErr) {
-          console.warn('Could not open a session after registration:', sessionErr);
+        // Assistant Director and above start inactive until an Admin approves them: no session for them.
+        if (created?.status === 'ACTIVE') {
+          try {
+            const { token } = await verifyPassword(newId, String(password));
+            saveSession(token ? { userId: newId, token } : null);
+          } catch (sessionErr) {
+            console.warn('Could not open a session after registration:', sessionErr);
+            saveSession(null);
+          }
+        } else {
           saveSession(null);
         }
 

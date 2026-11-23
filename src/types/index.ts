@@ -28,6 +28,8 @@ export interface User {
   signupClientName?: string;
   assignedClientIds?: string[];
   status: 'ACTIVE' | 'INACTIVE';
+  /** Signed up as Assistant Director or above and still waiting for an Admin to activate the account. */
+  pendingApproval?: boolean;
   avatarUrl?: string;
   mobile?: string;
   lastLogin?: string;

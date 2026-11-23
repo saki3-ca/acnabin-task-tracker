@@ -5,6 +5,7 @@ import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { LoginForm } from './components/auth/LoginForm';
 import { ResetPasswordForm } from './components/auth/ResetPasswordForm';
 import { SignupForm } from './components/auth/SignupForm';
+import { PendingApproval } from './components/auth/PendingApproval';
 import { ClientGrid } from './components/clients/ClientGrid';
 import { ProfileView } from './components/profile/ProfileView';
 import { StatPills } from './components/dashboard/StatPills';
@@ -156,6 +157,11 @@ const MainApp: React.FC = () => {
         <Toast message={toast} />
       </>
     );
+  }
+
+  // Not active (senior signup waiting for Admin approval, or deactivated): no access to the app
+  if (currentUser.status !== 'ACTIVE') {
+    return <PendingApproval user={currentUser} onLogout={logout} />;
   }
 
   // Open Add Task Modal

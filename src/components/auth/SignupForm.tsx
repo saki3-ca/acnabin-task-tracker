@@ -434,6 +434,12 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
             />
           </div>
 
+          {isAssistantDirectorOrAbove(designation) && (
+            <p style={{ fontSize: '12px', color: 'var(--ui-text-soft)', margin: 0 }}>
+              Accounts for Assistant Director and above need Admin approval. You can log in once an Admin activates your account.
+            </p>
+          )}
+
           <button type="submit" className="btn btn-primary" disabled={loading} style={{ marginTop: '6px' }}>
             <Check size={16} /> {loading ? 'Creating Account…' : 'Complete Registration'}
           </button>

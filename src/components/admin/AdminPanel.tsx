@@ -1,6 +1,6 @@
 import { ClientLabel } from '../ui/ClientLabel';
 import React, { useEffect, useState } from 'react';
-import { Check, Key, Shield, UserCog, Users } from 'lucide-react';
+import { Check, Key, Shield, UserCheck, UserCog, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
 import { DESIGNATIONS, ROLES } from '../../lib/constants';
@@ -164,6 +164,22 @@ export const AdminPanel: React.FC = () => {
         [field]: value
       }
     }));
+  };
+
+  // Senior signups (Assistant Director and above) waiting for an Admin to activate them
+  const pendingUsers = allUsersIncludingInactive.filter(u => u.status !== 'ACTIVE' && u.pendingApproval);
+
+  const handleApproveUser = async (user: User) => {
+    setIsSaving(true);
+    try {
+      await adminService.updateUser(user.id, { status: 'ACTIVE' });
+      await refreshContextData();
+      showNotice(`${user.name} approved. They can log in now.`);
+    } catch (err: any) {
+      showNotice(err.message || 'Failed to approve user');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveAllUserChanges = async () => {
@@ -398,6 +414,52 @@ export const AdminPanel: React.FC = () => {
 
       {section === 'users' && (
         <>
+        {pendingUsers.length > 0 && (
+          <div className="table-card" style={{ marginBottom: '16px', border: isGlass ? '1px solid rgba(246, 139, 139, 0.55)' : '1px solid #FCA5A5' }}>
+            <div style={{ padding: '16px 20px', borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: isGlass ? '#FFFFFF' : 'var(--maroon)' }}>
+                <UserCheck size={18} /> Waiting for approval ({pendingUsers.length})
+              </h3>
+              <p style={{ fontSize: '12px', color: isGlass ? 'rgba(255, 255, 255, 0.75)' : 'var(--ink-soft)', marginTop: '2px' }}>
+                Assistant Director and above signups can't use the portal until you approve them. Check the person is real before approving; to refuse, just leave them here (or change their designation first, then approve).
+              </p>
+            </div>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name & ID</th>
+                    <th>Email / Mobile</th>
+                    <th>Designation</th>
+                    <th>Signed up</th>
+                    <th style={{ width: '120px' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingUsers.map(u => (
+                    <tr key={u.id}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{u.name}</div>
+                        <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)' }}>{u.empId}</div>
+                      </td>
+                      <td>
+                        <div>{u.email}</div>
+                        <div style={{ fontSize: '11px', color: isGlass ? 'rgba(255, 255, 255, 0.70)' : 'var(--ink-soft)' }}>{u.mobile}</div>
+                      </td>
+                      <td>{u.designation}</td>
+                      <td>{u.createdDate ? new Date(u.createdDate).toLocaleDateString() : ''}</td>
+                      <td>
+                        <button className="btn btn-teal btn-sm" onClick={() => handleApproveUser(u)} disabled={isSaving}>
+                          <Check size={14} /> Approve
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         {/* 3. User Management */}
         <div className="table-card">
           <div style={{ padding: '16px 20px', borderBottom: isGlass ? '1px solid rgba(255, 255, 255, 0.16)' : '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -521,6 +583,9 @@ export const AdminPanel: React.FC = () => {
                           <option value="ACTIVE">Active</option>
                           <option value="INACTIVE">Inactive</option>
                         </select>
+                        {user.pendingApproval && user.status !== 'ACTIVE' && (
+                          <div style={{ fontSize: '11px', marginTop: '4px', color: isGlass ? '#f68b8b' : '#991B1B' }}>Waiting for approval</div>
+                        )}
                       </td>
                     </tr>
                   );
